@@ -1,0 +1,21 @@
+target/
+!**/src/**/target
+
+# Eclipse
+.settings/
+.project
+.classpath
+.metadata/
+# IntelliJ
+.idea
+**/*.iml
+
+rebel.xml
+rebel-remote.xml
+.factorypath
+
+.DS_Store
+${sys:catalina.home}/
+
+/sotograph/jars/
+/sotograph/sources/
