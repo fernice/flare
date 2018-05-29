@@ -1,16 +1,32 @@
 package de.krall.flare.std
 
-fun <T> Some(value: T): Option<T> {
-    return Option.Some(value)
+sealed class Option<out T> {
+
+    abstract fun expect(message: String): T
 }
 
-fun <T> None(): Option<T> {
-    return Option.None()
+class None<T> : Option<T>() {
+    override fun expect(message: String): T {
+        throw IllegalStateException(message)
+    }
+
+    override fun toString(): String {
+        return "None"
+    }
 }
 
-sealed class Option<T> {
+data class Some<T>(val value: T) : Option<T>() {
+    override fun expect(message: String): T {
+        return value
+    }
 
-    class None<T> : Option<T>()
+    override fun toString(): String {
+        return "Some($value)"
+    }
+}
 
-    class Some<T>(val value: T) : Option<T>()
+inline fun <T> Option<T>.let(block: (T) -> Unit) {
+    if (this is Some) {
+        block(this.value)
+    }
 }

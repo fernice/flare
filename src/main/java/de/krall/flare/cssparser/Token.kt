@@ -1,11 +1,12 @@
 package de.krall.flare.cssparser
 
+import de.krall.flare.std.None
+import de.krall.flare.std.Option
+import de.krall.flare.std.Some
 import kotlin.String as Str
 import de.krall.flare.cssparser.Number as ParsedNumber
 
 sealed class Token {
-
-    class EoF : Token()
 
     class Delimiter(val char: Char) : Token()
 
@@ -65,7 +66,7 @@ sealed class Token {
 
     class SemiColon : Token()
 
-    class Solidus: Token()
+    class Solidus : Token()
 
     class Pipe : Token()
 
@@ -96,4 +97,86 @@ sealed class Token {
     class CDO : Token()
 
     class Column : Token()
+}
+
+class Number(val type: Str,
+             val text: Str,
+             val value: Double,
+             val negative: Boolean) {
+
+    fun int(): Int {
+        return value.toInt()
+    }
+}
+
+enum class BlockType {
+
+    PARENTHESIS,
+
+    BRACKET,
+
+    BRACE;
+
+    companion object {
+
+        fun opening(token: Token): Option<BlockType> {
+            return when (token) {
+                is Token.LParen -> Some(PARENTHESIS)
+                is Token.LBracket -> Some(BRACKET)
+                is Token.LBrace -> Some(BRACE)
+                is Token.Function -> Some(PARENTHESIS)
+                else -> None()
+            }
+        }
+
+        fun closing(token: Token): Option<BlockType> {
+            return when (token) {
+                is Token.RParen -> Some(PARENTHESIS)
+                is Token.RBracket -> Some(BRACKET)
+                is Token.RBrace -> Some(BRACE)
+                else -> None()
+            }
+        }
+    }
+}
+
+class Delimiters(val bits: Int) {
+
+    companion object {
+
+        val None: Delimiters by lazy { Delimiters(0) }
+
+        val LeftBrace: Delimiters by lazy { Delimiters(1 shl 1) }
+        val SemiColon: Delimiters by lazy { Delimiters(1 shl 2) }
+        val Bang: Delimiters by lazy { Delimiters(1 shl 3) }
+        val Comma: Delimiters by lazy { Delimiters(1 shl 4) }
+
+        val RightParenthesis: Delimiters by lazy { Delimiters(1 shl 5) }
+        val RightBrace: Delimiters by lazy { Delimiters(1 shl 6) }
+        val RightBracket: Delimiters by lazy { Delimiters(1 shl 7) }
+
+        fun from(token: Token): Delimiters {
+            return when (token) {
+                is Token.LBrace -> LeftBrace
+                is Token.SemiColon -> SemiColon
+                is Token.Bang -> Bang
+
+                is Token.RParen -> RightParenthesis
+                is Token.RBrace -> RightBrace
+                is Token.RBracket -> RightBracket
+
+                else -> None
+            }
+        }
+
+        fun from(blockType: BlockType): Delimiters {
+            return when (blockType) {
+                BlockType.PARENTHESIS -> RightParenthesis
+                BlockType.BRACE -> RightBrace
+                BlockType.BRACKET -> RightBracket
+
+                else -> None
+            }
+        }
+    }
 }

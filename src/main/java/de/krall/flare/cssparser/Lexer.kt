@@ -1,12 +1,18 @@
 package de.krall.flare.cssparser
 
+import de.krall.flare.std.Empty
 import de.krall.flare.std.Err
 import de.krall.flare.std.Ok
 import de.krall.flare.std.Result
 
 class SourcePosition(val position: Int)
 
-class SourceLocation(val line: Int, val column: Int)
+class SourceLocation(val line: Int, val column: Int) {
+
+    override fun toString(): String {
+        return "($line, $column)"
+    }
+}
 
 /**
  * This is a implementation of the Css Level 3 syntax specification.
@@ -23,7 +29,7 @@ class Lexer(private val reader: CssReader) {
     }
 
     // https://www.w3.org/TR/css-syntax-3/#consume-a-token
-    fun nextToken(): Result<Token, Nothing> {
+    fun nextToken(): Result<Token, Empty> {
         if (reader.isEoF) {
             return Err()
         }
@@ -108,6 +114,8 @@ class Lexer(private val reader: CssReader) {
                 if (startsNumber(reader.c, reader.peekChar(), reader.peekChar(2))) {
                     consumeNumeric()
                 } else {
+                    reader.nextChar()
+
                     Token.Dot()
                 }
             }
@@ -140,7 +148,9 @@ class Lexer(private val reader: CssReader) {
                 reader.nextChar()
 
                 if (startsIdentifier(reader.c, reader.peekChar(), reader.peekChar(2))) {
-                    consumeIdentifier()
+                    val name = consumeName()
+
+                    Token.AtKeyword(name)
                 } else {
                     Token.Delimiter('@')
                 }
@@ -244,10 +254,11 @@ class Lexer(private val reader: CssReader) {
     private fun consumeIdentifier(): Token {
         val name = consumeName()
 
-        return if (name.equals("url", true) && reader.c == 'c') {
+        return if (name.equals("url", true) && reader.c == '(') {
             reader.nextChar()
             consumeUrl()
-        } else if (reader.c == 'c') {
+        } else if (reader.c == '(') {
+            reader.nextChar()
             Token.Function(name)
         } else {
             Token.Identifier(name)

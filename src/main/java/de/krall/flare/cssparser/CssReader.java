@@ -14,6 +14,10 @@ public final class CssReader {
     public char[] word;
     public int wordPos;
 
+    CssReader(String text) {
+        this(text.toCharArray(), text.length());
+    }
+
     CssReader(char[] buffer, final int length) {
         if (length == buffer.length) {
             final char[] newBuffer = new char[length + 1];

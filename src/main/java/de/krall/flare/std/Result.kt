@@ -1,42 +1,54 @@
 package de.krall.flare.std
 
-fun <T, E> Ok(value: T): Result<T, E> {
-    return Result.Ok(value)
+fun Err(): Result<Nothing, Empty> {
+    return Err(Empty.instance)
 }
 
-fun <T> Err(): Result<T, Nothing> {
-    return Result.Err()
+fun Ok(): Result<Empty, Nothing> {
+    return Ok(Empty.instance)
 }
 
-fun <T, E> Err(value: E): Result<T, E> {
-    return Result.Err(value)
+sealed class Result<out T, out E> {
+
+    abstract fun expect(message: String): T
+
+    abstract fun <U> map(mapper: (T) -> U): Result<U, E>
+
+    abstract fun <F> mapErr(mapper: (E) -> F): Result<T, F>
 }
 
-sealed class Result<T, E> {
+data class Ok<out T>(val value: T) : Result<T, Nothing>() {
 
-    abstract fun ok(): Option<T>
-
-    abstract fun err(): Option<E>
-
-    class Ok<T, E>(val value: T) : Result<T, E>() {
-
-        override fun ok(): Option<T> {
-            return Some(value)
-        }
-
-        override fun err(): Option<E> {
-            return None()
-        }
+    override fun <U> map(mapper: (T) -> U): Result<U, Nothing> {
+        return Ok(mapper(value))
     }
 
-    class Err<T, E>(val value: E) : Result<T, E>() {
+    override fun expect(message: String): T {
+        return value
+    }
 
-        override fun ok(): Option<T> {
-            return None()
-        }
+    override fun <F> mapErr(mapper: (Nothing) -> F): Result<T, F> {
+        return Ok(value)
+    }
+}
 
-        override fun err(): Option<E> {
-            return Some(value)
-        }
+data class Err<out E>(val value: E) : Result<Nothing, E>() {
+
+    override fun expect(message: String): Nothing {
+        throw IllegalStateException("result is err")
+    }
+
+    override fun <U> map(mapper: (Nothing) -> U): Result<U, E> {
+        return Err(value)
+    }
+
+    override fun <F> mapErr(mapper: (E) -> F): Result<Nothing, F> {
+        return Err(mapper(value))
+    }
+}
+
+class Empty private constructor() {
+    companion object {
+        val instance: Empty by lazy { Empty() }
     }
 }
