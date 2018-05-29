@@ -85,7 +85,7 @@ sealed class NonTSPseudoClass {
     class Visited : SelectorNonTSPseudoClass()
 }
 
-class Selector(val components: List<Component>) {
+class Selector(private val components: List<Component>) : Iterable<Component> {
 
-
+    override fun iterator(): Iterator<Component> = components.iterator()
 }

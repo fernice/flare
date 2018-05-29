@@ -1,6 +1,13 @@
 package de.krall.flare.cssparser;
 
+import de.krall.flare.css.properties.longhand.BackgroundAttachment;
+import de.krall.flare.css.properties.longhand.BackgroundAttachmentId;
+
 public final class CssReader {
+
+    {
+        BackgroundAttachmentId.Companion.getInstance();
+    }
 
     private char[] buffer;
     int bp;

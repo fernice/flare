@@ -323,7 +323,7 @@ class SelectorParseTest {
         }
 
         var index = 0
-        for (component in selector.components) {
+        for (component in selector) {
             asserts[index++](component)
         }
     }
