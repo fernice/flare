@@ -4,7 +4,6 @@ import de.krall.flare.std.None
 import de.krall.flare.std.Option
 import de.krall.flare.std.Some
 import kotlin.String as Str
-import de.krall.flare.cssparser.Number as ParsedNumber
 
 sealed class Token {
 
@@ -32,11 +31,11 @@ sealed class Token {
 
     class AtKeyword(val name: Str) : Token()
 
-    class Number(val number: ParsedNumber) : Token()
+    class Number(val number: de.krall.flare.cssparser.Number) : Token()
 
-    class Dimension(val number: ParsedNumber, val unit: Str) : Token()
+    class Dimension(val number: de.krall.flare.cssparser.Number, val unit: Str) : Token()
 
-    class Percentage(val number: ParsedNumber) : Token()
+    class Percentage(val number: de.krall.flare.cssparser.Number) : Token()
 
     class UnicodeRange(val start: Int, val end: Int) : Token()
 
@@ -107,6 +106,10 @@ class Number(val type: Str,
     fun int(): Int {
         return value.toInt()
     }
+
+    fun float(): Float {
+        return value.toFloat()
+    }
 }
 
 enum class BlockType {
@@ -174,8 +177,6 @@ class Delimiters(val bits: Int) {
                 BlockType.PARENTHESIS -> RightParenthesis
                 BlockType.BRACE -> RightBrace
                 BlockType.BRACKET -> RightBracket
-
-                else -> None
             }
         }
     }

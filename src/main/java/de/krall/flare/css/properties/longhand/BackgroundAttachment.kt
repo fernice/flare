@@ -11,39 +11,6 @@ import de.krall.flare.std.Err
 import de.krall.flare.std.Ok
 import de.krall.flare.std.Result
 
-private fun parse(context: ParserContext, input: Parser): Result<List<Attachment>, ParseError> {
-    return input.parseCommaSeparated { parseKeyword(context, it) }
-}
-
-@Suppress("UNUSED_PARAMETER")
-private fun parseKeyword(context: ParserContext, input: Parser): Result<Attachment, ParseError> {
-    val location = input.sourceLocation()
-    val identifierResult = input.expectIdentifier()
-
-    val identifier = when (identifierResult) {
-        is Ok -> identifierResult.value
-        is Err -> return identifierResult
-    }
-
-    return when (identifier.toLowerCase()) {
-        "scroll" -> Ok(Attachment.SCROLL)
-        "fixed" -> Ok(Attachment.FIXED)
-        "local" -> Ok(Attachment.LOCAL)
-        else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
-    }
-}
-
-private fun getInitialValue(): List<Attachment> {
-    return listOf(Attachment.SCROLL)
-}
-
-class BackgroundAttachment(val attachment: List<Attachment>) : PropertyDeclaration() {
-
-    override fun id(): LonghandId {
-        return BackgroundAttachmentId.instance
-    }
-} 
-
 @PropertyEntryPoint
 class BackgroundAttachmentId : LonghandId() {
 
@@ -82,6 +49,39 @@ class BackgroundAttachmentId : LonghandId() {
 
         val instance: BackgroundAttachmentId by lazy { BackgroundAttachmentId() }
     }
+}
+
+class BackgroundAttachment(val attachment: List<Attachment>) : PropertyDeclaration() {
+
+    override fun id(): LonghandId {
+        return BackgroundAttachmentId.instance
+    }
+}
+
+private fun parse(context: ParserContext, input: Parser): Result<List<Attachment>, ParseError> {
+    return input.parseCommaSeparated { parseKeyword(context, it) }
+}
+
+@Suppress("UNUSED_PARAMETER")
+private fun parseKeyword(context: ParserContext, input: Parser): Result<Attachment, ParseError> {
+    val location = input.sourceLocation()
+    val identifierResult = input.expectIdentifier()
+
+    val identifier = when (identifierResult) {
+        is Ok -> identifierResult.value
+        is Err -> return identifierResult
+    }
+
+    return when (identifier.toLowerCase()) {
+        "scroll" -> Ok(Attachment.SCROLL)
+        "fixed" -> Ok(Attachment.FIXED)
+        "local" -> Ok(Attachment.LOCAL)
+        else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
+    }
+}
+
+private fun getInitialValue(): List<Attachment> {
+    return listOf(Attachment.SCROLL)
 }
 
 enum class Attachment {

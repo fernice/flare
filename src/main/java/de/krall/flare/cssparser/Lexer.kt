@@ -317,6 +317,7 @@ class Lexer(private val reader: CssReader) {
                         Token.BadUrl(token.value)
                     }
                 }
+                else -> throw IllegalStateException("unreachable")
             }
         }
 
@@ -395,7 +396,8 @@ class Lexer(private val reader: CssReader) {
                 Token.Dimension(number, unit)
             }
             reader.c == '%' -> {
-                Token.Percentage(number)
+                reader.nextChar()
+                Token.Percentage(Number(number.type, number.text, number.value / 100, number.negative))
             }
             else -> {
                 Token.Number(number)
