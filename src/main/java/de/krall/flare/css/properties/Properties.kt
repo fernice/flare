@@ -11,7 +11,6 @@ import de.krall.flare.std.Err
 import de.krall.flare.std.Ok
 import de.krall.flare.std.Result
 import org.reflections.Reflections
-import java.lang.reflect.Modifier
 import kotlin.reflect.full.companionObjectInstance
 import de.krall.flare.css.properties.CssWideKeyword as DeclaredCssWideKeyword
 import de.krall.flare.css.properties.LonghandId as PropertyLonghandId
@@ -36,6 +35,16 @@ abstract class PropertyDeclaration {
 
         override fun id(): PropertyLonghandId {
             return id
+        }
+    }
+
+    companion object {
+
+        fun parseInto(declarations: MutableList<PropertyDeclaration>,
+                      id: PropertyId,
+                      context: ParserContext,
+                      input: Parser): Result<Empty, ParseError> {
+            return id.parseInto(declarations, context, input)
         }
     }
 }

@@ -239,11 +239,17 @@ class Lexer(private val reader: CssReader) {
                 reader.nextChar()
                 Token.Equal()
             }
+            '!'-> {
+                reader.nextChar()
+                Token.Bang()
+            }
             else -> {
                 if (isLetter(reader.c)) {
                     consumeIdentifier()
                 } else {
-                    Token.Delimiter(reader.c)
+                    val char = reader.c
+                    reader.nextChar()
+                    Token.Delimiter(char)
                 }
             }
         }

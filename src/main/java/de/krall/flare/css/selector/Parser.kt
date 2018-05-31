@@ -364,7 +364,7 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
                             explicitNamespace(input, QualifiedNamePrefix.ExplicitNamespace(prefix, namespace.value), attributeSelector)
                         }
                         is None -> {
-                            Err(afterIdentState.sourceLocation().newError(SelectorParseErrorKind.ExpectedNamespace()))
+                            Err(afterIdentState.location().newError(SelectorParseErrorKind.ExpectedNamespace()))
                         }
                     }
                 }
@@ -404,7 +404,7 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
                     input.reset(afterAsteriskState)
 
                     if (attributeSelector) {
-                        Err(afterAsteriskState.sourceLocation().newError(SelectorParseErrorKind.ExpectedBarAttributeSelector()))
+                        Err(afterAsteriskState.location().newError(SelectorParseErrorKind.ExpectedBarAttributeSelector()))
                     } else {
                         defaultNamespace(context, None())
                     }
@@ -718,7 +718,7 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
 }
 
 
-fun parseAttributeSelector(context: SelectorParserContext, input: Parser): Result<Component, ParseError> {
+private fun parseAttributeSelector(context: SelectorParserContext, input: Parser): Result<Component, ParseError> {
     val qualifiedNameResult = parseQualifiedName(context, input, true)
 
     val qualifiedName = when (qualifiedNameResult) {

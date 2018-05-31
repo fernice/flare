@@ -116,7 +116,7 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
                 }
             }
             is Ok -> {
-                Err(state.sourceLocation().newUnexpectedTokenError(tokenResult.value))
+                Err(state.location().newUnexpectedTokenError(tokenResult.value))
             }
         }
 
@@ -226,6 +226,20 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
 
         return when (token) {
             is Token.Solidus -> Ok()
+            else -> Err(newUnexpectedTokenError(token))
+        }
+    }
+
+    fun expectColon(): Result<Empty, ParseError> {
+        val tokenResult = next()
+
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Colon -> Ok()
             else -> Err(newUnexpectedTokenError(token))
         }
     }
@@ -374,11 +388,11 @@ class ParserInput(internal val text: String)
 
 class ParserState(internal val state: State, internal val blockType: Option<BlockType>) {
 
-    fun sourcePosition(): SourcePosition {
+    fun position(): SourcePosition {
         return state.sourcePosition
     }
 
-    fun sourceLocation(): SourceLocation {
+    fun location(): SourceLocation {
         return state.sourceLocation
     }
 }
@@ -390,7 +404,7 @@ class ParseError(val kind: ParseErrorKind, val location: SourceLocation) {
     }
 }
 
-open class ParseErrorKind {
+abstract class ParseErrorKind {
 
     override fun toString(): String {
         return "ParseErrorKind::${javaClass.simpleName}"
@@ -401,4 +415,6 @@ open class ParseErrorKind {
     class Unexhausted : ParseErrorKind()
 
     class UnexpectedToken(val token: Token) : ParseErrorKind()
+
+    class UnsupportedFeature : ParseErrorKind()
 }

@@ -1,6 +1,9 @@
 package de.krall.flare.css.selector
 
-import de.krall.flare.cssparser.Nth
+import de.krall.flare.cssparser.*
+import de.krall.flare.std.Err
+import de.krall.flare.std.Ok
+import de.krall.flare.std.Result
 
 interface NamespacePrefix {
 
@@ -134,4 +137,38 @@ sealed class AttributeSelectorOperator {
 class Selector(private val components: List<Component>) : Iterable<Component> {
 
     override fun iterator(): Iterator<Component> = components.iterator()
+}
+
+class SelectorList(private val selectors: List<Selector>) : Iterable<Selector> {
+
+    override fun iterator(): Iterator<Selector> = selectors.iterator()
+
+    companion object {
+
+        fun parse(context: SelectorParserContext, input: Parser): Result<SelectorList, ParseError> {
+            val selectors = mutableListOf<Selector>()
+
+            lopp@
+            while (true) {
+                val selectorResult = input.parseUntilBefore(Delimiters.Comma, { input -> parseSelector(context, input) })
+
+                when (selectorResult) {
+                    is Ok -> selectors.add(selectorResult.value)
+                    is Err -> return selectorResult
+                }
+
+                val tokenResult = input.next()
+
+                val token = when (tokenResult) {
+                    is Ok -> tokenResult.value
+                    is Err -> return Ok(SelectorList(selectors))
+                }
+
+                when (token) {
+                    is Token.Comma -> continue@lopp
+                    else -> throw IllegalStateException("unreachable")
+                }
+            }
+        }
+    }
 }

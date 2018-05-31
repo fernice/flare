@@ -145,7 +145,11 @@ enum class BlockType {
     }
 }
 
-class Delimiters(val bits: Int) {
+class Delimiters private constructor(val bits: Int) {
+
+    infix fun or(delimiters: Delimiters): Delimiters {
+        return Delimiters(bits or delimiters.bits)
+    }
 
     companion object {
 

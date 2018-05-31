@@ -29,7 +29,11 @@ class Tokenizer private constructor(private val text: String, private val lexer:
         var state = state
 
         for (i in 0 until count) {
-            if (state.token !is Err && state.next == null) {
+            if (state.token is Err) {
+                return state.token
+            }
+
+            if (state.next == null) {
                 state.next = State.new(lexer)
             }
 
@@ -55,8 +59,8 @@ class Tokenizer private constructor(private val text: String, private val lexer:
         return state.sourceLocation
     }
 
-    fun sliceFrom(position: SourcePosition): String {
-        return text.substring(position.position)
+    fun sliceFrom(start: SourcePosition): String {
+        return text.substring(start.position, position().position)
     }
 
     fun slice(start: SourcePosition, end: SourcePosition): String {
