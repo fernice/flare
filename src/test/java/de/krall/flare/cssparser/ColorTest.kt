@@ -177,6 +177,30 @@ class ColorParseTest {
                 expectRGBA(255, 255, 255, 255))
     }
 
+    @Test
+    fun hslDegWhite() {
+        parse("hsl(0deg 0% 100%)",
+                expectRGBA(255, 255, 255))
+    }
+
+    @Test
+    fun hslGradWhite() {
+        parse("hsl(0grad 0% 100%)",
+                expectRGBA(255, 255, 255))
+    }
+
+    @Test
+    fun hslRadWhite() {
+        parse("hsl(0rad 0% 100%)",
+                expectRGBA(255, 255, 255))
+    }
+
+    @Test
+    fun hslTurnWhite() {
+        parse("hsl(0turn 0% 100%)",
+                expectRGBA(255, 255, 255))
+    }
+
     private fun parse(text: String, assert: (Color) -> Unit) {
         val input = Parser(ParserInput(text))
 

@@ -7,6 +7,9 @@ import de.krall.flare.std.Result
 
 class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int)
 
+/**
+ * Represents either a [RGBA] color or the keyword 'currentcolor'.
+ */
 sealed class Color {
 
     class RGBA(val rgba: de.krall.flare.cssparser.RGBA) : Color()
@@ -15,10 +18,16 @@ sealed class Color {
 
     companion object {
 
+        /**
+         * Parses the token stream [input] into a [Color] using the [DefaultColorComponentParser].
+         */
         fun parse(input: Parser): Result<Color, ParseError> {
             return parse(input, DefaultColorComponentParser())
         }
 
+        /**
+         * Parses the token stream [input] into a [Color] using the specified [ColorComponentParser].
+         */
         fun parse(input: Parser, parser: ColorComponentParser): Result<Color, ParseError> {
             val location = input.sourceLocation()
             val tokenResult = input.next()
@@ -180,6 +189,9 @@ interface ColorComponentParser {
     }
 }
 
+/**
+ * Parses a color hash into a [RGBA] color.
+ */
 private fun parseHash(hash: String): Result<Color, Empty> {
     val chars = hash.toCharArray()
 
@@ -214,14 +226,23 @@ private fun parseHash(hash: String): Result<Color, Empty> {
     }
 }
 
+/**
+ * Returns a [RGBA] color with the specified [red], [green] and [blue] values and a alpha value of 255.
+ */
 private inline fun rgb(red: Int, green: Int, blue: Int): Color {
     return rgba(red, green, blue, 255)
 }
 
+/**
+ * Returns a [RGBA] color with the specified [red], [green], [blue] and [alpha] values.
+ */
 private inline fun rgba(red: Int, green: Int, blue: Int, alpha: Int): Color {
     return Color.RGBA(RGBA(red, green, blue, alpha))
 }
 
+/**
+ * Returns the associated hex value of a char ranging from '0' to 'f'
+ */
 private fun fromHex(c: Char): Int {
     when (c) {
         '0' -> return 0
@@ -408,8 +429,16 @@ private fun parseColorKeyword(keyword: String): Result<Color, Empty> {
     return Ok(color)
 }
 
+/**
+ * Represents the RGB part of a [RGBA], including a flag [usesCommas] indicating whether the arguments were comma
+ * separated.
+ */
 private data class RGBF(val red: Int, val green: Int, val blue: Int, val usesCommas: Boolean)
 
+/**
+ * Parses the arguments [input] of the color function with the specified [name] into a [RGBA] color. Supports
+ * RGB, RGBA, HSL and HSLA.
+ */
 private fun parseColorFunction(input: Parser, parser: ColorComponentParser, name: String): Result<Color, ParseError> {
     val parseResult = when (name) {
         "rgb", "rgba" -> parseRGBColorFunction(input, parser)
@@ -439,8 +468,8 @@ private fun parseColorFunction(input: Parser, parser: ColorComponentParser, name
 
         val numberOrPercentageResult = parser.parseNumberOrPercentage(input)
 
-       when (numberOrPercentageResult) {
-            is Ok ->  clampUnit(numberOrPercentageResult.value.unitValue())
+        when (numberOrPercentageResult) {
+            is Ok -> clampUnit(numberOrPercentageResult.value.unitValue())
             is Err -> return numberOrPercentageResult
         }
     } else {
@@ -450,6 +479,10 @@ private fun parseColorFunction(input: Parser, parser: ColorComponentParser, name
     return Ok(rgba(red, green, blue, alpha))
 }
 
+/**
+ * Parse the RGB arguments and returns them as a RGB color, including a flag whether the arguments are comma
+ * separated. This function does not parse the alpha argument if present.
+ */
 private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): Result<RGBF, ParseError> {
     val parseResult = parser.parseNumberOrPercentage(input)
 
@@ -521,6 +554,10 @@ private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): 
     return Ok(RGBF(red, green, blue, usesCommas))
 }
 
+/**
+ * Parses the HSL arguments of the function returns them as a RGB color, including a flag, whether the arguments are
+ * comma separated. This function does not parse the alpha argument if present.
+ */
 private fun parseHSLColorFunction(input: Parser, parser: ColorComponentParser): Result<RGBF, ParseError> {
     val angleOrNumberResult = parser.parseAngleOrNumber(input)
 
@@ -570,6 +607,9 @@ private fun parseHSLColorFunction(input: Parser, parser: ColorComponentParser): 
     return Ok(RGBF(red, green, blue, usesCommas))
 }
 
+/**
+ * Converts a hue to rgb.
+ */
 private fun hueToRgb(m1: Float, m2: Float, h3i: Float): Float {
     var h3 = h3i
     if (h3 < 0f) {
@@ -587,10 +627,18 @@ private fun hueToRgb(m1: Float, m2: Float, h3i: Float): Float {
     }
 }
 
+/**
+ * Clamps a percentage depicted as a value from 0 to 1 corresponding to 0% and 100% respectively to a value ranging
+ * from 0 to 255.
+ * @see clampFloor
+ */
 private fun clampUnit(value: Float): Int {
     return clampFloor(value * 255)
 }
 
+/**
+ * Clamps [value] to a value ranging from 0 to 255.
+ */
 private fun clampFloor(value: Float): Int {
     return Math.min(Math.max(Math.round(value), 0), 255)
 }

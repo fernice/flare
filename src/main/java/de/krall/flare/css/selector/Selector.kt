@@ -1,14 +1,20 @@
 package de.krall.flare.css.selector
 
 import de.krall.flare.cssparser.Nth
-import de.krall.flare.css.selector.Combinator as SelectorCombinator
-import de.krall.flare.css.selector.NonTSPseudoClass as SelectorNonTSPseudoClass
-import de.krall.flare.css.selector.PseudoElement as SelectorPseudoElement
 
+interface NamespacePrefix {
+
+    fun getPrefix(): String
+}
+
+interface NamespaceUrl {
+
+    fun getUrl(): String
+}
 
 sealed class Component {
 
-    class Combinator(val combinator: SelectorCombinator) : Component()
+    class Combinator(val combinator: de.krall.flare.css.selector.Combinator) : Component()
 
     class DefaultNamespace(val namespace: NamespaceUrl) : Component()
     class ExplicitNoNamespace : Component()
@@ -21,8 +27,8 @@ sealed class Component {
     class Id(val id: String) : Component()
     class Class(val styleClass: String) : Component()
 
-    class PseudoElement(val pseudoElement: SelectorPseudoElement) : Component()
-    class NonTSPseudoClass(val pseudoClass: SelectorNonTSPseudoClass) : Component()
+    class PseudoElement(val pseudoElement: de.krall.flare.css.selector.PseudoElement) : Component()
+    class NonTSPseudoClass(val pseudoClass: de.krall.flare.css.selector.NonTSPseudoClass) : Component()
 
     class Negation(val simpleSelector: List<Component>) : Component()
 
@@ -42,47 +48,87 @@ sealed class Component {
     class NthOfType(val nth: Nth) : Component()
     class NthLastChild(val nth: Nth) : Component()
     class NthLastOfType(val nth: Nth) : Component()
+
+    class AttributeOther(val namespace: NamespaceConstraint,
+                         val localName: String,
+                         val localNameLower: String,
+                         val opertation: AttributeSelectorOperation,
+                         val neverMatches: Boolean) : Component()
+
+    class AttributeInNoNamespaceExists(val localName: String,
+                                       val localNameLower: String) : Component()
+
+    class AttributeInNoNamespace(val localName: String,
+                                 val localNameLower: String,
+                                 val operator: AttributeSelectorOperator,
+                                 val value: String,
+                                 val caseSensitive: Boolean,
+                                 val neverMatches: Boolean) : Component()
 }
 
 sealed class Combinator {
 
-    class Child : SelectorCombinator()
+    class Child : Combinator()
 
-    class NextSibling : SelectorCombinator()
+    class NextSibling : Combinator()
 
-    class LaterSibling : SelectorCombinator()
+    class LaterSibling : Combinator()
 
-    class Descendant : SelectorCombinator()
+    class Descendant : Combinator()
 
-    class PseudoElement : SelectorCombinator()
+    class PseudoElement : Combinator()
 }
 
 sealed class PseudoElement {
 
-    class Before : SelectorPseudoElement()
-    class After : SelectorPseudoElement()
-    class Selection : SelectorPseudoElement()
-    class FirstLetter : SelectorPseudoElement()
-    class FirstLine : SelectorPseudoElement()
+    class Before : PseudoElement()
+    class After : PseudoElement()
+    class Selection : PseudoElement()
+    class FirstLetter : PseudoElement()
+    class FirstLine : PseudoElement()
 }
 
 sealed class NonTSPseudoClass {
 
-    class Active : SelectorNonTSPseudoClass()
-    class Checked : SelectorNonTSPseudoClass()
-    class Disabled : SelectorNonTSPseudoClass()
-    class Enabled : SelectorNonTSPseudoClass()
-    class Focus : SelectorNonTSPseudoClass()
-    class Fullscreen : SelectorNonTSPseudoClass()
-    class Hover : SelectorNonTSPseudoClass()
-    class Indeterminate : SelectorNonTSPseudoClass()
-    class Lang(val language: String) : SelectorNonTSPseudoClass()
-    class Link : SelectorNonTSPseudoClass()
-    class PlaceholderShown : SelectorNonTSPseudoClass()
-    class ReadWrite : SelectorNonTSPseudoClass()
-    class ReadOnly : SelectorNonTSPseudoClass()
-    class Target : SelectorNonTSPseudoClass()
-    class Visited : SelectorNonTSPseudoClass()
+    class Active : NonTSPseudoClass()
+    class Checked : NonTSPseudoClass()
+    class Disabled : NonTSPseudoClass()
+    class Enabled : NonTSPseudoClass()
+    class Focus : NonTSPseudoClass()
+    class Fullscreen : NonTSPseudoClass()
+    class Hover : NonTSPseudoClass()
+    class Indeterminate : NonTSPseudoClass()
+    class Lang(val language: String) : NonTSPseudoClass()
+    class Link : NonTSPseudoClass()
+    class PlaceholderShown : NonTSPseudoClass()
+    class ReadWrite : NonTSPseudoClass()
+    class ReadOnly : NonTSPseudoClass()
+    class Target : NonTSPseudoClass()
+    class Visited : NonTSPseudoClass()
+}
+
+sealed class NamespaceConstraint {
+
+    class Any : NamespaceConstraint()
+
+    class Specific(val prefix: NamespacePrefix, val url: NamespaceUrl) : NamespaceConstraint()
+}
+
+sealed class AttributeSelectorOperation {
+
+    class Exists : AttributeSelectorOperation()
+
+    class WithValue(val operator: AttributeSelectorOperator, val caseSensitive: Boolean, val expectedValue: String) : AttributeSelectorOperation()
+}
+
+sealed class AttributeSelectorOperator {
+
+    class Equal : AttributeSelectorOperator()
+    class Includes : AttributeSelectorOperator()
+    class DashMatch : AttributeSelectorOperator()
+    class Prefix : AttributeSelectorOperator()
+    class Substring : AttributeSelectorOperator()
+    class Suffix : AttributeSelectorOperator()
 }
 
 class Selector(private val components: List<Component>) : Iterable<Component> {

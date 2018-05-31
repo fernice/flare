@@ -128,119 +128,119 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
     fun expectIdentifierMatching(text: String): Result<Empty, ParseError> {
         val tokenResult = next()
 
-        return when (tokenResult) {
-            is Ok -> {
-                if (tokenResult.value is Token.Identifier && tokenResult.value.name.equals(text, true)) {
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Identifier -> {
+                if (token.name.equals(text, true)) {
                     Ok()
                 } else {
-                    Err(newUnexpectedTokenError(tokenResult.value))
+                    Err(newUnexpectedTokenError(token))
                 }
             }
-            is Err -> {
-                tokenResult
-            }
+            else -> Err(newUnexpectedTokenError(token))
         }
     }
 
     fun expectIdentifier(): Result<String, ParseError> {
         val tokenResult = next()
 
-        return when (tokenResult) {
-            is Ok -> {
-                if (tokenResult.value is Token.Identifier) {
-                    Ok(tokenResult.value.name)
-                } else {
-                    Err(newUnexpectedTokenError(tokenResult.value))
-                }
-            }
-            is Err -> {
-                tokenResult
-            }
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Identifier -> Ok(token.name)
+            else -> Err(newUnexpectedTokenError(token))
+        }
+    }
+
+    fun expectIdentifierOrString(): Result<String, ParseError> {
+        val tokenResult = next()
+
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Identifier -> Ok(token.name)
+            is Token.String -> Ok(token.value)
+            else -> Err(newUnexpectedTokenError(token))
         }
     }
 
     fun expectNumber(): Result<Float, ParseError> {
         val tokenResult = next()
 
-        return when (tokenResult) {
-            is Ok -> {
-                if (tokenResult.value is Token.Number) {
-                    Ok(tokenResult.value.number.float())
-                } else {
-                    Err(newUnexpectedTokenError(tokenResult.value))
-                }
-            }
-            is Err -> {
-                tokenResult
-            }
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Number -> Ok(token.number.float())
+            else -> Err(newUnexpectedTokenError(token))
         }
     }
 
     fun expectPercentage(): Result<Float, ParseError> {
         val tokenResult = next()
 
-        return when (tokenResult) {
-            is Ok -> {
-                if (tokenResult.value is Token.Percentage) {
-                    Ok(tokenResult.value.number.float())
-                } else {
-                    Err(newUnexpectedTokenError(tokenResult.value))
-                }
-            }
-            is Err -> {
-                tokenResult
-            }
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Percentage -> Ok(token.number.float())
+            else -> Err(newUnexpectedTokenError(token))
         }
     }
 
     fun expectComma(): Result<Empty, ParseError> {
         val tokenResult = next()
 
-        return when (tokenResult) {
-            is Ok -> {
-                if (tokenResult.value is Token.Comma) {
-                    Ok()
-                } else {
-                    Err(newUnexpectedTokenError(tokenResult.value))
-                }
-            }
-            is Err -> {
-                tokenResult
-            }
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Comma -> Ok()
+            else -> Err(newUnexpectedTokenError(token))
         }
     }
 
     fun expectSolidus(): Result<Empty, ParseError> {
         val tokenResult = next()
 
-        return when (tokenResult) {
-            is Ok -> {
-                if (tokenResult.value is Token.Solidus) {
-                    Ok()
-                } else {
-                    Err(newUnexpectedTokenError(tokenResult.value))
-                }
-            }
-            is Err -> {
-                tokenResult
-            }
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Solidus -> Ok()
+            else -> Err(newUnexpectedTokenError(token))
         }
     }
 
     fun expectBang(): Result<Empty, ParseError> {
         val tokenResult = next()
 
-        return when (tokenResult) {
-            is Ok -> {
-                if (tokenResult.value is Token.Bang) {
-                    Ok()
-                } else {
-                    Err(newUnexpectedTokenError(tokenResult.value))
-                }
-            }
-            is Err -> {
-                tokenResult
-            }
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Bang -> Ok()
+            else -> Err(newUnexpectedTokenError(token))
         }
     }
 

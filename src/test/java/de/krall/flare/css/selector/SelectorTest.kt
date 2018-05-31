@@ -310,6 +310,98 @@ class SelectorParseTest {
                 expectPseudoElement(PseudoElement.FirstLine::class))
     }
 
+    ///////////////////////////////////// AttributeSelector /////////////////////////////////////
+
+    @Test
+    fun attributeNoNamespaceExists() {
+        parse("[exists]",
+                expectAttributeExistsNoNamespace("exists"))
+    }
+
+    @Test
+    fun attributeNoNamespaceEqual() {
+        parse("[name=a]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Equal::class, "a", true, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceEqualString() {
+        parse("[name=\"a\"]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Equal::class, "a", true, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceEqualStringAlt() {
+        parse("[name='a']",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Equal::class, "a", true, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceEqualStringCI() {
+        parse("[name=\"a\"i]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Equal::class, "a", false, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceEqualStringAltCI() {
+        parse("[name='a'i]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Equal::class, "a", false, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceDashMatchIncludes() {
+        parse("[name|=a]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.DashMatch::class, "a", true, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceIncludes() {
+        parse("[name~=a]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Includes::class, "a", true, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceIncludesEmpty() {
+        parse("[name~='']",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Includes::class, "", true, true))
+    }
+
+    @Test
+    fun attributeNoNamespacePrefix() {
+        parse("[name^=a]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Prefix::class, "a", true, false))
+    }
+
+    @Test
+    fun attributeNoNamespacePrefixEmpty() {
+        parse("[name^='']",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Prefix::class, "", true, true))
+    }
+
+    @Test
+    fun attributeNoNamespaceSubstring() {
+        parse("[name*=a]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Substring::class, "a", true, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceSubstringEmpty() {
+        parse("[name*='']",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Substring::class, "", true, true))
+    }
+
+    @Test
+    fun attributeNoNamespaceSuffix() {
+        parse("[name$=a]",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Suffix::class, "a", true, false))
+    }
+
+    @Test
+    fun attributeNoNamespaceSuffixEmpty() {
+        parse("[name$='']",
+                expectAttributeNoNamespace("name", AttributeSelectorOperator.Suffix::class, "", true, true))
+    }
+
     private fun parse(text: String, vararg asserts: (Component) -> Unit) {
         val input = Parser(ParserInput(text))
 
@@ -404,7 +496,7 @@ class SelectorParseTest {
 
             val component = it as Component.NonTSPseudoClass
 
-            assertTrue(kind.isInstance(component.pseudoClass))
+            assertEquals(kind, component.pseudoClass::class)
         }
     }
 
@@ -428,7 +520,7 @@ class SelectorParseTest {
 
             val component = it as Component.PseudoElement
 
-            assertTrue(kind.isInstance(component.pseudoElement))
+            assertEquals(kind, component.pseudoElement::class)
         }
     }
 
@@ -446,6 +538,35 @@ class SelectorParseTest {
 
             assertEquals(a, nth.a)
             assertEquals(b, nth.b)
+        }
+    }
+
+    private fun expectAttributeExistsNoNamespace(name: String): (Component) -> Unit {
+        return {
+            assertTrue(it is Component.AttributeInNoNamespaceExists)
+
+            val component = it as Component.AttributeInNoNamespaceExists
+
+            assertTrue(component.localName.equals(name, true))
+        }
+    }
+
+    private fun expectAttributeNoNamespace(name: String,
+                                           operator: KClass<out AttributeSelectorOperator>,
+                                           value: String,
+                                           caseSensitive: Boolean,
+                                           neverMatches: Boolean): (Component) -> Unit {
+        return {
+            assertTrue(it is Component.AttributeInNoNamespace)
+
+            val component = it as Component.AttributeInNoNamespace
+
+            assertEquals(name, component.localName)
+            assertEquals(name.toLowerCase(), component.localNameLower)
+            assertEquals(operator, component.operator::class)
+            assertEquals(value, component.value)
+            assertEquals(caseSensitive, component.caseSensitive)
+            assertEquals(neverMatches, component.neverMatches)
         }
     }
 }

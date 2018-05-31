@@ -77,6 +77,8 @@ sealed class Token {
 
     class Lt : Token()
 
+    class Equal : Token()
+
     class Bang : Token()
 
     class LParen : Token()

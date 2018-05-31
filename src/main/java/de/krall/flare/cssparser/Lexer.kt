@@ -58,6 +58,8 @@ class Lexer(private val reader: CssReader) {
                 reader.nextChar()
 
                 if (reader.c == '=') {
+                    reader.nextChar()
+
                     Token.SuffixMatch()
                 } else {
                     Token.Delimiter('$')
@@ -75,6 +77,8 @@ class Lexer(private val reader: CssReader) {
                 reader.nextChar()
 
                 if (reader.c == '=') {
+                    reader.nextChar()
+
                     Token.SubstringMatch()
                 } else {
                     Token.Asterisk()
@@ -159,11 +163,17 @@ class Lexer(private val reader: CssReader) {
                 if (isEscape(reader.c, reader.peekChar())) {
                     consumeIdentifier()
                 } else {
+                    reader.nextChar()
+
                     Token.Delimiter('\\')
                 }
             }
             '^' -> {
+                reader.nextChar()
+
                 if (reader.c == '=') {
+                    reader.nextChar()
+
                     Token.PrefixMatch()
                 } else {
                     Token.Delimiter('^')
@@ -224,6 +234,10 @@ class Lexer(private val reader: CssReader) {
             }
             in '0'..'9' -> {
                 consumeNumeric()
+            }
+            '=' -> {
+                reader.nextChar()
+                Token.Equal()
             }
             else -> {
                 if (isLetter(reader.c)) {
@@ -541,8 +555,14 @@ class Lexer(private val reader: CssReader) {
                 }
                 '"', '\'' -> {
                     if (reader.c == delimiter) {
+                        reader.nextChar()
                         break@loop
+                    } else {
+                        reader.putChar()
                     }
+                }
+                else -> {
+                    reader.putChar()
                 }
             }
         }

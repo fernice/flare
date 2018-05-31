@@ -22,6 +22,8 @@ sealed class SelectorParseErrorKind : ParseErrorKind() {
     class PseudoNeedsIdentifier : SelectorParseErrorKind()
     class EmptyNegation : SelectorParseErrorKind()
     class NonSimpleSelectorInNegation : SelectorParseErrorKind()
+    class NoQualifiedNameInAttributeSelector : SelectorParseErrorKind()
+    class UnexpectedTokenInAttributeSelector(val token: Token) : SelectorParseErrorKind()
 }
 
 interface SelectorParserContext {
@@ -33,16 +35,6 @@ interface SelectorParserContext {
     fun namespacePrefix(prefix: String): NamespacePrefix
 
     fun namespaceForPrefix(prefix: NamespacePrefix): Option<NamespaceUrl>
-}
-
-interface NamespacePrefix {
-
-    fun getPrefix(): String
-}
-
-interface NamespaceUrl {
-
-    fun getUrl(): String
 }
 
 fun parseSelector(context: SelectorParserContext, input: Parser): Result<Selector, ParseError> {
@@ -515,7 +507,12 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
             }
         }
         is Token.LBracket -> {
-            return Err(input.newUnexpectedTokenError(token))
+            val attributeSelector = input.parseNestedBlock { parseAttributeSelector(context, it) }
+
+            return when (attributeSelector) {
+                is Ok -> Ok(Some(SimpleSelectorParseResult.SimpleSelector(attributeSelector.value)))
+                is Err -> attributeSelector
+            }
         }
         is Token.Colon -> {
             val location = input.sourceLocation()
@@ -720,44 +717,149 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
     return Ok(Component.Negation(simpleSelector))
 }
 
-/*
-fun test(): String? {
-    val result = parseQualifiedName()
+
+fun parseAttributeSelector(context: SelectorParserContext, input: Parser): Result<Component, ParseError> {
+    val qualifiedNameResult = parseQualifiedName(context, input, true)
+
+    val qualifiedName = when (qualifiedNameResult) {
+        is Ok -> qualifiedNameResult.value
+        is Err -> return qualifiedNameResult
+    }
 
     val localName: String
     val namespace: Option<NamespaceConstraint>
 
-    when (result) {
+    when (qualifiedName) {
         is QualifiedName.Some -> {
-            localName = when (result.localName) {
-                is Option.None -> {
-                    throw IllegalStateException("unreachable")
-                }
-                is Option.Some -> {
-                    result.localName.value
-                }
+            localName = when (qualifiedName.localName) {
+                is Some -> qualifiedName.localName.value
+                is None -> throw IllegalStateException("unreachable")
             }
 
-            val prefix = result.prefix
+            val prefix = qualifiedName.prefix
             namespace = when (prefix) {
                 is QualifiedNamePrefix.ImplicitNoNamespace, is QualifiedNamePrefix.ExplicitNoNamespace -> {
-                    Option.None()
+                    None()
                 }
                 is QualifiedNamePrefix.ExplicitNamespace -> {
                     Some(NamespaceConstraint.Specific(prefix.prefix, prefix.url))
                 }
-                is QualifiedNamePrefix.ExplicitAnyNamespace -> Option.Some(NamespaceConstraint.Any())
+                is QualifiedNamePrefix.ExplicitAnyNamespace -> Some(NamespaceConstraint.Any())
                 is QualifiedNamePrefix.ImplicitAnyNamespace, is QualifiedNamePrefix.ImplicitDefaultNamespace -> {
                     throw IllegalStateException("unreachable")
                 }
             }
         }
+        is QualifiedName.None -> {
+            return Err(input.newError(SelectorParseErrorKind.NoQualifiedNameInAttributeSelector()))
+        }
     }
 
-    return null
+    val location = input.sourceLocation()
+    val tokenResult = input.next()
+
+    val token = when (tokenResult) {
+        is Ok -> tokenResult.value
+        is Err -> {
+            val localNameLower = localName.toLowerCase()
+            return if (namespace is Some) {
+                Ok(Component.AttributeOther(
+                        namespace.value,
+                        localName,
+                        localNameLower,
+                        AttributeSelectorOperation.Exists(),
+                        false
+                ))
+            } else {
+                Ok(Component.AttributeInNoNamespaceExists(
+                        localName,
+                        localNameLower
+                ))
+            }
+        }
+    }
+
+    val operator = when (token) {
+        is Token.Equal -> AttributeSelectorOperator.Equal()
+        is Token.IncludeMatch -> AttributeSelectorOperator.Includes()
+        is Token.DashMatch -> AttributeSelectorOperator.DashMatch()
+        is Token.PrefixMatch -> AttributeSelectorOperator.Prefix()
+        is Token.SubstringMatch -> AttributeSelectorOperator.Substring()
+        is Token.SuffixMatch -> AttributeSelectorOperator.Suffix()
+        else -> return Err(location.newError(SelectorParseErrorKind.UnexpectedTokenInAttributeSelector(token)))
+    }
+
+    val valueResult = input.expectIdentifierOrString()
+
+    val value = when (valueResult) {
+        is Ok -> valueResult.value
+        is Err -> {
+            return if (valueResult.value.kind is ParseErrorKind.UnexpectedToken) {
+                Err(valueResult.value.location.newError(SelectorParseErrorKind.UnexpectedTokenInAttributeSelector(valueResult.value.kind.token)))
+            } else {
+                valueResult
+            }
+        }
+    }
+
+    val neverMatches = when (operator) {
+        is AttributeSelectorOperator.Equal, is AttributeSelectorOperator.DashMatch -> false
+        is AttributeSelectorOperator.Includes -> value.isEmpty() || value.contains(' ')
+        is AttributeSelectorOperator.Prefix,
+        is AttributeSelectorOperator.Substring,
+        is AttributeSelectorOperator.Suffix -> value.isEmpty()
+    }
+
+    val flagResult = parseAttributeSelectorFlags(input)
+
+    val caseSensitive = when (flagResult) {
+        is Ok -> flagResult.value
+        is Err -> return flagResult
+    }
+
+    val localNameLower = localName.toLowerCase()
+
+    return if (namespace is Some) {
+        Ok(Component.AttributeOther(
+                namespace.value,
+                localName,
+                localNameLower,
+                AttributeSelectorOperation.WithValue(
+                        operator,
+                        caseSensitive,
+                        value
+                ),
+                neverMatches
+        ))
+    } else {
+        Ok(Component.AttributeInNoNamespace(
+                localName,
+                localNameLower,
+                operator,
+                value,
+                caseSensitive,
+                neverMatches
+        ))
+    }
 }
 
-private fun parseQualifiedName(): QualifiedName {
-    return QualifiedName.None()
+private fun parseAttributeSelectorFlags(input: Parser): Result<Boolean, ParseError> {
+    val location = input.sourceLocation()
+    val tokenResult = input.next()
+
+    val token = when (tokenResult) {
+        is Ok -> tokenResult.value
+        is Err -> return Ok(true)
+    }
+
+    return when (token) {
+        is Token.Identifier -> {
+            if (token.name.equals("i", true)) {
+                Ok(false)
+            } else {
+                Err(location.newUnexpectedTokenError(token))
+            }
+        }
+        else -> Err(location.newUnexpectedTokenError(token))
+    }
 }
-        */
