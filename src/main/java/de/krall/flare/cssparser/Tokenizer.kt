@@ -3,11 +3,40 @@ package de.krall.flare.cssparser
 import de.krall.flare.std.*
 import java.util.*
 
-class Tokenizer private constructor(private val text: String, private val lexer: Lexer, private var state: State) {
+class Tokenizer {
 
-    private constructor(text: String, lexer: Lexer) : this(text, lexer, State.new(lexer))
+    private val text: String
+    private val lexer: Lexer
+    private var state: State
 
-    constructor(text: String) : this(text, Lexer(CssReader(text)))
+    private constructor(text: String, lexer: Lexer, state: State, print: Boolean) {
+        this.text = text
+        this.lexer = lexer
+        this.state = state
+
+        if (print) {
+
+            var iter = state
+
+            while (true) {
+                if (iter.token is Err) {
+                    break
+                }
+
+                if (iter.next == null) {
+                    iter.next = State.new(lexer)
+                }
+
+                println("${iter.token} ${iter.sourceLocation}")
+
+                iter = iter.next!!
+            }
+        }
+    }
+
+    private constructor(text: String, lexer: Lexer, print: Boolean) : this(text, lexer, State.new(lexer), print)
+
+    constructor(text: String) : this(text, Lexer(CssReader(text)), true)
 
     fun nextToken(): Result<Token, Empty> {
         val token = state.token
@@ -68,7 +97,7 @@ class Tokenizer private constructor(private val text: String, private val lexer:
     }
 
     fun copy(): Tokenizer {
-        return Tokenizer(text, lexer, state)
+        return Tokenizer(text, lexer, state, false)
     }
 
     fun consumeUntilEndOfBlock(type: BlockType) {
@@ -105,7 +134,7 @@ class Tokenizer private constructor(private val text: String, private val lexer:
     fun consumeUntilBefore(delimiters: Int) {
         loop@
         while (true) {
-            val peekResult = peekToken(1)
+            val peekResult = peekToken(0)
 
             if (peekResult is Err || delimiters and Delimiters.from(peekResult.unwrap()).bits != 0) {
                 break

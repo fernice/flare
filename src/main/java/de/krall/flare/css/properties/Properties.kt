@@ -1,7 +1,7 @@
 package de.krall.flare.css.properties
 
-import de.krall.flare.css.Context
 import de.krall.flare.css.ParserContext
+import de.krall.flare.css.value.Context
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token

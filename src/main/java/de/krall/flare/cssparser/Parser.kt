@@ -417,4 +417,6 @@ abstract class ParseErrorKind {
     class UnexpectedToken(val token: Token) : ParseErrorKind()
 
     class UnsupportedFeature : ParseErrorKind()
+
+    class Unkown : ParseErrorKind()
 }

@@ -1,9 +1,6 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
+import de.krall.flare.std.*
 
 class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int)
 
@@ -565,7 +562,7 @@ private fun parseHSLColorFunction(input: Parser, parser: ColorComponentParser): 
         is Ok -> angleOrNumberResult.value.degrees()
         is Err -> return angleOrNumberResult
     }
-    val normalizedDegrees = degrees - (360.0 * Math.floor(degrees / 360.0)).toFloat()
+    val normalizedDegrees = degrees - (360.0 * (degrees / 360.0).trunc()).toFloat()
     val hue = normalizedDegrees / 360
 
     val usesCommas = input.tryParse { it.expectComma() } is Ok
@@ -640,5 +637,5 @@ private fun clampUnit(value: Float): Int {
  * Clamps [value] to a value ranging from 0 to 255.
  */
 private fun clampFloor(value: Float): Int {
-    return Math.min(Math.max(Math.round(value), 0), 255)
+    return value.round().min(255).max(0)
 }

@@ -15,6 +15,10 @@ sealed class Result<out T, out E> {
     abstract fun <U> map(mapper: (T) -> U): Result<U, E>
 
     abstract fun <F> mapErr(mapper: (E) -> F): Result<T, F>
+
+    abstract fun ok(): Option<T>
+
+    abstract fun err(): Option<E>
 }
 
 data class Ok<out T>(val value: T) : Result<T, Nothing>() {
@@ -30,6 +34,14 @@ data class Ok<out T>(val value: T) : Result<T, Nothing>() {
     override fun <F> mapErr(mapper: (Nothing) -> F): Result<T, F> {
         return Ok(value)
     }
+
+    override fun ok(): Option<T> {
+        return Some(value)
+    }
+
+    override fun err(): Option<Nothing> {
+        return None()
+    }
 }
 
 data class Err<out E>(val value: E) : Result<Nothing, E>() {
@@ -44,6 +56,14 @@ data class Err<out E>(val value: E) : Result<Nothing, E>() {
 
     override fun <F> mapErr(mapper: (E) -> F): Result<Nothing, F> {
         return Err(mapper(value))
+    }
+
+    override fun ok(): Option<Nothing> {
+        return None()
+    }
+
+    override fun err(): Option<E> {
+        return Some(value)
     }
 }
 

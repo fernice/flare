@@ -7,37 +7,93 @@ import kotlin.String as Str
 
 sealed class Token {
 
-    class Delimiter(val char: Char) : Token()
+    override fun toString(): kotlin.String {
+        return "Token::${javaClass.simpleName}"
+    }
+
+    class Delimiter(val char: Char) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Delimiter($char)"
+        }
+    }
 
     class Whitespace : Token()
 
-    class Comment(val text: Str) : Token()
+    class Comment(val text: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Comment($text)"
+        }
+    }
 
     class String(val value: Str) : Token()
 
     class BadString(val value: Str) : Token()
 
-    class Url(val url: Str) : Token()
+    class Url(val url: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Url($url)"
+        }
+    }
 
-    class BadUrl(val url: Str) : Token()
+    class BadUrl(val url: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::BadUrl($url)"
+        }
+    }
 
-    class Hash(val value: Str) : Token()
+    class Hash(val value: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Hash($value)"
+        }
+    }
 
-    class IdHash(val value: Str) : Token()
+    class IdHash(val value: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::IdHash($value)"
+        }
+    }
 
-    class Identifier(val name: Str) : Token()
+    class Identifier(val name: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Identifier($name)"
+        }
+    }
 
-    class Function(val name: Str) : Token()
+    class Function(val name: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Function($name)"
+        }
+    }
 
-    class AtKeyword(val name: Str) : Token()
+    class AtKeyword(val name: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::AtKeyword($name)"
+        }
+    }
 
-    class Number(val number: de.krall.flare.cssparser.Number) : Token()
+    class Number(val number: de.krall.flare.cssparser.Number) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Number($number)"
+        }
+    }
 
-    class Dimension(val number: de.krall.flare.cssparser.Number, val unit: Str) : Token()
+    class Dimension(val number: de.krall.flare.cssparser.Number, val unit: Str) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Dimension($number)"
+        }
+    }
 
-    class Percentage(val number: de.krall.flare.cssparser.Number) : Token()
+    class Percentage(val number: de.krall.flare.cssparser.Number) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::Percentage($number)"
+        }
+    }
 
-    class UnicodeRange(val start: Int, val end: Int) : Token()
+    class UnicodeRange(val start: Int, val end: Int) : Token() {
+        override fun toString(): kotlin.String {
+            return "Token::UnicodeRange($start, $end)"
+        }
+    }
 
     // Matches
 
