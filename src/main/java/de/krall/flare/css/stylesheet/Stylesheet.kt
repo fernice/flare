@@ -1,6 +1,6 @@
 package de.krall.flare.css.stylesheet
 
-import de.krall.flare.css.ParserContext
+import de.krall.flare.css.parser.ParserContext
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.ParserInput
 import de.krall.flare.cssparser.RuleListParser

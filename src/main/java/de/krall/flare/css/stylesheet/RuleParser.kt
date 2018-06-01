@@ -1,6 +1,6 @@
 package de.krall.flare.css.stylesheet
 
-import de.krall.flare.css.ParserContext
+import de.krall.flare.css.parser.ParserContext
 import de.krall.flare.css.properties.PropertyDeclarationBlock
 import de.krall.flare.css.properties.parsePropertyDeclarationList
 import de.krall.flare.css.selector.SelectorList

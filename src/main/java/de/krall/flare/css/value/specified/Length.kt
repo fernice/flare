@@ -1,14 +1,28 @@
 package de.krall.flare.css.value.specified
 
-import de.krall.flare.css.ParserContext
+import de.krall.flare.css.parser.*
 import de.krall.flare.css.value.Context
 import de.krall.flare.css.value.FontBaseSize
 import de.krall.flare.css.value.SpecifiedValue
 import de.krall.flare.css.value.computed.Au
 import de.krall.flare.css.value.computed.PixelLength
 import de.krall.flare.css.value.generic.Size2D
+import de.krall.flare.cssparser.*
 import de.krall.flare.std.*
-import de.krall.flare.css.value.computed.Length as ComputedLength
+import de.krall.flare.css.value.computed.Percentage as ComputedPercentage
+import de.krall.flare.css.value.computed.NonNegativeLength as ComputedNonNegativeLength
+import de.krall.flare.css.value.computed.LengthOrPercentage as ComputedLengthOrPercentage
+import de.krall.flare.css.value.computed.NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage
+import de.krall.flare.css.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
+import de.krall.flare.css.value.computed.NonNegativeLengthOrPercentageOrAuto as ComputedNonNegativeLengthOrPercentageOrAuto
+import de.krall.flare.css.value.computed.LengthOrPercentageOrNone as ComputedLengthOrPercentageOrNone
+import de.krall.flare.css.value.computed.NonNegativeLengthOrPercentageOrNone as ComputedNonNegativeLengthOrPercentageOrNone
+
+sealed class LengthParseErrorKind : ParseErrorKind() {
+
+    class ForbiddenNumeric : LengthParseErrorKind()
+    class UnitlessNumber : LengthParseErrorKind()
+}
 
 sealed class AbsoluteLength : SpecifiedValue<PixelLength> {
 
@@ -204,9 +218,527 @@ sealed class Length : SpecifiedValue<PixelLength> {
         }
     }
 
-    class Calc(val calc: CalcLengthOrPercentage): Length() {
+    class Calc(val calc: CalcLengthOrPercentage) : Length() {
         override fun toComputedValue(context: Context): PixelLength {
             return calc.toComputedValue(context).length()
         }
+    }
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<Length, ParseError> {
+            return parseQuirky(context, input, AllowQuirks.No())
+        }
+
+        fun parseQuirky(context: ParserContext,
+                        input: Parser,
+                        allowQuirks: AllowQuirks): Result<Length, ParseError> {
+            return parseInternal(context, input, ClampingMode.All(), allowQuirks)
+        }
+
+        fun parseNonNegative(context: ParserContext, input: Parser): Result<Length, ParseError> {
+            return parseNonNegativeQuirky(context, input, AllowQuirks.No())
+        }
+
+        fun parseNonNegativeQuirky(context: ParserContext,
+                                   input: Parser,
+                                   allowQuirks: AllowQuirks): Result<Length, ParseError> {
+            return parseInternal(context, input, ClampingMode.NonNegative(), allowQuirks)
+        }
+
+        private fun parseInternal(context: ParserContext,
+                                  input: Parser,
+                                  clampingMode: ClampingMode,
+                                  allowQuirks: AllowQuirks): Result<Length, ParseError> {
+            val location = input.sourceLocation()
+            val tokenResult = input.next()
+
+            val token = when (tokenResult) {
+                is Ok -> tokenResult.value
+                is Err -> return tokenResult
+            }
+
+            when (token) {
+                is Token.Dimension -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
+                            .map(Length::NoCalc)
+                            .mapErr { location.newUnexpectedTokenError(token) }
+                }
+                is Token.Number -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    if (token.number.float() != 0f
+                            && !context.parseMode.allowsUnitlessNumbers()
+                            && !allowQuirks.allowed(context.quirksMode)) {
+                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber()))
+                    }
+
+                    return Ok(Length.NoCalc(NoCalcLength.Absolute(AbsoluteLength.Px(token.number.float()))))
+                }
+                is Token.Function -> {
+                    if (!token.name.equals("calc", true)) {
+                        return Err(location.newUnexpectedTokenError(token))
+                    }
+
+                    return input.parseNestedBlock { input ->
+                        CalcNode.parseLength(context, input, clampingMode)
+                                .map(Length::Calc)
+                    }
+                }
+                else -> {
+                    return Err(location.newUnexpectedTokenError(token))
+                }
+            }
+        }
+    }
+}
+
+class NonNegativeLength(val length: Length) : SpecifiedValue<ComputedNonNegativeLength> {
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<NonNegativeLength, ParseError> {
+            return Length.parseNonNegative(context, input)
+                    .map(::NonNegativeLength)
+        }
+
+        fun parseQuirky(context: ParserContext,
+                        input: Parser,
+                        allowQuirks: AllowQuirks): Result<NonNegativeLength, ParseError> {
+            return Length.parseQuirky(context, input, allowQuirks)
+                    .map(::NonNegativeLength)
+        }
+    }
+
+    override fun toComputedValue(context: Context): ComputedNonNegativeLength {
+        return ComputedNonNegativeLength(length.toComputedValue(context))
+    }
+}
+
+data class Percentage(val value: Float) : SpecifiedValue<ComputedPercentage> {
+    override fun toComputedValue(context: Context): ComputedPercentage {
+        return ComputedPercentage(value)
+    }
+
+    companion object {
+
+        private val zero: Percentage by lazy { Percentage(0f) }
+        private val fifty: Percentage by lazy { Percentage(0.5f) }
+        private val hundred: Percentage by lazy { Percentage(1f) }
+
+        fun zero(): Percentage {
+            return zero
+        }
+
+        fun fifty(): Percentage {
+            return fifty
+        }
+
+        fun hundred(): Percentage {
+            return hundred
+        }
+    }
+}
+
+sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentage, ParseError> {
+            return parseQuirky(context, input, AllowQuirks.No())
+        }
+
+        fun parseQuirky(context: ParserContext,
+                        input: Parser,
+                        allowQuirks: AllowQuirks): Result<LengthOrPercentage, ParseError> {
+            return parseInternal(context, input, ClampingMode.All(), allowQuirks)
+        }
+
+        fun parseNonNegative(context: ParserContext, input: Parser): Result<LengthOrPercentage, ParseError> {
+            return parseNonNegativeQuirky(context, input, AllowQuirks.No())
+        }
+
+        fun parseNonNegativeQuirky(context: ParserContext,
+                                   input: Parser,
+                                   allowQuirks: AllowQuirks): Result<LengthOrPercentage, ParseError> {
+            return parseInternal(context, input, ClampingMode.NonNegative(), allowQuirks)
+        }
+
+        private fun parseInternal(context: ParserContext,
+                                  input: Parser,
+                                  clampingMode: ClampingMode,
+                                  allowQuirks: AllowQuirks): Result<LengthOrPercentage, ParseError> {
+            val location = input.sourceLocation()
+            val tokenResult = input.next()
+
+            val token = when (tokenResult) {
+                is Ok -> tokenResult.value
+                is Err -> return tokenResult
+            }
+
+            when (token) {
+                is Token.Dimension -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
+                            .map(LengthOrPercentage::Length)
+                            .mapErr { location.newUnexpectedTokenError(token) }
+                }
+                is Token.Percentage -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    return Ok(LengthOrPercentage.Percentage(de.krall.flare.css.value.specified.Percentage(token.number.float())))
+                }
+                is Token.Number -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    if (token.number.float() != 0f
+                            && !context.parseMode.allowsUnitlessNumbers()
+                            && !allowQuirks.allowed(context.quirksMode)) {
+                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber()))
+                    }
+
+                    return Ok(LengthOrPercentage.Length(NoCalcLength.Absolute(AbsoluteLength.Px(token.number.float()))))
+                }
+                is Token.Function -> {
+                    if (!token.name.equals("calc", true)) {
+                        return Err(location.newUnexpectedTokenError(token))
+                    }
+
+                    return input.parseNestedBlock { input ->
+                        CalcNode.parseLength(context, input, clampingMode)
+                                .map(LengthOrPercentage::Calc)
+                    }
+                }
+                else -> {
+                    return Err(location.newUnexpectedTokenError(token))
+                }
+            }
+        }
+    }
+
+    data class Length(val length: NoCalcLength) : LengthOrPercentage() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentage {
+            return ComputedLengthOrPercentage.Length(length.toComputedValue(context))
+        }
+    }
+
+    data class Percentage(val percentage: de.krall.flare.css.value.specified.Percentage) : LengthOrPercentage() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentage {
+            return ComputedLengthOrPercentage.Percentage(percentage.toComputedValue(context))
+        }
+    }
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentage {
+            return ComputedLengthOrPercentage.Calc(calc.toComputedValue(context))
+        }
+    }
+}
+
+class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : SpecifiedValue<ComputedNonNegativeLengthOrPercentage> {
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<NonNegativeLengthOrPercentage, ParseError> {
+            return LengthOrPercentage.parseNonNegative(context, input)
+                    .map(::NonNegativeLengthOrPercentage)
+        }
+
+        fun parseQuirky(context: ParserContext,
+                        input: Parser,
+                        allowQuirks: AllowQuirks): Result<NonNegativeLengthOrPercentage, ParseError> {
+            return LengthOrPercentage.parseQuirky(context, input, allowQuirks)
+                    .map(::NonNegativeLengthOrPercentage)
+        }
+    }
+
+    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentage {
+        return ComputedNonNegativeLengthOrPercentage(value.toComputedValue(context))
+    }
+}
+
+sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentageOrAuto> {
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentageOrAuto, ParseError> {
+            return parseQuirky(context, input, AllowQuirks.No())
+        }
+
+        fun parseQuirky(context: ParserContext,
+                        input: Parser,
+                        allowQuirks: AllowQuirks): Result<LengthOrPercentageOrAuto, ParseError> {
+            return parseInternal(context, input, ClampingMode.All(), allowQuirks)
+        }
+
+        fun parseNonNegative(context: ParserContext, input: Parser): Result<LengthOrPercentageOrAuto, ParseError> {
+            return parseNonNegativeQuirky(context, input, AllowQuirks.No())
+        }
+
+        fun parseNonNegativeQuirky(context: ParserContext,
+                                   input: Parser,
+                                   allowQuirks: AllowQuirks): Result<LengthOrPercentageOrAuto, ParseError> {
+            return parseInternal(context, input, ClampingMode.NonNegative(), allowQuirks)
+        }
+
+        private fun parseInternal(context: ParserContext,
+                                  input: Parser,
+                                  clampingMode: ClampingMode,
+                                  allowQuirks: AllowQuirks): Result<LengthOrPercentageOrAuto, ParseError> {
+            val location = input.sourceLocation()
+            val tokenResult = input.next()
+
+            val token = when (tokenResult) {
+                is Ok -> tokenResult.value
+                is Err -> return tokenResult
+            }
+
+            when (token) {
+                is Token.Dimension -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
+                            .map(LengthOrPercentageOrAuto::Length)
+                            .mapErr { location.newUnexpectedTokenError(token) }
+                }
+                is Token.Percentage -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    return Ok(LengthOrPercentageOrAuto.Percentage(de.krall.flare.css.value.specified.Percentage(token.number.float())))
+                }
+                is Token.Number -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    if (token.number.float() != 0f
+                            && !context.parseMode.allowsUnitlessNumbers()
+                            && !allowQuirks.allowed(context.quirksMode)) {
+                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber()))
+                    }
+
+                    return Ok(LengthOrPercentageOrAuto.Length(NoCalcLength.Absolute(AbsoluteLength.Px(token.number.float()))))
+                }
+                is Token.Function -> {
+                    if (!token.name.equals("calc", true)) {
+                        return Err(location.newUnexpectedTokenError(token))
+                    }
+
+                    return input.parseNestedBlock { input ->
+                        CalcNode.parseLength(context, input, clampingMode)
+                                .map(LengthOrPercentageOrAuto::Calc)
+                    }
+                }
+                is Token.Identifier -> {
+                    if (!token.name.equals("auto", true)) {
+                        return Err(location.newUnexpectedTokenError(token))
+                    }
+
+                    return Ok(LengthOrPercentageOrAuto.Auto())
+                }
+                else -> {
+                    return Err(location.newUnexpectedTokenError(token))
+                }
+            }
+        }
+    }
+
+    data class Length(val length: NoCalcLength) : LengthOrPercentageOrAuto() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
+            return ComputedLengthOrPercentageOrAuto.Length(length.toComputedValue(context))
+        }
+    }
+
+    data class Percentage(val percentage: de.krall.flare.css.value.specified.Percentage) : LengthOrPercentageOrAuto() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
+            return ComputedLengthOrPercentageOrAuto.Percentage(percentage.toComputedValue(context))
+        }
+    }
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
+            return ComputedLengthOrPercentageOrAuto.Calc(calc.toComputedValue(context))
+        }
+    }
+
+    class Auto : LengthOrPercentageOrAuto() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
+            return ComputedLengthOrPercentageOrAuto.Auto()
+        }
+    }
+}
+
+class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrAuto> {
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<NonNegativeLengthOrPercentageOrAuto, ParseError> {
+            return LengthOrPercentageOrAuto.parseNonNegative(context, input)
+                    .map(::NonNegativeLengthOrPercentageOrAuto)
+        }
+
+        fun parseQuirky(context: ParserContext,
+                        input: Parser,
+                        allowQuirks: AllowQuirks): Result<NonNegativeLengthOrPercentageOrAuto, ParseError> {
+            return LengthOrPercentageOrAuto.parseQuirky(context, input, allowQuirks)
+                    .map(::NonNegativeLengthOrPercentageOrAuto)
+        }
+    }
+
+    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrAuto {
+        return ComputedNonNegativeLengthOrPercentageOrAuto(value.toComputedValue(context))
+    }
+}
+
+sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentageOrNone> {
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentageOrNone, ParseError> {
+            return parseQuirky(context, input, AllowQuirks.No())
+        }
+
+        fun parseQuirky(context: ParserContext,
+                        input: Parser,
+                        allowQuirks: AllowQuirks): Result<LengthOrPercentageOrNone, ParseError> {
+            return parseInternal(context, input, ClampingMode.All(), allowQuirks)
+        }
+
+        fun parseNonNegative(context: ParserContext, input: Parser): Result<LengthOrPercentageOrNone, ParseError> {
+            return parseNonNegativeQuirky(context, input, AllowQuirks.No())
+        }
+
+        fun parseNonNegativeQuirky(context: ParserContext,
+                                   input: Parser,
+                                   allowQuirks: AllowQuirks): Result<LengthOrPercentageOrNone, ParseError> {
+            return parseInternal(context, input, ClampingMode.NonNegative(), allowQuirks)
+        }
+
+        private fun parseInternal(context: ParserContext,
+                                  input: Parser,
+                                  clampingMode: ClampingMode,
+                                  allowQuirks: AllowQuirks): Result<LengthOrPercentageOrNone, ParseError> {
+            val location = input.sourceLocation()
+            val tokenResult = input.next()
+
+            val token = when (tokenResult) {
+                is Ok -> tokenResult.value
+                is Err -> return tokenResult
+            }
+
+            when (token) {
+                is Token.Dimension -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
+                            .map(LengthOrPercentageOrNone::Length)
+                            .mapErr { location.newUnexpectedTokenError(token) }
+                }
+                is Token.Percentage -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    return Ok(LengthOrPercentageOrNone.Percentage(de.krall.flare.css.value.specified.Percentage(token.number.float())))
+                }
+                is Token.Number -> {
+                    if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                    }
+
+                    if (token.number.float() != 0f
+                            && !context.parseMode.allowsUnitlessNumbers()
+                            && !allowQuirks.allowed(context.quirksMode)) {
+                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber()))
+                    }
+
+                    return Ok(LengthOrPercentageOrNone.Length(NoCalcLength.Absolute(AbsoluteLength.Px(token.number.float()))))
+                }
+                is Token.Function -> {
+                    if (!token.name.equals("calc", true)) {
+                        return Err(location.newUnexpectedTokenError(token))
+                    }
+
+                    return input.parseNestedBlock { input ->
+                        CalcNode.parseLength(context, input, clampingMode)
+                                .map(LengthOrPercentageOrNone::Calc)
+                    }
+                }
+                is Token.Identifier -> {
+                    if (!token.name.equals("none", true)) {
+                        return Err(location.newUnexpectedTokenError(token))
+                    }
+
+                    return Ok(LengthOrPercentageOrNone.None())
+                }
+                else -> {
+                    return Err(location.newUnexpectedTokenError(token))
+                }
+            }
+        }
+    }
+
+    data class Length(val length: NoCalcLength) : LengthOrPercentageOrNone() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
+            return ComputedLengthOrPercentageOrNone.Length(length.toComputedValue(context))
+        }
+    }
+
+    data class Percentage(val percentage: de.krall.flare.css.value.specified.Percentage) : LengthOrPercentageOrNone() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
+            return ComputedLengthOrPercentageOrNone.Percentage(percentage.toComputedValue(context))
+        }
+    }
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrNone() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
+            return ComputedLengthOrPercentageOrNone.Calc(calc.toComputedValue(context))
+        }
+    }
+
+    class None : LengthOrPercentageOrNone() {
+        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
+            return ComputedLengthOrPercentageOrNone.None()
+        }
+    }
+}
+
+class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrNone> {
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<NonNegativeLengthOrPercentageOrNone, ParseError> {
+            return LengthOrPercentageOrNone.parseNonNegative(context, input)
+                    .map(::NonNegativeLengthOrPercentageOrNone)
+        }
+
+        fun parseQuirky(context: ParserContext,
+                        input: Parser,
+                        allowQuirks: AllowQuirks): Result<NonNegativeLengthOrPercentageOrNone, ParseError> {
+            return LengthOrPercentageOrNone.parseQuirky(context, input, allowQuirks)
+                    .map(::NonNegativeLengthOrPercentageOrNone)
+        }
+    }
+
+    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrNone {
+        return ComputedNonNegativeLengthOrPercentageOrNone(value.toComputedValue(context))
     }
 }

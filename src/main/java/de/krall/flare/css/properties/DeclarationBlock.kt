@@ -1,6 +1,6 @@
 package de.krall.flare.css.properties
 
-import de.krall.flare.css.ParserContext
+import de.krall.flare.css.parser.ParserContext
 import de.krall.flare.css.stylesheet.AtRulePrelude
 import de.krall.flare.cssparser.*
 import de.krall.flare.std.*

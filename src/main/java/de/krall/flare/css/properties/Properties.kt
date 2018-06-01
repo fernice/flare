@@ -1,20 +1,20 @@
 package de.krall.flare.css.properties
 
-import de.krall.flare.css.ParserContext
+import de.krall.flare.css.ComputedValues
+import de.krall.flare.css.StyleBuilder
+import de.krall.flare.css.parser.ParserContext
+import de.krall.flare.css.properties.longhand.FontFamilyId
+import de.krall.flare.css.properties.longhand.FontSizeId
 import de.krall.flare.css.value.Context
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
+import de.krall.flare.dom.Device
+import de.krall.flare.dom.Element
+import de.krall.flare.std.*
 import org.reflections.Reflections
 import kotlin.reflect.full.companionObjectInstance
-import de.krall.flare.css.properties.CssWideKeyword as DeclaredCssWideKeyword
-import de.krall.flare.css.properties.LonghandId as PropertyLonghandId
-import de.krall.flare.css.properties.ShorthandId as PropertyShorthandId
 
 /**
  * Marks an entry point to a property declaration. Currently only [PropertyLonghandId] and [PropertyShorthandId]
@@ -29,11 +29,11 @@ abstract class PropertyDeclaration {
     /**
      * Returns the name of the property
      */
-    abstract fun id(): PropertyLonghandId
+    abstract fun id(): LonghandId
 
-    class CssWideKeyword(val id: PropertyLonghandId, val keyword: DeclaredCssWideKeyword) : PropertyDeclaration() {
+    class CssWideKeyword(val id: LonghandId, val keyword: de.krall.flare.css.properties.CssWideKeyword) : PropertyDeclaration() {
 
-        override fun id(): PropertyLonghandId {
+        override fun id(): LonghandId {
             return id
         }
     }
@@ -59,13 +59,15 @@ abstract class LonghandId {
     abstract fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError>
 
     abstract fun cascadeProperty(declaration: PropertyDeclaration, context: Context)
+
+    abstract fun isEarlyProperty(): Boolean
 }
 
 abstract class ShorthandId {
 
     abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError>
 
-    abstract fun getLonghands(): List<PropertyLonghandId>
+    abstract fun getLonghands(): List<LonghandId>
 
     abstract fun name(): String
 }
@@ -74,10 +76,10 @@ sealed class PropertyId {
 
     abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError>
 
-    class Longhand(private val id: PropertyLonghandId) : PropertyId() {
+    class Longhand(private val id: LonghandId) : PropertyId() {
 
         override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
-            val keyword = input.tryParse { DeclaredCssWideKeyword.parse(it) }
+            val keyword = input.tryParse { CssWideKeyword.parse(it) }
 
             return when (keyword) {
                 is Ok -> {
@@ -107,10 +109,10 @@ sealed class PropertyId {
         }
     }
 
-    class Shorthand(private val id: PropertyShorthandId) : PropertyId() {
+    class Shorthand(private val id: ShorthandId) : PropertyId() {
 
         override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
-            val keyword = input.tryParse { DeclaredCssWideKeyword.parse(it) }
+            val keyword = input.tryParse { CssWideKeyword.parse(it) }
 
             return when (keyword) {
                 is Ok -> {
@@ -150,10 +152,10 @@ sealed class PropertyId {
                 val instance = instanceMethod.invoke(type.kotlin.companionObjectInstance)
 
                 val (name, id) = when (instance) {
-                    is PropertyLonghandId -> {
+                    is LonghandId -> {
                         Pair(instance.name(), PropertyId.Longhand(instance))
                     }
-                    is PropertyShorthandId -> {
+                    is ShorthandId -> {
                         Pair(instance.name(), PropertyId.Shorthand(instance))
                     }
                     else -> {
@@ -183,12 +185,6 @@ sealed class PropertyId {
     }
 }
 
-fun main(args: Array<String>) {
-    val a = PropertyId.ids["background-attachment"]
-
-    println(a)
-}
-
 enum class CssWideKeyword {
 
     UNSET,
@@ -199,7 +195,7 @@ enum class CssWideKeyword {
 
     companion object {
 
-        fun parse(input: Parser): Result<DeclaredCssWideKeyword, ParseError> {
+        fun parse(input: Parser): Result<CssWideKeyword, ParseError> {
             val location = input.sourceLocation()
             val identifierResult = input.expectIdentifier()
 
@@ -209,11 +205,85 @@ enum class CssWideKeyword {
             }
 
             return when (identifier.toLowerCase()) {
-                "unset" -> Ok(DeclaredCssWideKeyword.UNSET)
-                "initial" -> Ok(DeclaredCssWideKeyword.INITIAL)
-                "inherit" -> Ok(DeclaredCssWideKeyword.INHERIT)
+                "unset" -> Ok(CssWideKeyword.UNSET)
+                "initial" -> Ok(CssWideKeyword.INITIAL)
+                "inherit" -> Ok(CssWideKeyword.INHERIT)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }
     }
+}
+
+fun cascade(device: Device,
+            element: Option<Element>,
+            declarations: List<PropertyDeclaration>,
+            parentStyle: Option<ComputedValues>,
+            parentStyleIgnoringFirstLine: Option<ComputedValues>): ComputedValues {
+
+    val context = Context(
+            false,
+
+            StyleBuilder.new(
+                    device,
+                    parentStyle,
+                    parentStyleIgnoringFirstLine
+            )
+    )
+
+    val seen = mutableSetOf<LonghandId>()
+
+    var fontFamily: Option<PropertyDeclaration> = None()
+    var fontSize: Option<PropertyDeclaration> = None()
+
+    for (declaration in declarations) {
+        val longhandId = declaration.id()
+
+        if (!longhandId.isEarlyProperty()) {
+            continue
+        }
+
+        if (!seen.add(longhandId)) {
+            continue
+        }
+
+        if (longhandId is FontSizeId) {
+            fontFamily = Some(declaration)
+            continue
+        }
+
+        if (longhandId is FontSizeId) {
+            fontSize = Some(declaration)
+            continue
+        }
+
+        longhandId.cascadeProperty(declaration, context)
+    }
+
+    if (fontFamily is Some) {
+        val longhandId = FontFamilyId.instance
+
+        longhandId.cascadeProperty(fontFamily.value, context)
+    }
+
+    if (fontSize is Some) {
+        val longhandId = FontSizeId.instance
+
+        longhandId.cascadeProperty(fontSize.value, context)
+    }
+
+    for (declaration in declarations) {
+        val longhandId = declaration.id()
+
+        if (longhandId.isEarlyProperty()) {
+            continue
+        }
+
+        if (!seen.add(longhandId)) {
+            continue
+        }
+
+        longhandId.cascadeProperty(declaration, context)
+    }
+
+    return context.builder.build()
 }

@@ -4,39 +4,31 @@ import de.krall.flare.css.parser.ParserContext
 import de.krall.flare.css.properties.CssWideKeyword
 import de.krall.flare.css.properties.LonghandId
 import de.krall.flare.css.properties.PropertyDeclaration
-import de.krall.flare.css.properties.PropertyEntryPoint
 import de.krall.flare.css.value.Context
-import de.krall.flare.css.value.specified.Color
+import de.krall.flare.css.value.specified.FontFamily
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.std.Result
 
-@PropertyEntryPoint
-class BackgroundColorId : LonghandId() {
-
+class FontFamilyId : LonghandId() {
     override fun name(): String {
-        return "background-color"
+        return "font-family"
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return Color.parse(context, input).map { color -> BackgroundColor(color) }
+        return FontFamily.parse(context, input).map(::FontFamilyDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is BackgroundColor -> {
-                val color = declaration.color.toComputedValue(context)
-
-                context.builder.setBackgroundColor(color)
+            is FontFamilyDeclaration -> {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
                     CssWideKeyword.INITIAL -> {
-                        context.builder.resetBackgroundColor()
                     }
+                    CssWideKeyword.UNSET,
                     CssWideKeyword.INHERIT -> {
-                        context.builder.inheritBackgroundColor()
                     }
                 }
             }
@@ -45,17 +37,17 @@ class BackgroundColorId : LonghandId() {
     }
 
     override fun isEarlyProperty(): Boolean {
-        return false
+        return true
     }
 
     companion object {
 
-        val instance: BackgroundColorId by lazy { BackgroundColorId() }
+        val instance: FontFamilyId by lazy { FontFamilyId() }
     }
 }
 
-class BackgroundColor(val color: Color) : PropertyDeclaration() {
+class FontFamilyDeclaration(val fontFamily: FontFamily) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BackgroundColorId.instance
+        return FontFamilyId.instance
     }
 }

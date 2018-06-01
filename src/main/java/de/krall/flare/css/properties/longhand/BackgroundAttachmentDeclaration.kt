@@ -1,6 +1,6 @@
 package de.krall.flare.css.properties.longhand
 
-import de.krall.flare.css.ParserContext
+import de.krall.flare.css.parser.ParserContext
 import de.krall.flare.css.properties.CssWideKeyword
 import de.krall.flare.css.properties.LonghandId
 import de.krall.flare.css.properties.PropertyDeclaration
@@ -22,26 +22,31 @@ class BackgroundAttachmentId : LonghandId() {
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return parse(context, input).map { BackgroundAttachment(it) }
+        return parse(context, input).map { BackgroundAttachmentDeclaration(it) }
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is BackgroundAttachment -> {
-
+            is BackgroundAttachmentDeclaration -> {
+                context.builder.setBackgroundAttachment(declaration.attachment)
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
                     CssWideKeyword.UNSET,
                     CssWideKeyword.INITIAL -> {
-
+                        context.builder.resetBackgroundAttachment()
                     }
                     CssWideKeyword.INHERIT -> {
-
+                        context.builder.inheritBackgroundAttachment()
                     }
                 }
             }
+            else -> throw IllegalStateException("wrong cascade")
         }
+    }
+
+    override fun isEarlyProperty(): Boolean {
+        return false
     }
 
     override fun toString(): String {
@@ -54,7 +59,7 @@ class BackgroundAttachmentId : LonghandId() {
     }
 }
 
-class BackgroundAttachment(val attachment: List<Attachment>) : PropertyDeclaration() {
+class BackgroundAttachmentDeclaration(val attachment: List<Attachment>) : PropertyDeclaration() {
 
     override fun id(): LonghandId {
         return BackgroundAttachmentId.instance

@@ -1,8 +1,8 @@
 package de.krall.flare.css.value.specified
 
 import de.krall.flare.Experimental
-import de.krall.flare.css.ParserContext
-import de.krall.flare.css.value.ClampingMode
+import de.krall.flare.css.parser.ClampingMode
+import de.krall.flare.css.parser.ParserContext
 import de.krall.flare.css.value.Context
 import de.krall.flare.css.value.FontBaseSize
 import de.krall.flare.css.value.SpecifiedValue
@@ -115,7 +115,7 @@ sealed class CalcNode {
                     .mapErr { input.newError(ParseErrorKind.Unkown()) }
         }
 
-        fun parseLenth(context: ParserContext, input: Parser, clampingMode: ClampingMode): Result<CalcLengthOrPercentage, ParseError> {
+        fun parseLength(context: ParserContext, input: Parser, clampingMode: ClampingMode): Result<CalcLengthOrPercentage, ParseError> {
             val calcNodeResult = parse(context, input, CalcUnit.LENGTH)
 
             val calcNode = when (calcNodeResult) {
@@ -162,7 +162,7 @@ sealed class CalcNode {
             return Err(input.newError(ParseErrorKind.Unkown()))
         }
 
-        fun parseLenthOrPercentage(context: ParserContext, input: Parser, clampingMode: ClampingMode): Result<CalcLengthOrPercentage, ParseError> {
+        fun parseLengthOrPercentage(context: ParserContext, input: Parser, clampingMode: ClampingMode): Result<CalcLengthOrPercentage, ParseError> {
             val calcNodeResult = parse(context, input, CalcUnit.LENGTH_OR_PERCENTAGE)
 
             val calcNode = when (calcNodeResult) {

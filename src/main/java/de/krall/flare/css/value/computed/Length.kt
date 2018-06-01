@@ -1,11 +1,11 @@
 package de.krall.flare.css.value.computed
 
-import de.krall.flare.css.value.ClampingMode
+import de.krall.flare.css.parser.ClampingMode
 import de.krall.flare.css.value.ComputedValue
 import de.krall.flare.std.Option
 import de.krall.flare.std.Some
 
-class PixelLength(val value: Float) : ComputedValue {
+data class PixelLength(val value: Float) : ComputedValue {
 
     fun px(): Float {
         return value
@@ -21,32 +21,7 @@ class PixelLength(val value: Float) : ComputedValue {
     }
 }
 
-sealed class Length {
-
-}
-
-class Percentage(val value: Float)
-
-class CalcLengthOrPercentage(private val clampingMode: ClampingMode,
-                             private val length: PixelLength,
-                             private val percentage: Option<Percentage>) : ComputedValue {
-
-    fun length(): PixelLength {
-        if (percentage is Some) {
-            throw IllegalStateException()
-        }
-
-        return lengthComponent()
-    }
-
-    fun lengthComponent(): PixelLength {
-        return PixelLength((clampingMode.clamp(length.px())))
-    }
-
-    fun unclampedLength(): PixelLength {
-        return length
-    }
-}
+class NonNegativeLength(val length: PixelLength) : ComputedValue
 
 class Au(val value: Int) {
 
@@ -95,3 +70,42 @@ class Au(val value: Int) {
         private const val AU_PER_PX = 60
     }
 }
+
+class Percentage(val value: Float) : ComputedValue
+
+sealed class LengthOrPercentage : ComputedValue {
+
+    data class Length(val length: PixelLength) : LengthOrPercentage()
+
+    data class Percentage(val percentage: de.krall.flare.css.value.computed.Percentage) : LengthOrPercentage()
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage()
+}
+
+class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : ComputedValue
+
+sealed class LengthOrPercentageOrAuto : ComputedValue {
+
+    data class Length(val length: PixelLength) : LengthOrPercentageOrAuto()
+
+    data class Percentage(val percentage: de.krall.flare.css.value.computed.Percentage) : LengthOrPercentageOrAuto()
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto()
+
+    class Auto : LengthOrPercentageOrAuto()
+}
+
+class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : ComputedValue
+
+sealed class LengthOrPercentageOrNone : ComputedValue {
+
+    data class Length(val length: PixelLength) : LengthOrPercentageOrNone()
+
+    data class Percentage(val percentage: de.krall.flare.css.value.computed.Percentage) : LengthOrPercentageOrNone()
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrNone()
+
+    class None : LengthOrPercentageOrNone()
+}
+
+class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) : ComputedValue
