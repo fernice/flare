@@ -1,6 +1,9 @@
 package de.krall.flare.css.stylesheet
 
+import de.krall.flare.css.parser.AllowQuirks
+import de.krall.flare.css.parser.ParseMode
 import de.krall.flare.css.parser.ParserContext
+import de.krall.flare.css.parser.QuirksMode
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.ParserInput
 import de.krall.flare.cssparser.RuleListParser
@@ -29,7 +32,7 @@ class Stylesheet(private val rules: List<CssRule>,
                  origin: Origin): Stylesheet {
 
             val input = Parser(ParserInput(text))
-            val context = ParserContext()
+            val context = ParserContext(ParseMode.Default(), QuirksMode.NO_QUIRKS)
 
             val parser = TopLevelRuleParser(context)
             val iter = RuleListParser(input, parser, true)
