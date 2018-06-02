@@ -22,7 +22,7 @@ class BackgroundAttachmentId : LonghandId() {
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return parse(context, input).map { BackgroundAttachmentDeclaration(it) }
+        return input.parseCommaSeparated { Attachment.parse(context, it) }.map { BackgroundAttachmentDeclaration(it) }
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -64,32 +64,11 @@ class BackgroundAttachmentDeclaration(val attachment: List<Attachment>) : Proper
     override fun id(): LonghandId {
         return BackgroundAttachmentId.instance
     }
-}
 
-private fun parse(context: ParserContext, input: Parser): Result<List<Attachment>, ParseError> {
-    return input.parseCommaSeparated { parseKeyword(context, it) }
-}
+    companion object {
 
-@Suppress("UNUSED_PARAMETER")
-private fun parseKeyword(context: ParserContext, input: Parser): Result<Attachment, ParseError> {
-    val location = input.sourceLocation()
-    val identifierResult = input.expectIdentifier()
-
-    val identifier = when (identifierResult) {
-        is Ok -> identifierResult.value
-        is Err -> return identifierResult
+        val initialValue: List<Attachment> by lazy { listOf(Attachment.SCROLL) }
     }
-
-    return when (identifier.toLowerCase()) {
-        "scroll" -> Ok(Attachment.SCROLL)
-        "fixed" -> Ok(Attachment.FIXED)
-        "local" -> Ok(Attachment.LOCAL)
-        else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
-    }
-}
-
-private fun getInitialValue(): List<Attachment> {
-    return listOf(Attachment.SCROLL)
 }
 
 enum class Attachment {
@@ -98,5 +77,26 @@ enum class Attachment {
 
     FIXED,
 
-    LOCAL
+    LOCAL;
+
+    companion object {
+
+        @Suppress("UNUSED_PARAMETER")
+        fun parse(context: ParserContext, input: Parser): Result<Attachment, ParseError> {
+            val location = input.sourceLocation()
+            val identifierResult = input.expectIdentifier()
+
+            val identifier = when (identifierResult) {
+                is Ok -> identifierResult.value
+                is Err -> return identifierResult
+            }
+
+            return when (identifier.toLowerCase()) {
+                "scroll" -> Ok(Attachment.SCROLL)
+                "fixed" -> Ok(Attachment.FIXED)
+                "local" -> Ok(Attachment.LOCAL)
+                else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
+            }
+        }
+    }
 }

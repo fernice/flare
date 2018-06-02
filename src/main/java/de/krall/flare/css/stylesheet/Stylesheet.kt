@@ -1,6 +1,5 @@
 package de.krall.flare.css.stylesheet
 
-import de.krall.flare.css.parser.AllowQuirks
 import de.krall.flare.css.parser.ParseMode
 import de.krall.flare.css.parser.ParserContext
 import de.krall.flare.css.parser.QuirksMode

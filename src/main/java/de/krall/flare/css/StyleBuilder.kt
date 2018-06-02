@@ -2,8 +2,12 @@ package de.krall.flare.css
 
 import de.krall.flare.css.properties.longhand.Attachment
 import de.krall.flare.css.properties.stylestruct.Background
+import de.krall.flare.css.properties.stylestruct.Font
 import de.krall.flare.css.value.computed.Color
+import de.krall.flare.css.value.computed.FontFamily
+import de.krall.flare.css.value.computed.FontSize
 import de.krall.flare.dom.Device
+import de.krall.flare.font.WritingMode
 import de.krall.flare.std.None
 import de.krall.flare.std.Option
 import de.krall.flare.std.Some
@@ -94,15 +98,18 @@ class StyleStructRef<T : StyleStruct<T>> private constructor(private var styleSt
     }
 }
 
-class StyleBuilder(private val device: Device,
+class StyleBuilder(val device: Device,
+                   var writingMode: WritingMode,
                    private val inheritStyle: ComputedValues,
                    private val inheritStyleIgnoringFirstLine: ComputedValues,
                    private val resetStyle: ComputedValues,
-                   private val background: StyleStructRef<Background>) {
+                   private val background: StyleStructRef<Background>,
+                   private val font: StyleStructRef<Font>) {
 
     companion object {
 
         fun new(device: Device,
+                writingMode: WritingMode,
                 parentStyle: Option<ComputedValues>,
                 parentStyleIgnoringFirstLine: Option<ComputedValues>): StyleBuilder {
             val resetStyle = device.defaultComputedValues()
@@ -111,24 +118,36 @@ class StyleBuilder(private val device: Device,
 
             return StyleBuilder(
                     device,
+                    writingMode,
                     inheritStyle,
                     inheritStyleIgnoringFirstList,
                     resetStyle,
-                    StyleStructRef.borrowed(resetStyle.getBackground())
+                    StyleStructRef.borrowed(resetStyle.getBackground()),
+                    StyleStructRef.borrowed(inheritStyle.getFont())
             )
         }
     }
 
     // *****************************************************
-    // background-color
+    // Background
     // *****************************************************
+
+    fun getBackground(): Background {
+        return background.build()
+    }
+
+    fun getParentBackground(): Background {
+        return inheritStyleIgnoringFirstLine.getBackground()
+    }
+
+    // background-color
 
     fun setBackgroundColor(color: Color) {
         background.mutate().setColor(color)
     }
 
     fun inheritBackgroundColor() {
-        val inheritStruct = inheritStyle.getBackground()
+        val inheritStruct = inheritStyleIgnoringFirstLine.getBackground()
 
         background.mutate().setColor(inheritStruct.getColor())
     }
@@ -139,16 +158,14 @@ class StyleBuilder(private val device: Device,
         background.mutate().setColor(resetStruct.getColor())
     }
 
-    // *****************************************************
     // background-attachment
-    // *****************************************************
 
     fun setBackgroundAttachment(attachment: List<Attachment>) {
         background.mutate().setAttachment(attachment)
     }
 
     fun inheritBackgroundAttachment() {
-        val inheritStruct = inheritStyle.getBackground()
+        val inheritStruct = inheritStyleIgnoringFirstLine.getBackground()
 
         background.mutate().setColor(inheritStruct.getColor())
     }
@@ -159,7 +176,58 @@ class StyleBuilder(private val device: Device,
         background.mutate().setColor(resetStruct.getColor())
     }
 
+    // *****************************************************
+    //  Font
+    // *****************************************************
+
+    fun getFont(): Font {
+        return font.build()
+    }
+
+    fun getParentFont(): Font {
+        return inheritStyle.getFont()
+    }
+
+    // font-family
+
+    fun setFontFamily(fontFamily: FontFamily) {
+        font.mutate().setFontFamily(fontFamily)
+    }
+
+    fun inheritFontFamily() {
+        val inheritStruct = inheritStyle.getFont()
+
+        font.mutate().setFontFamily(inheritStruct.getFontFamily())
+    }
+
+    fun resetFontFamily() {
+        val resetStruct = resetStyle.getFont()
+
+        font.mutate().setFontFamily(resetStruct.getFontFamily())
+    }
+
+    // font-size
+
+    fun setFontSize(fontSize: FontSize) {
+        font.mutate().setFontSize(fontSize)
+    }
+
+    fun inheritFontSize() {
+        val inheritStruct = inheritStyle.getFont()
+
+        font.mutate().setFontSize(inheritStruct.getFontSize())
+    }
+
+    fun resetFontSize() {
+        val resetStruct = resetStyle.getFont()
+
+        font.mutate().setFontSize(resetStruct.getFontSize())
+    }
+
     fun build(): ComputedValues {
-        return ComputedValues(background.build())
+        return ComputedValues(
+                background.build(),
+                font.build()
+        )
     }
 }

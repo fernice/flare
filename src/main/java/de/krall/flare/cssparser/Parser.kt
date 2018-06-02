@@ -126,6 +126,7 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
     }
 
     fun expectIdentifierMatching(text: String): Result<Empty, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -138,14 +139,15 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
                 if (token.name.equals(text, true)) {
                     Ok()
                 } else {
-                    Err(newUnexpectedTokenError(token))
+                    Err(location.newUnexpectedTokenError(token))
                 }
             }
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 
     fun expectIdentifier(): Result<String, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -155,11 +157,27 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
 
         return when (token) {
             is Token.Identifier -> Ok(token.name)
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
+        }
+    }
+
+    fun expectString(): Result<String, ParseError> {
+        val location = sourceLocation()
+        val tokenResult = next()
+
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Identifier -> Ok(token.name)
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 
     fun expectIdentifierOrString(): Result<String, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -170,11 +188,12 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
         return when (token) {
             is Token.Identifier -> Ok(token.name)
             is Token.String -> Ok(token.value)
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 
     fun expectNumber(): Result<Float, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -184,11 +203,12 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
 
         return when (token) {
             is Token.Number -> Ok(token.number.float())
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 
     fun expectPercentage(): Result<Float, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -198,11 +218,12 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
 
         return when (token) {
             is Token.Percentage -> Ok(token.number.float())
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 
     fun expectComma(): Result<Empty, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -212,11 +233,12 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
 
         return when (token) {
             is Token.Comma -> Ok()
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 
     fun expectSolidus(): Result<Empty, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -226,11 +248,12 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
 
         return when (token) {
             is Token.Solidus -> Ok()
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 
     fun expectColon(): Result<Empty, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -240,11 +263,12 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
 
         return when (token) {
             is Token.Colon -> Ok()
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 
     fun expectBang(): Result<Empty, ParseError> {
+        val location = sourceLocation()
         val tokenResult = next()
 
         val token = when (tokenResult) {
@@ -254,7 +278,7 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
 
         return when (token) {
             is Token.Bang -> Ok()
-            else -> Err(newUnexpectedTokenError(token))
+            else -> Err(location.newUnexpectedTokenError(token))
         }
     }
 

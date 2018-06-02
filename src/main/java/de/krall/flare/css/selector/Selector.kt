@@ -89,6 +89,7 @@ sealed class PseudoElement {
     class Selection : PseudoElement()
     class FirstLetter : PseudoElement()
     class FirstLine : PseudoElement()
+    class Placeholder : PseudoElement()
 }
 
 sealed class NonTSPseudoClass {

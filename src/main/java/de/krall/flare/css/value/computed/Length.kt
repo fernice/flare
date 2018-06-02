@@ -1,9 +1,7 @@
 package de.krall.flare.css.value.computed
 
-import de.krall.flare.css.parser.ClampingMode
 import de.krall.flare.css.value.ComputedValue
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
+import de.krall.flare.std.max
 
 data class PixelLength(val value: Float) : ComputedValue {
 
@@ -21,12 +19,56 @@ data class PixelLength(val value: Float) : ComputedValue {
     }
 }
 
-class NonNegativeLength(val length: PixelLength) : ComputedValue
+fun PixelLength.into(): Au {
+    return Au.fromPx(this.value)
+}
+
+fun Au.into(): PixelLength {
+    return PixelLength(this.toPx())
+}
+
+class NonNegativeLength(val length: PixelLength) : ComputedValue {
+
+    companion object {
+
+        fun new(px: Float): NonNegativeLength {
+            return NonNegativeLength(PixelLength(px.max(0f)))
+        }
+    }
+
+    fun scaleBy(factor: Float): NonNegativeLength {
+        return new(length.px() * factor.max(0f))
+    }
+
+    operator fun plus(other: NonNegativeLength): NonNegativeLength {
+        return new(length.px() + other.length.px())
+    }
+}
+
+fun NonNegativeLength.into(): Au {
+    return this.length.into()
+}
+
+fun Au.intoNonNegative(): NonNegativeLength {
+    return NonNegativeLength(this.into())
+}
+
+fun PixelLength.intoNonNegative(): NonNegativeLength {
+    return NonNegativeLength(this)
+}
 
 class Au(val value: Int) {
 
-    fun toPx(): PixelLength {
-        return PixelLength((value / AU_PER_PX).toFloat())
+    fun toPx(): Float {
+        return value / AU_PER_PX.toFloat()
+    }
+
+    fun scaleBy(float: Float): Au {
+        return Au((value * float).toInt())
+    }
+
+    fun toFloat(): Float {
+        return value / AU_PER_PX.toFloat()
     }
 
     operator fun plus(au: Au): Au {
@@ -43,6 +85,22 @@ class Au(val value: Int) {
 
     operator fun div(au: Au): Au {
         return Au(value / au.value)
+    }
+
+    operator fun plus(scalar: Int): Au {
+        return Au(value + scalar)
+    }
+
+    operator fun minus(scalar: Int): Au {
+        return Au(value - scalar)
+    }
+
+    operator fun times(scalar: Int): Au {
+        return Au(value * scalar)
+    }
+
+    operator fun div(scalar: Int): Au {
+        return Au(value / scalar)
     }
 
     fun max(au: Au): Au {
@@ -65,6 +123,18 @@ class Au(val value: Int) {
 
         fun fromAu64(double: Double): Au {
             return Au(double.toInt())
+        }
+
+        fun fromPx(px: Float): Au {
+            return Au((px * AU_PER_PX).toInt())
+        }
+
+        fun fromPx(px: Int): Au {
+            return Au((px * AU_PER_PX))
+        }
+
+        fun from(px: PixelLength): Au {
+            return fromPx(px.value)
         }
 
         private const val AU_PER_PX = 60

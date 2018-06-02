@@ -593,6 +593,7 @@ private fun parsePseudoElement(location: SourceLocation, name: String): Result<S
         "selection" -> Ok(SelectorPseudoElement.Selection())
         "first-letter" -> Ok(SelectorPseudoElement.FirstLetter())
         "first-line" -> Ok(SelectorPseudoElement.FirstLine())
+        "placeholder" -> Ok(SelectorPseudoElement.Placeholder())
         else -> Err(location.newUnexpectedTokenError(Token.Identifier(name)))
     }
 }

@@ -310,6 +310,12 @@ class SelectorParseTest {
                 expectPseudoElement(PseudoElement.FirstLine::class))
     }
 
+    @Test
+    fun pseudoElementPlaceholder() {
+        parse("::placeholder",
+                expectPseudoElement(PseudoElement.Placeholder::class))
+    }
+
     ///////////////////////////////////// AttributeSelector /////////////////////////////////////
 
     @Test

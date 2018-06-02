@@ -2,13 +2,24 @@ package de.krall.flare.std
 
 sealed class Option<out T> {
 
+    abstract fun isSome(): Boolean
+
+    abstract fun isNone(): Boolean
+
     abstract fun expect(message: String): T
 
     abstract fun <R> map(mapper: (T) -> R): Option<R>
-
 }
 
 class None<T> : Option<T>() {
+
+    override fun isSome(): Boolean {
+        return false
+    }
+
+    override fun isNone(): Boolean {
+        return true
+    }
 
     override fun expect(message: String): T {
         throw IllegalStateException(message)
@@ -24,6 +35,14 @@ class None<T> : Option<T>() {
 }
 
 data class Some<T>(val value: T) : Option<T>() {
+
+    override fun isSome(): Boolean {
+        return true
+    }
+
+    override fun isNone(): Boolean {
+        return false
+    }
 
     override fun expect(message: String): T {
         return value

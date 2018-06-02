@@ -7,6 +7,7 @@ import de.krall.flare.css.properties.PropertyDeclaration
 import de.krall.flare.css.properties.PropertyEntryPoint
 import de.krall.flare.css.value.Context
 import de.krall.flare.css.value.specified.Color
+import de.krall.flare.css.value.computed.Color as ComputedColor
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.std.Result
@@ -19,12 +20,12 @@ class BackgroundColorId : LonghandId() {
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return Color.parse(context, input).map { color -> BackgroundColor(color) }
+        return Color.parse(context, input).map { color -> BackgroundColorDeclaration(color) }
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is BackgroundColor -> {
+            is BackgroundColorDeclaration -> {
                 val color = declaration.color.toComputedValue(context)
 
                 context.builder.setBackgroundColor(color)
@@ -54,8 +55,13 @@ class BackgroundColorId : LonghandId() {
     }
 }
 
-class BackgroundColor(val color: Color) : PropertyDeclaration() {
+class BackgroundColorDeclaration(val color: Color) : PropertyDeclaration() {
     override fun id(): LonghandId {
         return BackgroundColorId.instance
+    }
+
+    companion object {
+
+        val initialValue: ComputedColor by lazy { ComputedColor.transparent() }
     }
 }

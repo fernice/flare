@@ -6,8 +6,10 @@ import de.krall.flare.css.value.FontBaseSize
 import de.krall.flare.css.value.SpecifiedValue
 import de.krall.flare.css.value.computed.Au
 import de.krall.flare.css.value.computed.PixelLength
+import de.krall.flare.css.value.computed.into
 import de.krall.flare.css.value.generic.Size2D
 import de.krall.flare.cssparser.*
+import de.krall.flare.font.FontMetricsQueryResult
 import de.krall.flare.std.*
 import de.krall.flare.css.value.computed.Percentage as ComputedPercentage
 import de.krall.flare.css.value.computed.NonNegativeLength as ComputedNonNegativeLength
@@ -96,29 +98,79 @@ sealed class AbsoluteLength : SpecifiedValue<PixelLength> {
 
 sealed class FontRelativeLength {
 
-    abstract fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength
+    fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
+        val (referencedSize, factor) = referencedSizeAndFactor(context, baseSize)
+        val pixel = (referencedSize.toFloat() * factor)
+                .min(Float.MAX_VALUE)
+                .max(Float.MIN_VALUE)
+        return PixelLength(pixel)
+    }
+
+    internal abstract fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float>
+
+    internal fun queryFontMetrics(context: Context, fontSize: Au): FontMetricsQueryResult {
+        return context.fontMetricsProvider.query(
+                context.style().getFont(),
+                fontSize,
+                context.device()
+        )
+    }
 
     class Em(val value: Float) : FontRelativeLength() {
-        override fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
-            return PixelLength.zero()
+        override fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
+            return if (baseSize is FontBaseSize.InheritStyleButStripEmUnits) {
+                Pair(Au(0), value)
+            } else {
+                val referencedFontSize = baseSize.resolve(context)
+
+                Pair(referencedFontSize, value)
+            }
         }
     }
 
     class Ex(val value: Float) : FontRelativeLength() {
-        override fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
-            return PixelLength.zero()
+        override fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
+            val referencedFontSize = baseSize.resolve(context)
+            val metricsResult = queryFontMetrics(context, referencedFontSize)
+
+            val referenceSize = when (metricsResult) {
+                is FontMetricsQueryResult.Available -> metricsResult.metrics.xHeight
+                is FontMetricsQueryResult.NotAvailable -> referencedFontSize.scaleBy(0.5f)
+            }
+
+            return Pair(referenceSize, value)
         }
     }
 
     class Ch(val value: Float) : FontRelativeLength() {
-        override fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
-            return PixelLength.zero()
+        override fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
+            val referencedFontSize = baseSize.resolve(context)
+            val metricsResult = queryFontMetrics(context, referencedFontSize)
+
+            val referenceSize = when (metricsResult) {
+                is FontMetricsQueryResult.Available -> metricsResult.metrics.zeroAdvanceMeasure
+                is FontMetricsQueryResult.NotAvailable -> {
+                    if (context.style().writingMode.isVertical()) {
+                        referencedFontSize
+                    } else {
+                        referencedFontSize.scaleBy(0.5f)
+                    }
+                }
+            }
+
+            return Pair(referenceSize, value)
         }
     }
 
     class Rem(val value: Float) : FontRelativeLength() {
-        override fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
-            return PixelLength.zero()
+        override fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
+            val referencedSize = if (context.isRootElement()) {
+                baseSize.resolve(context)
+            } else {
+                context.device().rootFontSize()
+            }
+
+            return Pair(referencedSize, value)
         }
     }
 }
@@ -131,7 +183,7 @@ sealed class ViewportPercentageLength {
         override fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
             val au = (viewportSize.width.value * value / 100.0).trunc()
 
-            return Au.fromAu64(au).toPx()
+            return Au.fromAu64(au).into()
         }
     }
 
@@ -139,7 +191,7 @@ sealed class ViewportPercentageLength {
         override fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
             val au = (viewportSize.height.value * value / 100.0).trunc()
 
-            return Au.fromAu64(au).toPx()
+            return Au.fromAu64(au).into()
         }
     }
 
@@ -147,7 +199,7 @@ sealed class ViewportPercentageLength {
         override fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
             val au = (viewportSize.width.max(viewportSize.height).value * value / 100.0).trunc()
 
-            return Au.fromAu64(au).toPx()
+            return Au.fromAu64(au).into()
         }
     }
 
@@ -155,7 +207,7 @@ sealed class ViewportPercentageLength {
         override fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
             val au = (viewportSize.width.min(viewportSize.height).value * value / 100.0).trunc()
 
-            return Au.fromAu64(au).toPx()
+            return Au.fromAu64(au).into()
         }
     }
 }

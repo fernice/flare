@@ -12,12 +12,14 @@ import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
 import de.krall.flare.dom.Device
 import de.krall.flare.dom.Element
+import de.krall.flare.font.FontMetricsProvider
+import de.krall.flare.font.WritingMode
 import de.krall.flare.std.*
 import org.reflections.Reflections
 import kotlin.reflect.full.companionObjectInstance
 
 /**
- * Marks an entry point to a property declaration. Currently only [PropertyLonghandId] and [PropertyShorthandId]
+ * Marks an entry point to a property declaration. Currently only [LonghandId] and [ShorthandId]
  * are valid entry points.
  */
 @Target(AnnotationTarget.CLASS)
@@ -218,16 +220,19 @@ fun cascade(device: Device,
             element: Option<Element>,
             declarations: List<PropertyDeclaration>,
             parentStyle: Option<ComputedValues>,
-            parentStyleIgnoringFirstLine: Option<ComputedValues>): ComputedValues {
+            parentStyleIgnoringFirstLine: Option<ComputedValues>,
+            fontMetricsProvider: FontMetricsProvider): ComputedValues {
 
     val context = Context(
             false,
 
             StyleBuilder.new(
                     device,
+                    WritingMode(0),
                     parentStyle,
                     parentStyleIgnoringFirstLine
-            )
+            ),
+            fontMetricsProvider
     )
 
     val seen = mutableSetOf<LonghandId>()
