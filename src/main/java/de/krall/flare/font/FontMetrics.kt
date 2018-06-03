@@ -1,7 +1,7 @@
 package de.krall.flare.font
 
-import de.krall.flare.css.properties.stylestruct.Font
-import de.krall.flare.css.value.computed.Au
+import de.krall.flare.style.properties.stylestruct.Font
+import de.krall.flare.style.value.computed.Au
 import de.krall.flare.dom.Device
 
 interface FontMetricsProvider {

@@ -1,8 +1,8 @@
 package de.krall.flare.dom
 
-import de.krall.flare.css.ComputedValues
-import de.krall.flare.css.value.computed.Au
-import de.krall.flare.css.value.generic.Size2D
+import de.krall.flare.style.ComputedValues
+import de.krall.flare.style.value.computed.Au
+import de.krall.flare.style.value.generic.Size2D
 
 interface Device {
 
