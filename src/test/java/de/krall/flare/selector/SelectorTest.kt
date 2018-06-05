@@ -421,7 +421,7 @@ class SelectorParseTest {
         }
 
         var index = 0
-        for (component in selector) {
+        for (component in selector.rawIterTrueParseOrder()) {
             asserts[index++](component)
         }
     }

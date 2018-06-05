@@ -62,3 +62,17 @@ inline fun <T> Option<T>.let(block: (T) -> Unit) {
         block(this.value)
     }
 }
+
+inline fun <T> Option<T>.ifLet(block: (T) -> Unit) {
+    if (this is Some) {
+        block(this.value)
+    }
+}
+
+inline fun <T> T?.into(): Option<T> {
+    return if (this != null) {
+        Some(this)
+    } else {
+        None()
+    }
+}

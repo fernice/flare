@@ -2,6 +2,8 @@ package de.krall.flare.selector
 
 import de.krall.flare.cssparser.*
 import de.krall.flare.std.*
+import de.krall.flare.std.iter.Iter
+import de.krall.flare.style.parser.QuirksMode
 import de.krall.flare.selector.PseudoElement as SelectorPseudoElement
 
 sealed class SelectorParseErrorKind : ParseErrorKind() {
@@ -307,7 +309,10 @@ private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sin
 
             when (qualifiedName.localName) {
                 is Some -> {
-                    sink(Component.LocalName(qualifiedName.localName.value))
+                    val localName = qualifiedName.localName.value
+                    val localNameLower = localName.toLowerCase()
+
+                    sink(Component.LocalName(localName, localNameLower))
                 }
                 is None -> {
                     sink(Component.ExplicitUniversalType())
@@ -862,5 +867,90 @@ private fun parseAttributeSelectorFlags(input: Parser): Result<Boolean, ParseErr
             }
         }
         else -> Err(location.newUnexpectedTokenError(token))
+    }
+}
+
+class AncestorHashes(private val packedHashes: IntArray) {
+
+    companion object {
+
+        fun new(selector: Selector, quirksMode: QuirksMode): AncestorHashes {
+            return fromIter(selector.iter(), quirksMode)
+        }
+
+        private fun fromIter(selector: SelectorIter, quirksMode: QuirksMode): AncestorHashes {
+            val iter = AncestorIter.new(selector).filterMap({ component -> component.ancestorHash(quirksMode) })
+
+            val hashes = IntArray(4)
+
+            loop@
+            for (i in 0..4) {
+                val hash = iter.next()
+                when (hash) {
+                    is Some -> hashes[i] = hash.value and BLOOM_BITS
+                    is None -> break@loop
+                }
+            }
+
+            val fourth = hashes[3]
+            if (fourth != 0) {
+                hashes[0] = hashes[0] or (fourth and 0x000000ff) shl 24
+                hashes[1] = hashes[1] or (fourth and 0x0000ff00) shl 16
+                hashes[2] = hashes[2] or (fourth and 0x00ff0000) shl 8
+            }
+
+            return AncestorHashes(
+                    intArrayOf(hashes[0], hashes[1], hashes[2])
+            )
+        }
+    }
+}
+
+const val BLOOM_BITS = 0x00ffffff
+
+internal fun hashString(string: String): Int {
+    return string.hashCode()
+}
+
+class AncestorIter private constructor(private val iter: SelectorIter) : Iter<Component> {
+
+    companion object {
+        fun new(selector: SelectorIter): AncestorIter {
+            val iter = AncestorIter(selector)
+            iter.skipUntilAncestor()
+            return iter
+        }
+    }
+
+    private fun skipUntilAncestor() {
+        while (true) {
+            while (iter.next().isSome()) {
+            }
+
+            val ancestor = iter.nextInSequence().mapOr({ combinator ->
+                combinator is Combinator.Child || combinator is Combinator.Descendant
+            }, true)
+
+            if (ancestor) {
+                break
+            }
+        }
+    }
+
+    override fun next(): Option<Component> {
+        val next = iter.next()
+        if (next is Some) {
+            return next
+        }
+
+        val combinator = iter.nextInSequence()
+        if (combinator is Some) {
+            when (combinator.value) {
+                is Combinator.Child,
+                is Combinator.Descendant -> skipUntilAncestor()
+            }
+        }
+
+        return iter.next()
     }
 }

@@ -1,9 +1,11 @@
 package de.krall.flare.selector
 
 import de.krall.flare.cssparser.*
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
+import de.krall.flare.std.*
+import de.krall.flare.std.iter.Iter
+import de.krall.flare.std.iter.drain
+import de.krall.flare.std.iter.iter
+import de.krall.flare.style.parser.QuirksMode
 
 interface NamespacePrefix {
 
@@ -17,23 +19,67 @@ interface NamespaceUrl {
 
 sealed class Component {
 
+    open fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
+        return None()
+    }
+
     class Combinator(val combinator: de.krall.flare.selector.Combinator) : Component()
 
-    class DefaultNamespace(val namespace: NamespaceUrl) : Component()
+    class DefaultNamespace(val namespace: NamespaceUrl) : Component() {
+        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
+            return Some(hashString(namespace.getUrl()))
+        }
+    }
+
     class ExplicitNoNamespace : Component()
     class ExplicitAnyNamespace : Component()
-    class Namespace(val prefix: NamespacePrefix, val namespace: NamespaceUrl) : Component()
+    class Namespace(val prefix: NamespacePrefix, val namespace: NamespaceUrl) : Component() {
+        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
+            return Some(hashString(namespace.getUrl()))
+        }
+    }
 
-    class LocalName(val localName: String) : Component()
+    class LocalName(val localName: String, val localNameLower: String) : Component() {
+        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
+            return if (localName == localNameLower) {
+                Some(hashString(localName))
+            } else {
+                None()
+            }
+        }
+    }
+
     class ExplicitUniversalType : Component()
 
-    class ID(val id: String) : Component()
-    class Class(val styleClass: String) : Component()
+    class ID(val id: String) : Component() {
+        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
+            return if (quirksMode != QuirksMode.QUIRKS) {
+                Some(hashString(id))
+            } else {
+                None()
+            }
+        }
+    }
+
+    class Class(val styleClass: String) : Component() {
+        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
+            return if (quirksMode != QuirksMode.QUIRKS) {
+                Some(hashString(styleClass))
+            } else {
+                None()
+            }
+        }
+    }
 
     class PseudoElement(val pseudoElement: de.krall.flare.selector.PseudoElement) : Component()
     class NonTSPseudoClass(val pseudoClass: de.krall.flare.selector.NonTSPseudoClass) : Component()
 
-    class Negation(val simpleSelector: List<Component>) : Component()
+    class Negation(val simpleSelector: List<Component>) : Component() {
+
+        fun iter(): SelectorIter {
+            return SelectorIter(simpleSelector.iter())
+        }
+    }
 
     class FirstChild : Component()
     class LastChild : Component()
@@ -135,9 +181,109 @@ sealed class AttributeSelectorOperator {
     class Suffix : AttributeSelectorOperator()
 }
 
-class Selector(private val components: List<Component>) : Iterable<Component> {
+/**
+ * A Selector represents a sequence of compound selectors where each simple selector is separated by a [Combinator].
+ * A compound selector consists out of a sequence of simple selectors, represented by [Component]. The Selector is
+ * stored in matching order (right-to-left) for the combinators whereas for the compound selectors in parse order
+ * (left-to-right).
+ */
+class Selector(private val header: SpecificityAndFlags, private val components: List<Component>) {
 
-    override fun iterator(): Iterator<Component> = components.iterator()
+    /**
+     * Returns the specificity of this selector in a 4 Byte compressed format. For further information of the format
+     * see [Specificity].
+     */
+    fun specificity(): Int {
+        return header.specificity()
+    }
+
+    /**
+     * Returns a high-level [SelectorIter]. Iterates over a single compound selector until it returns [None]. After that
+     * [SelectorIter.nextInSequence] might return [Some] if the is another compound selector.
+     */
+    fun iter(): SelectorIter {
+        return SelectorIter(components.iter())
+    }
+
+    /**
+     * Returns a raw [Iter] in parse order. The Iter is not in true parse order meaning the compound selectors are reversed.
+     * The sequence of the compound selectors in relation to the combinators are in parse order.
+     */
+    fun rawIterParseOrder(): Iter<Component> {
+        return components.reversed().iter()
+    }
+
+    /**
+     * Constructs a raw [Iter] that represents true parse order. Due to the nature of how the selector is stored internally,
+     * this is a very expensive operation compared to the iters.
+     *
+     * @see rawIterParseOrder for semi parse order
+     * @see iter for high-level iter
+     */
+    fun rawIterTrueParseOrder(): Iter<Component> {
+        val iter = SelectorIter(components.reversed().iter())
+
+        val selector = mutableListOf<Component>()
+        val compoundSelector = mutableListOf<Component>()
+
+        outer@
+        while (true) {
+
+            inner@
+            while (true) {
+                val next = iter.next()
+
+                when (next) {
+                    is Some -> compoundSelector.add(next.value)
+                    is None -> break@inner
+                }
+            }
+
+            selector.addAll(compoundSelector.drain().reversed())
+
+            val next = iter.nextInSequence()
+
+            when (next) {
+                is Some -> selector.add(Component.Combinator(next.value))
+                is None -> break@outer
+            }
+        }
+
+        return selector.iter()
+    }
+}
+
+class SelectorIter(private val iter: Iter<Component>) : Iter<Component> {
+
+    private var nextCombinator: Option<Combinator> = None()
+
+    override fun next(): Option<Component> {
+        if (nextCombinator.isSome()) {
+            throw IllegalStateException("next in sequence")
+        }
+
+        val next = iter.next()
+
+        return when (next) {
+            is Some -> {
+                if (next.value is Component.Combinator) {
+                    nextCombinator = Some(next.value.combinator)
+                    None()
+                } else {
+                    next
+                }
+            }
+            is None -> {
+                next
+            }
+        }
+    }
+
+    fun nextInSequence(): Option<Combinator> {
+        val current = nextCombinator
+        nextCombinator = None()
+        return current
+    }
 }
 
 class SelectorList(private val selectors: List<Selector>) : Iterable<Selector> {
@@ -149,7 +295,7 @@ class SelectorList(private val selectors: List<Selector>) : Iterable<Selector> {
         fun parse(context: SelectorParserContext, input: Parser): Result<SelectorList, ParseError> {
             val selectors = mutableListOf<Selector>()
 
-            lopp@
+            loop@
             while (true) {
                 val selectorResult = input.parseUntilBefore(Delimiters.Comma, { input -> parseSelector(context, input) })
 
@@ -166,7 +312,7 @@ class SelectorList(private val selectors: List<Selector>) : Iterable<Selector> {
                 }
 
                 when (token) {
-                    is Token.Comma -> continue@lopp
+                    is Token.Comma -> continue@loop
                     else -> throw IllegalStateException("unreachable")
                 }
             }
