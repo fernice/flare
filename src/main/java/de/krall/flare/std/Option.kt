@@ -9,6 +9,8 @@ sealed class Option<out T> {
     abstract fun expect(message: String): T
 
     abstract fun <R> map(mapper: (T) -> R): Option<R>
+
+    abstract fun <R> andThen(mapper: (T) -> Option<R>): Option<R>
 }
 
 class None<T> : Option<T>() {
@@ -30,6 +32,10 @@ class None<T> : Option<T>() {
     }
 
     override fun <R> map(mapper: (T) -> R): Option<R> {
+        return None()
+    }
+
+    override fun <R> andThen(mapper: (T) -> Option<R>): Option<R> {
         return None()
     }
 }
@@ -54,6 +60,10 @@ data class Some<T>(val value: T) : Option<T>() {
 
     override fun <R> map(mapper: (T) -> R): Option<R> {
         return Some(mapper(value))
+    }
+
+    override fun <R> andThen(mapper: (T) -> Option<R>): Option<R> {
+        return mapper(value)
     }
 }
 

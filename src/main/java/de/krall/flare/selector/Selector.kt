@@ -7,15 +7,10 @@ import de.krall.flare.std.iter.drain
 import de.krall.flare.std.iter.iter
 import de.krall.flare.style.parser.QuirksMode
 
-interface NamespacePrefix {
+class NamespacePrefix(val prefix: String)
 
-    fun getPrefix(): String
-}
-
-interface NamespaceUrl {
-
-    fun getUrl(): String
-}
+class NamespaceUrl(val prefix: NamespacePrefix,
+                   val url: String)
 
 sealed class Component {
 
@@ -27,7 +22,7 @@ sealed class Component {
 
     class DefaultNamespace(val namespace: NamespaceUrl) : Component() {
         override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
-            return Some(hashString(namespace.getUrl()))
+            return Some(hashString(namespace.url))
         }
     }
 
@@ -35,7 +30,7 @@ sealed class Component {
     class ExplicitAnyNamespace : Component()
     class Namespace(val prefix: NamespacePrefix, val namespace: NamespaceUrl) : Component() {
         override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
-            return Some(hashString(namespace.getUrl()))
+            return Some(hashString(namespace.url))
         }
     }
 

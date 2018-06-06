@@ -202,13 +202,21 @@ private fun matchesSimpleSelector(selector: Component, element: Element, context
         }
         is Component.ExplicitUniversalType, is Component.ExplicitAnyNamespace -> true
         is Component.DefaultNamespace -> {
-            element.namespace() == selector.namespace
+            val namespace = element.namespace()
+            when (namespace) {
+                is Some -> namespace.value == selector.namespace
+                is None -> false
+            }
         }
         is Component.Namespace -> {
-            element.namespace() == selector.namespace
+            val namespace = element.namespace()
+            when (namespace) {
+                is Some -> namespace.value == selector.namespace
+                is None -> false
+            }
         }
         is Component.ExplicitNoNamespace -> {
-            element.namespace().getUrl().isEmpty()
+            element.namespace().isNone()
         }
         is Component.ID -> {
             element.hasID(selector.id)
@@ -288,7 +296,54 @@ private fun matchesSimpleSelector(selector: Component, element: Element, context
 }
 
 private fun matchesGenericNthChild(element: Element, a: Int, b: Int, ofType: Boolean, fromEnd: Boolean): Boolean {
-    return false
+    val index = nthChildIndex(element, ofType, fromEnd)
+
+    val an = index - b
+
+    if (an < 0) {
+        return false
+    }
+
+    if (a == 0) {
+        return false
+    }
+
+    val n = an / a
+
+    return n >= 0 && n * a == an
+}
+
+private fun nthChildIndex(element: Element, ofType: Boolean, fromEnd: Boolean): Int {
+    fun next(element: Element): Option<Element> {
+        return if (fromEnd) {
+            element.nextSibling()
+        } else {
+            element.previousSibling()
+        }
+    }
+
+    var index = 1
+    var current = element
+
+    loop@
+    while (true) {
+        val next = next(current)
+
+        current = when (next) {
+            is Some -> next.value
+            is None -> break@loop
+        }
+
+        if (!ofType || isSameType(element, current)) {
+            index++
+        }
+    }
+
+    return index
+}
+
+private fun isSameType(element: Element, other: Element): Boolean {
+    return element.localName() == other.localName() && element.namespace() == other.namespace()
 }
 
 private fun matchesFirstChild(element: Element): Boolean {
@@ -296,9 +351,9 @@ private fun matchesFirstChild(element: Element): Boolean {
 }
 
 private fun matchesLastChild(element: Element): Boolean {
-    return element.laterSibling().isNone()
+    return element.nextSibling().isNone()
 }
 
 private fun matchesOnlyChild(element: Element): Boolean {
-    return element.previousSibling().isNone() && element.laterSibling().isNone()
+    return element.previousSibling().isNone() && element.nextSibling().isNone()
 }

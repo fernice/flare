@@ -1,6 +1,6 @@
 package de.krall.flare.selector
 
-import de.krall.flare.ApplicableDeclaration
+import de.krall.flare.ApplicableDeclarationBlock
 import de.krall.flare.dom.Element
 import de.krall.flare.std.*
 import de.krall.flare.style.Rule
@@ -16,7 +16,7 @@ class SelectorMap {
     private var count = 0
 
     fun getAllMatchingRules(element: Element,
-                            matchingRules: MutableList<ApplicableDeclaration>,
+                            matchingRules: MutableList<ApplicableDeclarationBlock>,
                             context: MatchingContext,
                             cascadeLevel: CascadeLevel) {
 
@@ -45,7 +45,7 @@ class SelectorMap {
 
     private fun getMatchingRules(element: Element,
                                  rules: List<Rule>,
-                                 matchingRules: MutableList<ApplicableDeclaration>,
+                                 matchingRules: MutableList<ApplicableDeclarationBlock>,
                                  context: MatchingContext,
                                  cascadeLevel: CascadeLevel) {
         for (rule in rules) {
@@ -94,6 +94,8 @@ class SelectorMap {
                         }
                     }
                     is Component.Negation -> findBucket(component.iter())
+                    else -> {
+                    }
                 }
             }
 

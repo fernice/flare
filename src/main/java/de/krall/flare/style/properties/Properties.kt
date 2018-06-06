@@ -1,5 +1,6 @@
 package de.krall.flare.style.properties
 
+import de.krall.flare.ApplicableDeclarationBlock
 import de.krall.flare.style.ComputedValues
 import de.krall.flare.style.StyleBuilder
 import de.krall.flare.style.parser.ParserContext
@@ -14,8 +15,10 @@ import de.krall.flare.dom.Device
 import de.krall.flare.dom.Element
 import de.krall.flare.font.FontMetricsProvider
 import de.krall.flare.font.WritingMode
+import de.krall.flare.selector.PseudoElement
 import de.krall.flare.std.*
 import org.reflections.Reflections
+import java.util.stream.Collectors
 import kotlin.reflect.full.companionObjectInstance
 
 /**
@@ -218,11 +221,38 @@ enum class CssWideKeyword {
 
 fun cascade(device: Device,
             element: Option<Element>,
-            declarations: List<PropertyDeclaration>,
+            pseudoElement: Option<PseudoElement>,
+            applicableDeclarations: List<ApplicableDeclarationBlock>,
             parentStyle: Option<ComputedValues>,
             parentStyleIgnoringFirstLine: Option<ComputedValues>,
+            layoutStyle: Option<ComputedValues>,
             fontMetricsProvider: FontMetricsProvider): ComputedValues {
 
+    val declarations = applicableDeclarations.stream()
+            .map { declaration -> declaration.styleSource.declarations() }
+            .flatMap { block -> block.stream() }
+            .collect(Collectors.toList())
+
+    return applyDeclarations(
+            device,
+            element,
+            pseudoElement,
+            declarations,
+            parentStyle,
+            parentStyleIgnoringFirstLine,
+            layoutStyle,
+            fontMetricsProvider
+    )
+}
+
+fun applyDeclarations(device: Device,
+                      element: Option<Element>,
+                      pseudoElement: Option<PseudoElement>,
+                      declarations: List<PropertyDeclaration>,
+                      parentStyle: Option<ComputedValues>,
+                      parentStyleIgnoringFirstLine: Option<ComputedValues>,
+                      layoutStyle: Option<ComputedValues>,
+                      fontMetricsProvider: FontMetricsProvider): ComputedValues {
     val context = Context(
             false,
 

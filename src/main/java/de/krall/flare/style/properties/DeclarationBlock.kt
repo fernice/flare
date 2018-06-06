@@ -5,6 +5,7 @@ import de.krall.flare.style.stylesheet.AtRulePrelude
 import de.krall.flare.cssparser.*
 import de.krall.flare.std.*
 import java.util.*
+import java.util.stream.Stream
 
 enum class Importance {
 
@@ -31,6 +32,10 @@ class PropertyDeclarationBlock : Iterable<PropertyDeclaration> {
     }
 
     override fun iterator(): Iterator<PropertyDeclaration> = declarations.iterator()
+
+    fun stream(): Stream<PropertyDeclaration> {
+        return declarations.stream()
+    }
 }
 
 fun parsePropertyDeclarationList(context: ParserContext, input: Parser): PropertyDeclarationBlock {

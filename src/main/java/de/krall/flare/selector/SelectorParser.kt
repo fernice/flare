@@ -11,28 +11,14 @@ class SelectorParser : SelectorParserContext {
     }
 
     override fun namespacePrefix(prefix: String): NamespacePrefix {
-        return NamespacePrefixImpl(prefix)
+        return NamespacePrefix(prefix)
     }
 
     override fun namespaceForPrefix(prefix: NamespacePrefix): Option<NamespaceUrl> {
-        return Some(NamespaceUrlImpl(prefix))
+        return Some(NamespaceUrl(prefix, "unknown"))
     }
 
     override fun pseudoElementAllowsSingleColon(name: String): Boolean {
         return false
-    }
-
-    class NamespacePrefixImpl(private val prefix: String) : NamespacePrefix {
-
-        override fun getPrefix(): String {
-            return prefix
-        }
-    }
-
-    class NamespaceUrlImpl(private val prefix: NamespacePrefix) : NamespaceUrl {
-
-        override fun getUrl(): String {
-            return prefix.getPrefix()
-        }
     }
 }

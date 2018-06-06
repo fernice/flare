@@ -1,19 +1,29 @@
 package de.krall.flare
 
 import de.krall.flare.std.min
+import de.krall.flare.style.properties.PropertyDeclarationBlock
 import de.krall.flare.style.ruletree.CascadeLevel
 import de.krall.flare.style.ruletree.StyleSource
 
-class ApplicableDeclaration(private val styleSource: StyleSource,
-                            private val bits: ApplicableDeclarationBits,
-                            private val specificity: Int) {
+class ApplicableDeclarationBlock(val styleSource: StyleSource,
+                                 val bits: ApplicableDeclarationBits,
+                                 val specificity: Int) {
 
     companion object {
+        fun fromDeclarations(declarations: PropertyDeclarationBlock,
+                             cascadeLevel: CascadeLevel): ApplicableDeclarationBlock {
+            return ApplicableDeclarationBlock(
+                    StyleSource.fromDeclarations(declarations),
+                    ApplicableDeclarationBits.new(0, cascadeLevel),
+                    0
+            )
+        }
+
         fun new(source: StyleSource,
                 sourceOrder: Int,
                 cascadeLevel: CascadeLevel,
-                specificity: Int): ApplicableDeclaration {
-            return ApplicableDeclaration(
+                specificity: Int): ApplicableDeclarationBlock {
+            return ApplicableDeclarationBlock(
                     source,
                     ApplicableDeclarationBits.new(sourceOrder, cascadeLevel),
                     specificity
@@ -27,6 +37,10 @@ class ApplicableDeclaration(private val styleSource: StyleSource,
 
     fun cascadeLevel(): CascadeLevel {
         return bits.cascadeLevel()
+    }
+
+    fun specificity(): Int {
+        return specificity
     }
 }
 

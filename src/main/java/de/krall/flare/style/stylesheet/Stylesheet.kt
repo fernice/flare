@@ -20,8 +20,8 @@ enum class Origin {
     AUTHOR
 }
 
-class Stylesheet(private val rules: List<CssRule>,
-                 origin: Origin) : Iterable<CssRule> {
+class Stylesheet(val rules: List<CssRule>,
+                 val origin: Origin) : Iterable<CssRule> {
 
     override fun iterator(): Iterator<CssRule> = rules.iterator()
 
