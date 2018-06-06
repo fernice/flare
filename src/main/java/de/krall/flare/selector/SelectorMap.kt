@@ -97,7 +97,7 @@ class SelectorMap {
                 }
             }
 
-            val next = iter.nextInSequence()
+            val next = iter.nextSequence()
             if (next is Some && next.value !is Combinator.PseudoElement) {
                 break
             }

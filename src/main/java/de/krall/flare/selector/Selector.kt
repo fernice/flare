@@ -199,7 +199,16 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
 
     /**
      * Returns a high-level [SelectorIter]. Iterates over a single compound selector until it returns [None]. After that
-     * [SelectorIter.nextInSequence] might return [Some] if the is another compound selector.
+     * [SelectorIter.nextSequence] might return [Some] if the is another compound selector.
+     *
+     * Selector:
+     * ```
+     * div.class > #id:visited > *.class3
+     * ```
+     * Match Order:
+     * ```
+     * *.class3 > #id:visited > div.class
+     * ```
      */
     fun iter(): SelectorIter {
         return SelectorIter(components.iter())
@@ -208,6 +217,15 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
     /**
      * Returns a raw [Iter] in parse order. The Iter is not in true parse order meaning the compound selectors are reversed.
      * The sequence of the compound selectors in relation to the combinators are in parse order.
+     *
+     * Selector:
+     * ```
+     * div.class > #id:visited > *.class3
+     * ```
+     * Semi Parse Order:
+     * ```
+     * [.class] [div] > [:visited] [#id] > [.class3] [*]
+     * ```
      */
     fun rawIterParseOrder(): Iter<Component> {
         return components.reversed().iter()
@@ -216,6 +234,15 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
     /**
      * Constructs a raw [Iter] that represents true parse order. Due to the nature of how the selector is stored internally,
      * this is a very expensive operation compared to the iters.
+     *
+     * Selector:
+     * ```
+     * div.class > #id:visited > *.class3
+     * ```
+     * Parse Order:
+     * ```
+     * [div] [.class] > [#id] [:visited] > [*] [.class3]
+     * ```
      *
      * @see rawIterParseOrder for semi parse order
      * @see iter for high-level iter
@@ -241,7 +268,7 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
 
             selector.addAll(compoundSelector.drain().reversed())
 
-            val next = iter.nextInSequence()
+            val next = iter.nextSequence()
 
             when (next) {
                 is Some -> selector.add(Component.Combinator(next.value))
@@ -253,9 +280,7 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
     }
 }
 
-class SelectorIter(private val iter: Iter<Component>) : Iter<Component> {
-
-    private var nextCombinator: Option<Combinator> = None()
+class SelectorIter(private val iter: Iter<Component>, private var nextCombinator: Option<Combinator> = None()) : Iter<Component> {
 
     override fun next(): Option<Component> {
         if (nextCombinator.isSome()) {
@@ -279,10 +304,14 @@ class SelectorIter(private val iter: Iter<Component>) : Iter<Component> {
         }
     }
 
-    fun nextInSequence(): Option<Combinator> {
+    fun nextSequence(): Option<Combinator> {
         val current = nextCombinator
         nextCombinator = None()
         return current
+    }
+
+    override fun clone(): SelectorIter {
+        return SelectorIter(iter.clone(), nextCombinator)
     }
 }
 

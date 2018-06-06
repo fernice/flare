@@ -870,7 +870,26 @@ private fun parseAttributeSelectorFlags(input: Parser): Result<Boolean, ParseErr
     }
 }
 
-class AncestorHashes(private val packedHashes: IntArray) {
+fun main(args: Array<String>) {
+    val fourth = 10239454 and HASH_BLOOM_MASK
+
+    val o = 23403243 and HASH_BLOOM_MASK
+    val a1 = o or ((fourth and 0x000000ff) shl 24)
+    val a2 = o or ((fourth and 0x0000ff00) shl 16)
+    val a3 = o or ((fourth and 0x00ff0000) shl 8)
+
+    println(fourth)
+
+    val b = ((a1 and UPPER_EIGHT_BIT_MASK) ushr 24) or
+            ((a2 and UPPER_EIGHT_BIT_MASK) ushr 16) or
+            ((a3 and UPPER_EIGHT_BIT_MASK) ushr 8)
+
+    println(b)
+}
+
+private const val UPPER_EIGHT_BIT_MASK = 0xff shl 24
+
+class AncestorHashes(val packedHashes: IntArray) {
 
     companion object {
 
@@ -887,16 +906,16 @@ class AncestorHashes(private val packedHashes: IntArray) {
             for (i in 0..4) {
                 val hash = iter.next()
                 when (hash) {
-                    is Some -> hashes[i] = hash.value and BLOOM_BITS
+                    is Some -> hashes[i] = hash.value and HASH_BLOOM_MASK
                     is None -> break@loop
                 }
             }
 
             val fourth = hashes[3]
             if (fourth != 0) {
-                hashes[0] = hashes[0] or (fourth and 0x000000ff) shl 24
-                hashes[1] = hashes[1] or (fourth and 0x0000ff00) shl 16
-                hashes[2] = hashes[2] or (fourth and 0x00ff0000) shl 8
+                hashes[0] = hashes[0] or ((fourth and 0x000000ff) shl 24)
+                hashes[1] = hashes[1] or ((fourth and 0x0000ff00) shl 16)
+                hashes[2] = hashes[2] or ((fourth and 0x00ff0000) shl 8)
             }
 
             return AncestorHashes(
@@ -904,9 +923,14 @@ class AncestorHashes(private val packedHashes: IntArray) {
             )
         }
     }
-}
 
-const val BLOOM_BITS = 0x00ffffff
+
+    fun fourthHash(): Int {
+        return ((packedHashes[0] and UPPER_EIGHT_BIT_MASK) ushr 24) or
+                ((packedHashes[0] and UPPER_EIGHT_BIT_MASK) ushr 16) or
+                ((packedHashes[0] and UPPER_EIGHT_BIT_MASK) ushr 8)
+    }
+}
 
 internal fun hashString(string: String): Int {
     return string.hashCode()
@@ -927,7 +951,7 @@ class AncestorIter private constructor(private val iter: SelectorIter) : Iter<Co
             while (iter.next().isSome()) {
             }
 
-            val ancestor = iter.nextInSequence().mapOr({ combinator ->
+            val ancestor = iter.nextSequence().mapOr({ combinator ->
                 combinator is Combinator.Child || combinator is Combinator.Descendant
             }, true)
 
@@ -943,7 +967,7 @@ class AncestorIter private constructor(private val iter: SelectorIter) : Iter<Co
             return next
         }
 
-        val combinator = iter.nextInSequence()
+        val combinator = iter.nextSequence()
         if (combinator is Some) {
             when (combinator.value) {
                 is Combinator.Child,
@@ -952,5 +976,9 @@ class AncestorIter private constructor(private val iter: SelectorIter) : Iter<Co
         }
 
         return iter.next()
+    }
+
+    override fun clone(): Iter<Component> {
+        return AncestorIter(iter.clone())
     }
 }

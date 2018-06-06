@@ -9,6 +9,8 @@ interface Iter<E> : Iterable<E> {
 
     fun next(): Option<E>
 
+    fun clone(): Iter<E>
+
     fun <B> map(function: (E) -> B): Map<E, B> {
         return Map(this, function)
     }
@@ -27,12 +29,18 @@ interface Iter<E> : Iterable<E> {
 }
 
 class Map<E, B>(private val iter: Iter<E>, private val f: (E) -> B) : Iter<B> {
+
     override fun next(): Option<B> {
         return iter.next().map(f)
+    }
+
+    override fun clone(): Map<E, B> {
+        return Map(iter.clone(), f)
     }
 }
 
 class Filter<E>(private val iter: Iter<E>, private val p: (E) -> Boolean) : Iter<E> {
+
     override fun next(): Option<E> {
         for (item in iter) {
             if (p(item)) {
@@ -40,6 +48,10 @@ class Filter<E>(private val iter: Iter<E>, private val p: (E) -> Boolean) : Iter
             }
         }
         return None()
+    }
+
+    override fun clone(): Filter<E> {
+        return Filter(iter.clone(), p)
     }
 }
 
@@ -53,6 +65,11 @@ class FilterMap<E, B>(private val iter: Iter<E>, private val fp: (E) -> Option<B
         }
         return None()
     }
+
+    override fun clone(): FilterMap<E, B> {
+        return FilterMap(iter.clone(), fp)
+    }
+
 }
 
 class IterIterator<E>(private val iter: Iter<E>) : Iterator<E> {
@@ -74,17 +91,22 @@ class IterIterator<E>(private val iter: Iter<E>) : Iterator<E> {
     }
 }
 
-fun <E> Collection<E>.iter(): Iter<E> {
-    return CollectionIter(this.iterator())
+fun <E> List<E>.iter(): Iter<E> {
+    return ListIter(this, 0)
 }
 
-class CollectionIter<E>(private val iterator: Iterator<E>) : Iter<E> {
+class ListIter<E>(private val collection: List<E>, private var index: Int) : Iter<E> {
+
     override fun next(): Option<E> {
-        return if (iterator.hasNext()) {
-            Some(iterator.next())
+        return if (index < collection.size) {
+            Some(collection[index++])
         } else {
             None()
         }
+    }
+
+    override fun clone(): ListIter<E> {
+        return ListIter(collection, index)
     }
 }
 

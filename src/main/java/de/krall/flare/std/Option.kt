@@ -69,6 +69,12 @@ inline fun <T> Option<T>.ifLet(block: (T) -> Unit) {
     }
 }
 
+inline fun <T> Option<T>.ifLet(precondition: (T) -> Boolean, block: (T) -> Unit) {
+    if (this is Some && precondition(this.value)) {
+        block(this.value)
+    }
+}
+
 inline fun <T> T?.into(): Option<T> {
     return if (this != null) {
         Some(this)
