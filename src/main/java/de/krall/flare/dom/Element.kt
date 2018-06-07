@@ -9,7 +9,6 @@ import de.krall.flare.std.unwrap
 import de.krall.flare.style.ComputedValues
 import de.krall.flare.style.ResolvedElementStyles
 import de.krall.flare.style.properties.PropertyDeclarationBlock
-import java.lang.management.BufferPoolMXBean
 
 interface Element {
 

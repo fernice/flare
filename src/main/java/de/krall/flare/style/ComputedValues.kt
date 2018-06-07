@@ -3,16 +3,8 @@ package de.krall.flare.style
 import de.krall.flare.style.properties.stylestruct.Background
 import de.krall.flare.style.properties.stylestruct.Font
 
-data class ComputedValues(private val background: Background,
-                          private val font: Font) {
-
-    fun getBackground(): Background {
-        return background
-    }
-
-    fun getFont(): Font {
-        return font
-    }
+data class ComputedValues(val background: Background,
+                          val font: Font) {
 
     companion object {
 

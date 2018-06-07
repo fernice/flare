@@ -35,7 +35,7 @@ sealed class FontBaseSize {
         override fun resolve(context: Context): Au {
             return context.style()
                     .getFont()
-                    .getFontSize()
+                    .fontSize
                     .size()
         }
     }
@@ -44,7 +44,7 @@ sealed class FontBaseSize {
         override fun resolve(context: Context): Au {
             return context.style()
                     .getParentFont()
-                    .getFontSize()
+                    .fontSize
                     .size()
         }
     }
@@ -53,7 +53,7 @@ sealed class FontBaseSize {
         override fun resolve(context: Context): Au {
             return context.style()
                     .getParentFont()
-                    .getFontSize()
+                    .fontSize
                     .size()
         }
     }

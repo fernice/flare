@@ -1,99 +1,145 @@
 package de.krall.flare.style
 
+import de.krall.flare.dom.Device
+import de.krall.flare.font.WritingMode
+import de.krall.flare.std.Option
+import de.krall.flare.std.unwrapOr
 import de.krall.flare.style.properties.longhand.Attachment
 import de.krall.flare.style.properties.stylestruct.Background
 import de.krall.flare.style.properties.stylestruct.Font
+import de.krall.flare.style.properties.stylestruct.MutBackground
+import de.krall.flare.style.properties.stylestruct.MutFont
 import de.krall.flare.style.value.computed.Color
 import de.krall.flare.style.value.computed.FontFamily
 import de.krall.flare.style.value.computed.FontSize
-import de.krall.flare.dom.Device
-import de.krall.flare.font.WritingMode
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
-import de.krall.flare.std.unwrapOr
 
-interface StyleStruct<T> {
+interface StyleStruct<T : MutStyleStruct> {
 
+    /**
+     * Clones the style struct returning a owned, mutable reference.
+     */
     fun clone(): T
 }
 
-class StyleStructRef<T : StyleStruct<T>> private constructor(private var styleStruct: T,
-                                                             private var state: State) {
+interface MutStyleStruct
 
-    fun mutate(): T {
-        return when (state) {
-            State.OWNED -> styleStruct
-            State.BORROWED -> {
-                styleStruct = styleStruct.clone()
-                state = State.OWNED
+/**
+ * A reference to a [StyleStruct] in different states. The referenced StyleStruct might be borrowed, owned or vacated.
+ * As long as a StyleStruct is borrowed the original reference is being used. Once mutate has been called the state
+ * will change to owned as the immutable StyleStruct will be cloned to acquire a mutable reference. The reference is
+ * vacated, if the StyleStruct has been taken.
+ * [T] must be assignable from [M].
+ */
+class StyleStructRef<T, M> private constructor(private var state: State<T, M>)
+        where T : StyleStruct<M>, M : MutStyleStruct {
 
-                styleStruct
-            }
-            State.VACATED -> throw IllegalStateException("vacated")
-        }
+    fun mutate(): M {
+        val (value, state) = state.mutate()
+
+        this.state = state
+
+        return value
     }
 
-    fun take(): T {
-        return when (state) {
-            State.OWNED -> {
-                state = State.VACATED
+    fun take(): M {
+        val (value, state) = state.mutate()
 
-                styleStruct
-            }
-            State.BORROWED -> {
-                styleStruct = styleStruct.clone()
-                state = State.VACATED
+        this.state = state
 
-                styleStruct
-            }
-            State.VACATED -> throw IllegalStateException("vacated")
-        }
+        return value
     }
 
-    fun put(styleStruct: T) {
-        when (state) {
-            State.OWNED, State.BORROWED -> throw IllegalStateException("not vacated")
-            State.VACATED -> {
-                this.styleStruct = styleStruct
-                state = State.OWNED
-            }
-        }
-    }
-
-    fun getIfMutated(): Option<T> {
-        return when (state) {
-            State.OWNED -> Some(styleStruct)
-            State.BORROWED -> None()
-            State.VACATED -> throw IllegalStateException("vacated")
-        }
+    fun put(styleStruct: M) {
+        state = state.put(styleStruct)
     }
 
     fun build(): T {
-        return when (state) {
-            State.OWNED -> styleStruct
-            State.BORROWED -> styleStruct
-            State.VACATED -> throw IllegalStateException("vacated")
-        }
+        return state.build()
     }
 
-    private enum class State {
+    private sealed class State<T : StyleStruct<M>, M : MutStyleStruct> {
 
-        OWNED, BORROWED, VACATED
+        abstract fun mutate(): Pair<M, State<T, M>>
+
+        abstract fun take(): Pair<M, State<T, M>>
+
+        abstract fun put(value: M): State<T, M>
+
+        abstract fun build(): T
+
+        class Owned<T : StyleStruct<M>, M : MutStyleStruct>(val value: M) : State<T, M>() {
+            override fun mutate(): Pair<M, State<T, M>> {
+                return Pair(value, this)
+            }
+
+            override fun take(): Pair<M, State<T, M>> {
+                return Pair(value, State.Vacated())
+            }
+
+            override fun put(value: M): State<T, M> {
+                throw IllegalStateException("not vacated")
+            }
+
+            override fun build(): T {
+                @Suppress("UNCHECKED_CAST")
+                return value as T
+            }
+        }
+
+        class Borrowed<T : StyleStruct<M>, M : MutStyleStruct>(val value: T) : State<T, M>() {
+            override fun mutate(): Pair<M, State<T, M>> {
+                val mut = value.clone()
+
+                return Pair(mut, State.Owned(mut))
+            }
+
+            override fun take(): Pair<M, State<T, M>> {
+                return Pair(value.clone(), State.Vacated())
+            }
+
+            override fun put(value: M): State<T, M> {
+                throw IllegalStateException("not vacated")
+            }
+
+            override fun build(): T {
+                return value
+            }
+        }
+
+        class Vacated<T : StyleStruct<M>, M : MutStyleStruct> : State<T, M>() {
+            override fun mutate(): Pair<M, State<T, M>> {
+                throw IllegalStateException("vacated")
+            }
+
+            override fun take(): Pair<M, State<T, M>> {
+                throw IllegalStateException("vacated")
+            }
+
+            override fun put(value: M): State<T, M> {
+                return State.Owned(value)
+            }
+
+            override fun build(): T {
+                throw IllegalStateException("vacated")
+            }
+        }
     }
 
     companion object {
 
-        fun <T : StyleStruct<T>> owned(styleStruct: T): StyleStructRef<T> {
-            return StyleStructRef(styleStruct, State.OWNED)
+        fun <T, M> owned(styleStruct: M): StyleStructRef<T, M>
+                where T : StyleStruct<M>, M : MutStyleStruct {
+            return StyleStructRef(State.Owned(styleStruct))
         }
 
-        fun <T : StyleStruct<T>> borrowed(styleStruct: T): StyleStructRef<T> {
-            return StyleStructRef(styleStruct, State.BORROWED)
+        fun <T, M> borrowed(styleStruct: T): StyleStructRef<T, M>
+                where T : StyleStruct<M>, M : MutStyleStruct {
+            return StyleStructRef(State.Borrowed(styleStruct))
         }
 
-        fun <T : StyleStruct<T>> vacated(styleStruct: T): StyleStructRef<T> {
-            return StyleStructRef(styleStruct, State.VACATED)
+        fun <T, M> vacated(): StyleStructRef<T, M>
+                where T : StyleStruct<M>, M : MutStyleStruct {
+            return StyleStructRef(State.Vacated())
         }
     }
 }
@@ -103,8 +149,8 @@ class StyleBuilder(val device: Device,
                    private val inheritStyle: ComputedValues,
                    private val inheritStyleIgnoringFirstLine: ComputedValues,
                    private val resetStyle: ComputedValues,
-                   private val background: StyleStructRef<Background>,
-                   private val font: StyleStructRef<Font>) {
+                   private val background: StyleStructRef<Background, MutBackground>,
+                   private val font: StyleStructRef<Font, MutFont>) {
 
     companion object {
 
@@ -122,8 +168,8 @@ class StyleBuilder(val device: Device,
                     inheritStyle,
                     inheritStyleIgnoringFirstList,
                     resetStyle,
-                    StyleStructRef.borrowed(resetStyle.getBackground()),
-                    StyleStructRef.borrowed(inheritStyle.getFont())
+                    StyleStructRef.borrowed(resetStyle.background),
+                    StyleStructRef.borrowed(inheritStyle.font)
             )
         }
     }
@@ -137,43 +183,43 @@ class StyleBuilder(val device: Device,
     }
 
     fun getParentBackground(): Background {
-        return inheritStyleIgnoringFirstLine.getBackground()
+        return inheritStyleIgnoringFirstLine.background
     }
 
     // background-color
 
     fun setBackgroundColor(color: Color) {
-        background.mutate().setColor(color)
+        background.mutate().color = color
     }
 
     fun inheritBackgroundColor() {
-        val inheritStruct = inheritStyleIgnoringFirstLine.getBackground()
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
 
-        background.mutate().setColor(inheritStruct.getColor())
+        background.mutate().color = inheritStruct.color
     }
 
     fun resetBackgroundColor() {
-        val resetStruct = resetStyle.getBackground()
+        val resetStruct = resetStyle.background
 
-        background.mutate().setColor(resetStruct.getColor())
+        background.mutate().color = resetStruct.color
     }
 
     // background-attachment
 
     fun setBackgroundAttachment(attachment: List<Attachment>) {
-        background.mutate().setAttachment(attachment)
+        background.mutate().attachment = attachment
     }
 
     fun inheritBackgroundAttachment() {
-        val inheritStruct = inheritStyleIgnoringFirstLine.getBackground()
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
 
-        background.mutate().setColor(inheritStruct.getColor())
+        background.mutate().attachment = inheritStruct.attachment
     }
 
     fun resetBackgroundAttachment() {
-        val resetStruct = resetStyle.getBackground()
+        val resetStruct = resetStyle.background
 
-        background.mutate().setColor(resetStruct.getColor())
+        background.mutate().attachment = resetStruct.attachment
     }
 
     // *****************************************************
@@ -185,43 +231,43 @@ class StyleBuilder(val device: Device,
     }
 
     fun getParentFont(): Font {
-        return inheritStyle.getFont()
+        return inheritStyle.font
     }
 
     // font-family
 
     fun setFontFamily(fontFamily: FontFamily) {
-        font.mutate().setFontFamily(fontFamily)
+        font.mutate().fontFamily = fontFamily
     }
 
     fun inheritFontFamily() {
-        val inheritStruct = inheritStyle.getFont()
+        val inheritStruct = inheritStyle.font
 
-        font.mutate().setFontFamily(inheritStruct.getFontFamily())
+        font.mutate().fontFamily = inheritStruct.fontFamily
     }
 
     fun resetFontFamily() {
-        val resetStruct = resetStyle.getFont()
+        val resetStruct = resetStyle.font
 
-        font.mutate().setFontFamily(resetStruct.getFontFamily())
+        font.mutate().fontFamily = resetStruct.fontFamily
     }
 
     // font-size
 
     fun setFontSize(fontSize: FontSize) {
-        font.mutate().setFontSize(fontSize)
+        font.mutate().fontSize = fontSize
     }
 
     fun inheritFontSize() {
-        val inheritStruct = inheritStyle.getFont()
+        val inheritStruct = inheritStyle.font
 
-        font.mutate().setFontSize(inheritStruct.getFontSize())
+        font.mutate().fontSize = inheritStruct.fontSize
     }
 
     fun resetFontSize() {
-        val resetStruct = resetStyle.getFont()
+        val resetStruct = resetStyle.font
 
-        font.mutate().setFontSize(resetStruct.getFontSize())
+        font.mutate().fontSize = resetStruct.fontSize
     }
 
     fun build(): ComputedValues {

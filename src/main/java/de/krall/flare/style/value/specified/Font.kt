@@ -101,7 +101,7 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize> {
                 }
                 is LengthOrPercentage.Calc -> {
                     val calc = lop.calc
-                    val parent = context.style().getParentFont().getFontSize()
+                    val parent = context.style().getParentFont().fontSize
 
                     if (calc.em.isSome() || calc.percentage.isSome() && parent.keywordInfo.isSome()) {
                         val ratio = calc.em.unwrapOr(0f) + calc.percentage.mapOr({ p -> p.value }, 0f)
@@ -162,7 +162,7 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize> {
         return context
                 .style()
                 .getParentFont()
-                .getFontSize()
+                .fontSize
                 .keywordInfo
                 .map { info -> info.compose(factor, Au(0).intoNonNegative()) }
     }

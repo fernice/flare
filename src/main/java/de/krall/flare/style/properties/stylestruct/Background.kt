@@ -1,41 +1,46 @@
 package de.krall.flare.style.properties.stylestruct
 
+import de.krall.flare.style.MutStyleStruct
 import de.krall.flare.style.StyleStruct
 import de.krall.flare.style.properties.longhand.Attachment
 import de.krall.flare.style.properties.longhand.BackgroundAttachmentDeclaration
 import de.krall.flare.style.properties.longhand.BackgroundColorDeclaration
 import de.krall.flare.style.value.computed.Color
 
-data class Background(private var color: Color,
-                      private var attachment: List<Attachment>) : StyleStruct<Background> {
+interface Background : StyleStruct<MutBackground> {
 
-    fun getColor(): Color {
-        return color
-    }
-
-    fun setColor(color: Color) {
-        this.color = color
-    }
-
-    fun getAttachment(): List<Attachment> {
-        return attachment
-    }
-
-    fun setAttachment(attachment: List<Attachment>) {
-        this.attachment = attachment
-    }
-
-    override fun clone(): Background {
-        return Background(color, attachment)
-    }
+    val color: Color
+    val attachment: List<Attachment>
 
     companion object {
 
         val initial: Background by lazy {
-            Background(
+            StaticBackground(
                     BackgroundColorDeclaration.initialValue,
                     BackgroundAttachmentDeclaration.initialValue
             )
         }
+    }
+}
+
+private class StaticBackground(override val color: Color,
+                               override val attachment: List<Attachment>) : Background {
+
+    override fun clone(): MutBackground {
+        return MutBackground(
+                color,
+                attachment
+        )
+    }
+}
+
+class MutBackground(override var color: Color,
+                    override var attachment: List<Attachment>) : Background, MutStyleStruct {
+
+    override fun clone(): MutBackground {
+        return MutBackground(
+                color,
+                attachment
+        )
     }
 }
