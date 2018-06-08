@@ -17,6 +17,8 @@ import de.krall.flare.font.FontMetricsProvider
 import de.krall.flare.font.WritingMode
 import de.krall.flare.selector.PseudoElement
 import de.krall.flare.std.*
+import de.krall.flare.style.properties.longhand.FontFamilyDeclaration
+import de.krall.flare.style.properties.longhand.FontSizeDeclaration
 import org.reflections.Reflections
 import java.util.stream.Collectors
 import kotlin.reflect.full.companionObjectInstance
@@ -143,6 +145,8 @@ sealed class PropertyId {
         val ids: Map<String, PropertyId> by lazy { indexProperties() }
 
         private fun indexProperties(): Map<String, PropertyId> {
+            println("initializing properties:")
+
             val ids = mutableMapOf<String, PropertyId>()
 
             val reflections = Reflections("de.krall.flare.style.properties")
@@ -173,6 +177,8 @@ sealed class PropertyId {
                 }
 
                 ids[name] = id
+
+                println("> $name")
             }
 
             return ids
@@ -228,7 +234,7 @@ fun cascade(device: Device,
             layoutStyle: Option<ComputedValues>,
             fontMetricsProvider: FontMetricsProvider): ComputedValues {
 
-    val declarations = applicableDeclarations.stream()
+    val declarations = applicableDeclarations.reversed().stream()
             .map { declaration -> declaration.styleSource.declarations() }
             .flatMap { block -> block.stream() }
             .collect(Collectors.toList())
@@ -267,8 +273,8 @@ fun applyDeclarations(device: Device,
 
     val seen = mutableSetOf<LonghandId>()
 
-    var fontFamily: Option<PropertyDeclaration> = None()
-    var fontSize: Option<PropertyDeclaration> = None()
+    var fontFamily: Option<FontFamilyDeclaration> = None()
+    var fontSize: Option<FontSizeDeclaration> = None()
 
     for (declaration in declarations) {
         val longhandId = declaration.id()
@@ -281,13 +287,13 @@ fun applyDeclarations(device: Device,
             continue
         }
 
-        if (longhandId is FontSizeId) {
-            fontFamily = Some(declaration)
+        if (longhandId is FontFamilyId) {
+            fontFamily = Some(declaration as FontFamilyDeclaration)
             continue
         }
 
         if (longhandId is FontSizeId) {
-            fontSize = Some(declaration)
+            fontSize = Some(declaration as FontSizeDeclaration)
             continue
         }
 

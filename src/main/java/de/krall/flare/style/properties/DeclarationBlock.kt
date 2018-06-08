@@ -34,7 +34,7 @@ class PropertyDeclarationBlock : Iterable<PropertyDeclaration> {
     override fun iterator(): Iterator<PropertyDeclaration> = declarations.iterator()
 
     fun stream(): Stream<PropertyDeclaration> {
-        return declarations.stream()
+        return declarations.reversed().stream()
     }
 }
 

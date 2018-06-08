@@ -6,8 +6,26 @@ import de.krall.flare.std.Option
 import de.krall.flare.std.unwrapOr
 import de.krall.flare.style.properties.longhand.Attachment
 import de.krall.flare.style.properties.longhand.Clip
-import de.krall.flare.style.properties.stylestruct.*
-import de.krall.flare.style.value.computed.*
+import de.krall.flare.style.properties.stylestruct.Background
+import de.krall.flare.style.properties.stylestruct.Border
+import de.krall.flare.style.properties.stylestruct.Color
+import de.krall.flare.style.properties.stylestruct.Font
+import de.krall.flare.style.properties.stylestruct.Margin
+import de.krall.flare.style.properties.stylestruct.MutBackground
+import de.krall.flare.style.properties.stylestruct.MutBorder
+import de.krall.flare.style.properties.stylestruct.MutColor
+import de.krall.flare.style.properties.stylestruct.MutFont
+import de.krall.flare.style.properties.stylestruct.MutMargin
+import de.krall.flare.style.properties.stylestruct.MutPadding
+import de.krall.flare.style.properties.stylestruct.Padding
+import de.krall.flare.style.value.computed.BorderCornerRadius
+import de.krall.flare.style.value.computed.FontFamily
+import de.krall.flare.style.value.computed.FontSize
+import de.krall.flare.style.value.computed.LengthOrPercentageOrAuto
+import de.krall.flare.style.value.computed.NonNegativeLength
+import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentage
+import de.krall.flare.style.value.computed.Style
+import de.krall.flare.style.value.computed.Color as ComputedColor
 
 interface StyleStruct<T : MutStyleStruct> {
 
@@ -146,6 +164,7 @@ class StyleBuilder(val device: Device,
                    private val inheritStyleIgnoringFirstLine: ComputedValues,
                    private val resetStyle: ComputedValues,
                    private val font: StyleStructRef<Font, MutFont>,
+                   private val color: StyleStructRef<Color, MutColor>,
                    private val background: StyleStructRef<Background, MutBackground>,
                    private val border: StyleStructRef<Border, MutBorder>,
                    private val margin: StyleStructRef<Margin, MutMargin>,
@@ -168,12 +187,35 @@ class StyleBuilder(val device: Device,
                     inheritStyleIgnoringFirstList,
                     resetStyle,
                     StyleStructRef.borrowed(inheritStyle.font),
+                    StyleStructRef.borrowed(resetStyle.color),
                     StyleStructRef.borrowed(resetStyle.background),
                     StyleStructRef.borrowed(resetStyle.border),
                     StyleStructRef.borrowed(resetStyle.margin),
                     StyleStructRef.borrowed(resetStyle.padding)
             )
         }
+    }
+
+    // *****************************************************
+    // Color
+    // *****************************************************
+
+    // border-top-color
+
+    fun setColor(color: ComputedColor) {
+        this.color.mutate().color = color
+    }
+
+    fun inheritColor() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.color
+
+        this.color.mutate().color = inheritStruct.color
+    }
+
+    fun resetColor() {
+        val resetStruct = resetStyle.color
+
+        this.color.mutate().color = resetStruct.color
     }
 
     // *****************************************************
@@ -190,7 +232,7 @@ class StyleBuilder(val device: Device,
 
     // background-color
 
-    fun setBackgroundColor(color: Color) {
+    fun setBackgroundColor(color: ComputedColor) {
         background.mutate().color = color
     }
 
@@ -266,7 +308,7 @@ class StyleBuilder(val device: Device,
 
     // border-top-color
 
-    fun setBorderTopColor(color: Color) {
+    fun setBorderTopColor(color: ComputedColor) {
         border.mutate().topColor = color
     }
 
@@ -302,7 +344,7 @@ class StyleBuilder(val device: Device,
 
     // border-top-left-radius
 
-    fun setBorderTopLeftRadius(radius: LengthOrPercentage) {
+    fun setBorderTopLeftRadius(radius: BorderCornerRadius) {
         border.mutate().topLeftRadius = radius
     }
 
@@ -320,7 +362,7 @@ class StyleBuilder(val device: Device,
 
     // border-top-left-radius
 
-    fun setBorderTopRightRadius(radius: LengthOrPercentage) {
+    fun setBorderTopRightRadius(radius: BorderCornerRadius) {
         border.mutate().topRightRadius = radius
     }
 
@@ -356,7 +398,7 @@ class StyleBuilder(val device: Device,
 
     // border-right-color
 
-    fun setBorderRightColor(color: Color) {
+    fun setBorderRightColor(color: ComputedColor) {
         border.mutate().rightColor = color
     }
 
@@ -410,7 +452,7 @@ class StyleBuilder(val device: Device,
 
     // border-bottom-color
 
-    fun setBorderBottomColor(color: Color) {
+    fun setBorderBottomColor(color: ComputedColor) {
         border.mutate().bottomColor = color
     }
 
@@ -446,7 +488,7 @@ class StyleBuilder(val device: Device,
 
     // border-top-left-radius
 
-    fun setBorderBottomLeftRadius(radius: LengthOrPercentage) {
+    fun setBorderBottomLeftRadius(radius: BorderCornerRadius) {
         border.mutate().bottomLeftRadius = radius
     }
 
@@ -464,7 +506,7 @@ class StyleBuilder(val device: Device,
 
     // border-top-left-radius
 
-    fun setBorderBottomRightRadius(radius: LengthOrPercentage) {
+    fun setBorderBottomRightRadius(radius: BorderCornerRadius) {
         border.mutate().bottomRightRadius = radius
     }
 
@@ -500,7 +542,7 @@ class StyleBuilder(val device: Device,
 
     // border-left-color
 
-    fun setBorderLeftColor(color: Color) {
+    fun setBorderLeftColor(color: ComputedColor) {
         border.mutate().leftColor = color
     }
 
@@ -737,6 +779,7 @@ class StyleBuilder(val device: Device,
     fun build(): ComputedValues {
         return ComputedValues(
                 font.build(),
+                color.build(),
                 background.build(),
                 border.build(),
                 margin.build(),

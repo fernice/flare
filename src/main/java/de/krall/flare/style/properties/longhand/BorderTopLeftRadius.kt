@@ -9,8 +9,9 @@ import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.value.Context
-import de.krall.flare.style.value.specified.LengthOrPercentage
-import de.krall.flare.style.value.computed.LengthOrPercentage as ComputedLengthOrPercentage
+import de.krall.flare.style.value.computed.LengthOrPercentage
+import de.krall.flare.style.value.specified.BorderCornerRadius
+import de.krall.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
 
 @PropertyEntryPoint
 class BorderTopLeftRadiusId : LonghandId() {
@@ -20,7 +21,7 @@ class BorderTopLeftRadiusId : LonghandId() {
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return LengthOrPercentage.parse(context, input).map { width -> BorderTopLeftRadiusDeclaration(width) }
+        return BorderCornerRadius.parse(context, input).map { width -> BorderTopLeftRadiusDeclaration(width) }
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -55,13 +56,13 @@ class BorderTopLeftRadiusId : LonghandId() {
     }
 }
 
-class BorderTopLeftRadiusDeclaration(val radius: LengthOrPercentage) : PropertyDeclaration() {
+class BorderTopLeftRadiusDeclaration(val radius: BorderCornerRadius) : PropertyDeclaration() {
     override fun id(): LonghandId {
         return BorderTopLeftRadiusId.instance
     }
 
     companion object {
 
-        val initialValue: ComputedLengthOrPercentage by lazy { ComputedLengthOrPercentage.zero() }
+        val initialValue: ComputedBorderCornerRadius by lazy { ComputedBorderCornerRadius.zero() }
     }
 }

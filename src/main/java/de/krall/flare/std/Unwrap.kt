@@ -16,6 +16,13 @@ fun <T, E> Result<T, E>.unwrap(): T {
     }
 }
 
+fun <T, E> Result<T, E>.unwrapOrElse(closure: (E) -> T): T {
+    return when (this) {
+        is Ok -> this.value
+        is Err -> closure(this.value)
+    }
+}
+
 fun <T, E> Result<T, E>.unwrapErr(): E {
     return when (this) {
         is Ok -> throw UnwrapException("result was ok: $value")

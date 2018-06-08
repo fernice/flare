@@ -9,35 +9,35 @@ import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.value.Context
-import de.krall.flare.style.value.specified.BorderCornerRadius
-import de.krall.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
+import de.krall.flare.style.value.specified.Color
+import de.krall.flare.style.value.specified.Color as ComputedColor
 
 @PropertyEntryPoint
-class BorderBottomLeftRadiusId : LonghandId() {
+class ColorId : LonghandId() {
 
     override fun name(): String {
-        return "border-bottom-left-radius"
+        return "color"
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return BorderCornerRadius.parse(context, input).map { width -> BorderBottomLeftRadiusDeclaration(width) }
+        return Color.parse(context, input).map { color -> ColorDeclaration(color) }
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is BorderBottomLeftRadiusDeclaration -> {
-                val radius = declaration.radius.toComputedValue(context)
+            is ColorDeclaration -> {
+                val color = declaration.color.toComputedValue(context)
 
-                context.builder.setBorderBottomLeftRadius(radius)
+                context.builder.setColor(color)
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
                     CssWideKeyword.UNSET,
                     CssWideKeyword.INITIAL -> {
-                        context.builder.resetBorderBottomLeftRadius()
+                        context.builder.resetBackgroundColor()
                     }
                     CssWideKeyword.INHERIT -> {
-                        context.builder.inheritBorderBottomLeftRadius()
+                        context.builder.inheritBackgroundColor()
                     }
                 }
             }
@@ -51,17 +51,17 @@ class BorderBottomLeftRadiusId : LonghandId() {
 
     companion object {
 
-        val instance: BorderBottomLeftRadiusId by lazy { BorderBottomLeftRadiusId() }
+        val instance: ColorId by lazy { ColorId() }
     }
 }
 
-class BorderBottomLeftRadiusDeclaration(val radius: BorderCornerRadius) : PropertyDeclaration() {
+class ColorDeclaration(val color: Color) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BorderBottomLeftRadiusId.instance
+        return ColorId.instance
     }
 
     companion object {
 
-        val initialValue: ComputedBorderCornerRadius by lazy { ComputedBorderCornerRadius.zero() }
+        val initialValue: ComputedColor by lazy { ComputedColor.transparent() }
     }
 }

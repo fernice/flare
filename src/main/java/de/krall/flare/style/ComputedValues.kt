@@ -3,6 +3,7 @@ package de.krall.flare.style
 import de.krall.flare.style.properties.stylestruct.*
 
 data class ComputedValues(val font: Font,
+                          val color: Color,
                           val background: Background,
                           val border: Border,
                           val margin: Margin,
@@ -13,6 +14,7 @@ data class ComputedValues(val font: Font,
         val initial: ComputedValues by lazy {
             ComputedValues(
                     Font.initial,
+                    Color.initial,
                     Background.initial,
                     Border.initial,
                     Margin.initial,

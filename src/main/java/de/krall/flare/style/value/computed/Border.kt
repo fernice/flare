@@ -7,7 +7,25 @@ import de.krall.flare.cssparser.newUnexpectedTokenError
 import de.krall.flare.std.Err
 import de.krall.flare.std.Ok
 import de.krall.flare.std.Result
+import de.krall.flare.style.value.ComputedValue
 
+class BorderCornerRadius(val width: LengthOrPercentage,
+                         val height: LengthOrPercentage) : ComputedValue {
+
+    companion object {
+
+        private val zero: BorderCornerRadius by lazy {
+            BorderCornerRadius(
+                    LengthOrPercentage.zero(),
+                    LengthOrPercentage.zero()
+            )
+        }
+
+        fun zero(): BorderCornerRadius {
+            return zero
+        }
+    }
+}
 
 enum class Style {
 
@@ -25,16 +43,16 @@ enum class Style {
             }
 
             return when (identifier.toLowerCase()) {
-                "none" -> Ok(Style.NONE)
-                "hidden" -> Ok(Style.HIDDEN)
-                "dotted" -> Ok(Style.DOTTED)
-                "dashed" -> Ok(Style.DASHED)
-                "solid" -> Ok(Style.SOLID)
-                "double" -> Ok(Style.DOUBLE)
-                "groove" -> Ok(Style.GROOVE)
-                "ridge" -> Ok(Style.RIDGE)
-                "inset" -> Ok(Style.INSET)
-                "outset" -> Ok(Style.OUTSET)
+                "none" -> Ok(NONE)
+                "hidden" -> Ok(HIDDEN)
+                "dotted" -> Ok(DOTTED)
+                "dashed" -> Ok(DASHED)
+                "solid" -> Ok(SOLID)
+                "double" -> Ok(DOUBLE)
+                "groove" -> Ok(GROOVE)
+                "ridge" -> Ok(RIDGE)
+                "inset" -> Ok(INSET)
+                "outset" -> Ok(OUTSET)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }

@@ -9,7 +9,7 @@ import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.value.Context
-import de.krall.flare.style.value.specified.NonNegativeLength
+import de.krall.flare.style.value.specified.BorderSideWidth
 import de.krall.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 
 @PropertyEntryPoint
@@ -20,7 +20,7 @@ class BorderTopWidthId : LonghandId() {
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return NonNegativeLength.parse(context, input).map { width -> BorderTopWidthDeclaration(width) }
+        return BorderSideWidth.parse(context, input).map { width -> BorderTopWidthDeclaration(width) }
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -55,7 +55,7 @@ class BorderTopWidthId : LonghandId() {
     }
 }
 
-class BorderTopWidthDeclaration(val width: NonNegativeLength) : PropertyDeclaration() {
+class BorderTopWidthDeclaration(val width: BorderSideWidth) : PropertyDeclaration() {
     override fun id(): LonghandId {
         return BorderTopWidthId.instance
     }
