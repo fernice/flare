@@ -28,19 +28,45 @@ class SelectorMap {
 
         element.id().ifLet { id ->
             idHash.get(id, quirksMode).ifLet { rules ->
-                getMatchingRules(element, rules, matchingRules, context, cascadeLevel)
+                getMatchingRules(
+                        element,
+                        rules,
+                        matchingRules,
+                        context,
+                        cascadeLevel
+                )
             }
         }
 
         element.classes().forEach { styleClass ->
             classHash.get(styleClass, quirksMode).ifLet { rules ->
-                getMatchingRules(element, rules, matchingRules, context, cascadeLevel)
+                getMatchingRules(
+                        element,
+                        rules,
+                        matchingRules,
+                        context,
+                        cascadeLevel
+                )
             }
         }
 
         localNameHash.get(element.localName(), quirksMode).ifLet { rules ->
-            getMatchingRules(element, rules, matchingRules, context, cascadeLevel)
+            getMatchingRules(
+                    element,
+                    rules,
+                    matchingRules,
+                    context,
+                    cascadeLevel
+            )
         }
+
+        getMatchingRules(
+                element,
+                other,
+                matchingRules,
+                context,
+                cascadeLevel
+        )
     }
 
     private fun getMatchingRules(element: Element,
@@ -79,6 +105,7 @@ class SelectorMap {
         }
 
         list.add(rule)
+        count++
     }
 
     private fun findBucket(iter: SelectorIter): Option<Component> {

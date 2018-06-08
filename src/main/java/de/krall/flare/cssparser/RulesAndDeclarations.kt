@@ -113,7 +113,7 @@ class RuleListParser<A, Q, R, P>(private val input: Parser,
 
                 val result = parseQualifiedRule(input, parser)
 
-                return Some(result.mapErr { ParseErrorSlice(it, input.sliceFrom(state.position())) })
+                return Some(result.mapErr { e -> ParseErrorSlice(e, input.sliceFrom(state.position())) })
             }
         }
     }

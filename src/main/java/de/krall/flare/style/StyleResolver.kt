@@ -53,7 +53,7 @@ class ElementStyleResolver(val element: Element,
 
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
-                Some(bloomFilter),
+                None(),
                 QuirksMode.NO_QUIRKS
         )
 

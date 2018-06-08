@@ -1,7 +1,9 @@
 package de.krall.flare.style.value.computed
 
+import de.krall.flare.std.Some
 import de.krall.flare.style.value.ComputedValue
 import de.krall.flare.std.max
+import de.krall.flare.std.unwrap
 
 data class PixelLength(val value: Float) : ComputedValue {
 
@@ -33,6 +35,12 @@ class NonNegativeLength(val length: PixelLength) : ComputedValue {
 
         fun new(px: Float): NonNegativeLength {
             return NonNegativeLength(PixelLength(px.max(0f)))
+        }
+
+        private val zero: NonNegativeLength by lazy { NonNegativeLength(PixelLength.zero()) }
+
+        fun zero(): NonNegativeLength {
+            return zero
         }
     }
 
@@ -145,24 +153,89 @@ class Percentage(val value: Float) : ComputedValue
 
 sealed class LengthOrPercentage : ComputedValue {
 
-    data class Length(val length: PixelLength) : LengthOrPercentage()
+    abstract fun toPixelLength(containingLength: Au): PixelLength
 
-    data class Percentage(val percentage: de.krall.flare.style.value.computed.Percentage) : LengthOrPercentage()
+    data class Length(val length: PixelLength) : LengthOrPercentage() {
+        override fun toPixelLength(containingLength: Au): PixelLength {
+            return length
+        }
+    }
 
-    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage()
+    data class Percentage(val percentage: de.krall.flare.style.value.computed.Percentage) : LengthOrPercentage() {
+        override fun toPixelLength(containingLength: Au): PixelLength {
+            return containingLength.scaleBy(percentage.value).into()
+        }
+    }
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage() {
+        override fun toPixelLength(containingLength: Au): PixelLength {
+            return calc.toPixelLength(Some(containingLength)).unwrap()
+        }
+    }
+
+    companion object {
+
+        private val zero: LengthOrPercentage by lazy { LengthOrPercentage.Length(PixelLength.zero()) }
+
+        fun zero(): LengthOrPercentage {
+            return zero
+        }
+    }
 }
 
-class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : ComputedValue
+class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : ComputedValue {
+
+     fun toPixelLength(containingLength: Au): PixelLength {
+         return value.toPixelLength(containingLength)
+     }
+
+    companion object {
+
+        private val zero: NonNegativeLengthOrPercentage by lazy { NonNegativeLengthOrPercentage(LengthOrPercentage.zero()) }
+
+        fun zero(): NonNegativeLengthOrPercentage {
+            return zero
+        }
+    }
+}
 
 sealed class LengthOrPercentageOrAuto : ComputedValue {
 
-    data class Length(val length: PixelLength) : LengthOrPercentageOrAuto()
+    abstract fun toPixelLength(containingLength: Au): PixelLength
 
-    data class Percentage(val percentage: de.krall.flare.style.value.computed.Percentage) : LengthOrPercentageOrAuto()
+    data class Length(val length: PixelLength) : LengthOrPercentageOrAuto()  {
+        override fun toPixelLength(containingLength: Au): PixelLength {
+            return length
+        }
+    }
 
-    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto()
+    data class Percentage(val percentage: de.krall.flare.style.value.computed.Percentage) : LengthOrPercentageOrAuto() {
+        override fun toPixelLength(containingLength: Au): PixelLength {
+            return containingLength.scaleBy(percentage.value).into()
+        }
+    }
 
-    class Auto : LengthOrPercentageOrAuto()
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto() {
+        override fun toPixelLength(containingLength: Au): PixelLength {
+            return calc.toPixelLength(Some(containingLength)).unwrap()
+        }
+    }
+
+    class Auto : LengthOrPercentageOrAuto() {
+        override fun toPixelLength(containingLength: Au): PixelLength {
+            return PixelLength.zero()
+        }
+    }
+
+    companion object {
+
+        private val zero: LengthOrPercentageOrAuto by lazy { LengthOrPercentageOrAuto.Length(PixelLength.zero()) }
+
+        fun zero(): LengthOrPercentageOrAuto {
+            return zero
+        }
+    }
 }
 
 class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : ComputedValue

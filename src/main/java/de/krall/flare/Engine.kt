@@ -31,7 +31,7 @@ class Engine(val stylist: Stylist,
         applyStyle(element)
 
         for (child in element.children()) {
-            applyStyles(element)
+            applyStyles(child)
         }
     }
 

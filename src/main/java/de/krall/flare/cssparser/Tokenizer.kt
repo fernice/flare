@@ -115,7 +115,7 @@ class Tokenizer {
 
             val closing = BlockType.closing(token)
 
-            if (stack.peek() === closing) {
+            if (closing is Some && stack.peek() == closing.value) {
                 stack.pop()
 
                 if (stack.isEmpty()) {

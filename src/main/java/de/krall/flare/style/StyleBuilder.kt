@@ -5,13 +5,9 @@ import de.krall.flare.font.WritingMode
 import de.krall.flare.std.Option
 import de.krall.flare.std.unwrapOr
 import de.krall.flare.style.properties.longhand.Attachment
-import de.krall.flare.style.properties.stylestruct.Background
-import de.krall.flare.style.properties.stylestruct.Font
-import de.krall.flare.style.properties.stylestruct.MutBackground
-import de.krall.flare.style.properties.stylestruct.MutFont
-import de.krall.flare.style.value.computed.Color
-import de.krall.flare.style.value.computed.FontFamily
-import de.krall.flare.style.value.computed.FontSize
+import de.krall.flare.style.properties.longhand.Clip
+import de.krall.flare.style.properties.stylestruct.*
+import de.krall.flare.style.value.computed.*
 
 interface StyleStruct<T : MutStyleStruct> {
 
@@ -149,8 +145,11 @@ class StyleBuilder(val device: Device,
                    private val inheritStyle: ComputedValues,
                    private val inheritStyleIgnoringFirstLine: ComputedValues,
                    private val resetStyle: ComputedValues,
+                   private val font: StyleStructRef<Font, MutFont>,
                    private val background: StyleStructRef<Background, MutBackground>,
-                   private val font: StyleStructRef<Font, MutFont>) {
+                   private val border: StyleStructRef<Border, MutBorder>,
+                   private val margin: StyleStructRef<Margin, MutMargin>,
+                   private val padding: StyleStructRef<Padding, MutPadding>) {
 
     companion object {
 
@@ -168,8 +167,11 @@ class StyleBuilder(val device: Device,
                     inheritStyle,
                     inheritStyleIgnoringFirstList,
                     resetStyle,
+                    StyleStructRef.borrowed(inheritStyle.font),
                     StyleStructRef.borrowed(resetStyle.background),
-                    StyleStructRef.borrowed(inheritStyle.font)
+                    StyleStructRef.borrowed(resetStyle.border),
+                    StyleStructRef.borrowed(resetStyle.margin),
+                    StyleStructRef.borrowed(resetStyle.padding)
             )
         }
     }
@@ -222,6 +224,468 @@ class StyleBuilder(val device: Device,
         background.mutate().attachment = resetStruct.attachment
     }
 
+    // background-attachment
+
+    fun setBackgroundClip(clip: Clip) {
+        background.mutate().clip = clip
+    }
+
+    fun inheritBackgroundClip() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
+
+        background.mutate().clip = inheritStruct.clip
+    }
+
+    fun resetBackgroundClip() {
+        val resetStruct = resetStyle.background
+
+        background.mutate().clip = resetStruct.clip
+    }
+
+    // *****************************************************
+    // Border
+    // *****************************************************
+
+    // border-top-width
+
+    fun setBorderTopWidth(width: NonNegativeLength) {
+        border.mutate().topWidth = width
+    }
+
+    fun inheritBorderTopWidth() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().topWidth = inheritStruct.topWidth
+    }
+
+    fun resetBorderTopWidth() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().topWidth = resetStruct.topWidth
+    }
+
+    // border-top-color
+
+    fun setBorderTopColor(color: Color) {
+        border.mutate().topColor = color
+    }
+
+    fun inheritBorderTopColor() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().topColor = inheritStruct.topColor
+    }
+
+    fun resetBorderTopColor() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().topColor = resetStruct.topColor
+    }
+
+    // border-top-style
+
+    fun setBorderTopStyle(style: Style) {
+        border.mutate().topStyle = style
+    }
+
+    fun inheritBorderTopStyle() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().topStyle = inheritStruct.topStyle
+    }
+
+    fun resetBorderTopStyle() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().topStyle = resetStruct.topStyle
+    }
+
+    // border-top-left-radius
+
+    fun setBorderTopLeftRadius(radius: LengthOrPercentage) {
+        border.mutate().topLeftRadius = radius
+    }
+
+    fun inheritBorderTopLeftRadius() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().topLeftRadius = inheritStruct.topLeftRadius
+    }
+
+    fun resetBorderTopLeftRadius() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().topLeftRadius = resetStruct.topLeftRadius
+    }
+
+    // border-top-left-radius
+
+    fun setBorderTopRightRadius(radius: LengthOrPercentage) {
+        border.mutate().topRightRadius = radius
+    }
+
+    fun inheritBorderTopRightRadius() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().topRightRadius = inheritStruct.topRightRadius
+    }
+
+    fun resetBorderTopRightRadius() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().topRightRadius = resetStruct.topRightRadius
+    }
+
+    // border-right-width
+
+    fun setBorderRightWidth(width: NonNegativeLength) {
+        border.mutate().rightWidth = width
+    }
+
+    fun inheritBorderRightWidth() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().rightWidth = inheritStruct.rightWidth
+    }
+
+    fun resetBorderRightWidth() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().rightWidth = resetStruct.rightWidth
+    }
+
+    // border-right-color
+
+    fun setBorderRightColor(color: Color) {
+        border.mutate().rightColor = color
+    }
+
+    fun inheritBorderRightColor() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().rightColor = inheritStruct.rightColor
+    }
+
+    fun resetBorderRightColor() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().rightColor = resetStruct.rightColor
+    }
+
+    // border-right-style
+
+    fun setBorderRightStyle(style: Style) {
+        border.mutate().rightStyle = style
+    }
+
+    fun inheritBorderRightStyle() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().rightStyle = inheritStruct.rightStyle
+    }
+
+    fun resetBorderRightStyle() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().rightStyle = resetStruct.rightStyle
+    }
+
+    // border-bottom-width
+
+    fun setBorderBottomWidth(width: NonNegativeLength) {
+        border.mutate().bottomWidth = width
+    }
+
+    fun inheritBorderBottomWidth() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().bottomWidth = inheritStruct.bottomWidth
+    }
+
+    fun resetBorderBottomWidth() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().bottomWidth = resetStruct.bottomWidth
+    }
+
+    // border-bottom-color
+
+    fun setBorderBottomColor(color: Color) {
+        border.mutate().bottomColor = color
+    }
+
+    fun inheritBorderBottomColor() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().bottomColor = inheritStruct.bottomColor
+    }
+
+    fun resetBorderBottomColor() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().bottomColor = resetStruct.bottomColor
+    }
+
+    // border-bottom-style
+
+    fun setBorderBottomStyle(style: Style) {
+        border.mutate().bottomStyle = style
+    }
+
+    fun inheritBorderBottomStyle() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().bottomStyle = inheritStruct.bottomStyle
+    }
+
+    fun resetBorderBottomStyle() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().bottomStyle = resetStruct.bottomStyle
+    }
+
+    // border-top-left-radius
+
+    fun setBorderBottomLeftRadius(radius: LengthOrPercentage) {
+        border.mutate().bottomLeftRadius = radius
+    }
+
+    fun inheritBorderBottomLeftRadius() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().bottomLeftRadius = inheritStruct.bottomLeftRadius
+    }
+
+    fun resetBorderBottomLeftRadius() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().bottomLeftRadius = resetStruct.bottomLeftRadius
+    }
+
+    // border-top-left-radius
+
+    fun setBorderBottomRightRadius(radius: LengthOrPercentage) {
+        border.mutate().bottomRightRadius = radius
+    }
+
+    fun inheritBorderBottomRightRadius() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().bottomRightRadius = inheritStruct.bottomRightRadius
+    }
+
+    fun resetBorderBottomRightRadius() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().bottomRightRadius = resetStruct.bottomRightRadius
+    }
+
+    // border-left-width
+
+    fun setBorderLeftWidth(width: NonNegativeLength) {
+        border.mutate().leftWidth = width
+    }
+
+    fun inheritBorderLeftWidth() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().leftWidth = inheritStruct.leftWidth
+    }
+
+    fun resetBorderLeftWidth() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().leftWidth = resetStruct.leftWidth
+    }
+
+    // border-left-color
+
+    fun setBorderLeftColor(color: Color) {
+        border.mutate().leftColor = color
+    }
+
+    fun inheritBorderLeftColor() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().leftColor = inheritStruct.leftColor
+    }
+
+    fun resetBorderLeftColor() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().leftColor = resetStruct.leftColor
+    }
+
+    // border-bottom-style
+
+    fun setBorderLeftStyle(style: Style) {
+        border.mutate().leftStyle = style
+    }
+
+    fun inheritBorderLeftStyle() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.border
+
+        border.mutate().leftStyle = inheritStruct.leftStyle
+    }
+
+    fun resetBorderLeftStyle() {
+        val resetStruct = resetStyle.border
+
+        border.mutate().leftStyle = resetStruct.leftStyle
+    }
+
+    // *****************************************************
+    //  Margin
+    // *****************************************************
+
+    // margin-top
+
+    fun setMarginTop(length: LengthOrPercentageOrAuto) {
+        margin.mutate().top = length
+    }
+
+    fun inheritMarginTop() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.margin
+
+        margin.mutate().top = inheritStruct.top
+    }
+
+    fun resetMarginTop() {
+        val resetStruct = resetStyle.margin
+
+        margin.mutate().top = resetStruct.top
+    }
+
+    // margin-top
+
+    fun setMarginRight(length: LengthOrPercentageOrAuto) {
+        margin.mutate().right = length
+    }
+
+    fun inheritMarginRight() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.margin
+
+        margin.mutate().right = inheritStruct.right
+    }
+
+    fun resetMarginRight() {
+        val resetStruct = resetStyle.margin
+
+        margin.mutate().right = resetStruct.right
+    }
+
+    // margin-bottom
+
+    fun setMarginBottom(length: LengthOrPercentageOrAuto) {
+        margin.mutate().bottom = length
+    }
+
+    fun inheritMarginBottom() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.margin
+
+        margin.mutate().bottom = inheritStruct.bottom
+    }
+
+    fun resetMarginBottom() {
+        val resetStruct = resetStyle.margin
+
+        margin.mutate().bottom = resetStruct.bottom
+    }
+
+    // margin-left
+
+    fun setMarginLeft(length: LengthOrPercentageOrAuto) {
+        margin.mutate().left = length
+    }
+
+    fun inheritMarginLeft() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.margin
+
+        margin.mutate().left = inheritStruct.left
+    }
+
+    fun resetMarginLeft() {
+        val resetStruct = resetStyle.margin
+
+        margin.mutate().left = resetStruct.left
+    }
+
+    // *****************************************************
+    //  Margin
+    // *****************************************************
+
+    // padding-top
+
+    fun setPaddingTop(length: NonNegativeLengthOrPercentage) {
+        padding.mutate().top = length
+    }
+
+    fun inheritPaddingTop() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.padding
+
+        padding.mutate().top = inheritStruct.top
+    }
+
+    fun resetPaddingTop() {
+        val resetStruct = resetStyle.padding
+
+        padding.mutate().top = resetStruct.top
+    }
+
+    // padding-right
+
+    fun setPaddingRight(length: NonNegativeLengthOrPercentage) {
+        padding.mutate().right = length
+    }
+
+    fun inheritPaddingRight() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.padding
+
+        padding.mutate().right = inheritStruct.right
+    }
+
+    fun resetPaddingRight() {
+        val resetStruct = resetStyle.padding
+
+        padding.mutate().right = resetStruct.right
+    }
+
+    // padding-bottom
+
+    fun setPaddingBottom(length: NonNegativeLengthOrPercentage) {
+        padding.mutate().bottom = length
+    }
+
+    fun inheritPaddingBottom() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.padding
+
+        padding.mutate().bottom = inheritStruct.bottom
+    }
+
+    fun resetPaddingBottom() {
+        val resetStruct = resetStyle.padding
+
+        padding.mutate().bottom = resetStruct.bottom
+    }
+
+    // padding-bottom
+
+    fun setPaddingLeft(length: NonNegativeLengthOrPercentage) {
+        padding.mutate().left = length
+    }
+
+    fun inheritPaddingLeft() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.padding
+
+        padding.mutate().left = inheritStruct.left
+    }
+
+    fun resetPaddingLeft() {
+        val resetStruct = resetStyle.padding
+
+        padding.mutate().left = resetStruct.left
+    }
+
     // *****************************************************
     //  Font
     // *****************************************************
@@ -272,8 +736,11 @@ class StyleBuilder(val device: Device,
 
     fun build(): ComputedValues {
         return ComputedValues(
+                font.build(),
                 background.build(),
-                font.build()
+                border.build(),
+                margin.build(),
+                padding.build()
         )
     }
 }

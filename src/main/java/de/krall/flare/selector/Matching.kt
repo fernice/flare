@@ -16,9 +16,7 @@ fun matchesSelector(selector: Selector,
         }
     }
 
-    matchesComplexSelector(selector.iter(), element, context)
-
-    return false
+    return matchesComplexSelector(selector.iter(), element, context)
 }
 
 private fun mayMatch(hashes: AncestorHashes, bloomFilter: BloomFilter): Boolean {
