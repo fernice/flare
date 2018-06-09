@@ -225,6 +225,7 @@ class Delimiters private constructor(val bits: Int) {
                 is Token.LBrace -> LeftBrace
                 is Token.SemiColon -> SemiColon
                 is Token.Bang -> Bang
+                is Token.Comma -> Comma
 
                 is Token.RParen -> RightParenthesis
                 is Token.RBrace -> RightBrace

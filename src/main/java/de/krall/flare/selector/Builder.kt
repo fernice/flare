@@ -40,7 +40,7 @@ class SelectorBuilder {
         specificity = if (hasPseudoElement) {
             specificity or PSEUDO_ELEMENT_BIT
         } else {
-            specificity or PSEUDO_ELEMENT_BIT.inv()
+            specificity and PSEUDO_ELEMENT_BIT.inv()
         }
 
         return buildWithSpecificityAndFlags(SpecificityAndFlags(specificity))

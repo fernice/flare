@@ -347,7 +347,7 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
             delimitedParser.tokenizer.consumeUntilEndOfBlock(it)
         }
 
-        tokenizer.consumeUntilBefore(delimiters.bits)
+        tokenizer.consumeUntilBefore(delimitedDelimiters)
 
         return result
     }
