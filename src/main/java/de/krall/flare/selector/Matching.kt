@@ -27,7 +27,7 @@ private fun mayMatch(hashes: AncestorHashes, bloomFilter: BloomFilter): Boolean 
         }
 
         if (!bloomFilter.mightContainHash(hash and HASH_BLOOM_MASK)) {
-            return true
+            return false
         }
     }
 

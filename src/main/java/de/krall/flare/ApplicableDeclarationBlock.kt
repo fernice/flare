@@ -5,7 +5,7 @@ import de.krall.flare.style.properties.PropertyDeclarationBlock
 import de.krall.flare.style.ruletree.CascadeLevel
 import de.krall.flare.style.ruletree.StyleSource
 
-class ApplicableDeclarationBlock(val styleSource: StyleSource,
+class ApplicableDeclarationBlock(val source: StyleSource,
                                  val bits: ApplicableDeclarationBits,
                                  val specificity: Int) {
 
@@ -42,7 +42,13 @@ class ApplicableDeclarationBlock(val styleSource: StyleSource,
     fun specificity(): Int {
         return specificity
     }
+
+    fun forRuleTree(): RuleTreeValues {
+        return RuleTreeValues(source, cascadeLevel())
+    }
 }
+
+data class RuleTreeValues(val source: StyleSource, val cascadeLevel: CascadeLevel)
 
 private const val SOURCE_ORDER_SHIFT = 0
 private const val SOURCE_ORDER_BITS = 24

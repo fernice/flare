@@ -39,6 +39,8 @@ interface Element {
      */
     fun owner(): Option<Element>
 
+    fun traversalParent(): Option<Element>
+
     fun inheritanceParent(): Option<Element>
 
     fun previousSibling(): Option<Element>

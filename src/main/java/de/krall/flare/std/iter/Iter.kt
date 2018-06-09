@@ -15,6 +15,10 @@ interface Iter<E> : Iterable<E> {
         return Map(this, function)
     }
 
+    fun <B> flatMap(function: (E) -> Iter<B>): FlatMap<E, B> {
+        return FlatMap(this, function)
+    }
+
     fun filter(predicate: (E) -> Boolean): Filter<E> {
         return Filter(this, predicate)
     }
@@ -39,6 +43,32 @@ class Map<E, B>(private val iter: Iter<E>, private val f: (E) -> B) : Iter<B> {
     }
 }
 
+class FlatMap<E, B>(private val iter: Iter<E>, private val f: (E) -> Iter<B>) : Iter<B> {
+
+    private var inner: Option<Iter<B>> = None()
+
+    override fun next(): Option<B> {
+        if (inner.isSome()) {
+            val next = inner.unwrap().next()
+
+            if (next.isSome()) {
+                return next
+            }
+        }
+
+        inner = iter.next().map(f)
+
+        return when (inner) {
+            is Some -> inner.unwrap().next()
+            is None -> None()
+        }
+    }
+
+    override fun clone(): FlatMap<E, B> {
+        return FlatMap(iter.clone(), f)
+    }
+}
+
 class Filter<E>(private val iter: Iter<E>, private val p: (E) -> Boolean) : Iter<E> {
 
     override fun next(): Option<E> {
@@ -57,13 +87,20 @@ class Filter<E>(private val iter: Iter<E>, private val p: (E) -> Boolean) : Iter
 
 class FilterMap<E, B>(private val iter: Iter<E>, private val fp: (E) -> Option<B>) : Iter<B> {
     override fun next(): Option<B> {
-        for (item in iter) {
+        while (true) {
+            val next = iter.next()
+
+            val item = when (next) {
+                is Some -> next.value
+                is None -> return None()
+            }
+
             val result = fp(item)
             if (result is Some) {
                 return Some(result.value)
             }
+            return None()
         }
-        return None()
     }
 
     override fun clone(): FilterMap<E, B> {
@@ -107,6 +144,25 @@ class ListIter<E>(private val collection: List<E>, private var index: Int) : Ite
 
     override fun clone(): ListIter<E> {
         return ListIter(collection, index)
+    }
+}
+
+fun <E> Array<E>.iter(): Iter<E> {
+    return ArrayIter(this, 0)
+}
+
+class ArrayIter<E>(private val array: Array<E>, private var index: Int) : Iter<E> {
+
+    override fun next(): Option<E> {
+        return if (index < array.size) {
+            Some(array[index++])
+        } else {
+            None()
+        }
+    }
+
+    override fun clone(): ArrayIter<E> {
+        return ArrayIter(array, index)
     }
 }
 

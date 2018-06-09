@@ -1,12 +1,5 @@
 package de.krall.flare.style.properties
 
-import de.krall.flare.ApplicableDeclarationBlock
-import de.krall.flare.style.ComputedValues
-import de.krall.flare.style.StyleBuilder
-import de.krall.flare.style.parser.ParserContext
-import de.krall.flare.style.properties.longhand.FontFamilyId
-import de.krall.flare.style.properties.longhand.FontSizeId
-import de.krall.flare.style.value.Context
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
@@ -16,11 +9,26 @@ import de.krall.flare.dom.Element
 import de.krall.flare.font.FontMetricsProvider
 import de.krall.flare.font.WritingMode
 import de.krall.flare.selector.PseudoElement
-import de.krall.flare.std.*
+import de.krall.flare.std.Empty
+import de.krall.flare.std.Err
+import de.krall.flare.std.None
+import de.krall.flare.std.Ok
+import de.krall.flare.std.Option
+import de.krall.flare.std.Result
+import de.krall.flare.std.Some
+import de.krall.flare.std.iter.Iter
+import de.krall.flare.std.iter.iter
+import de.krall.flare.style.ComputedValues
+import de.krall.flare.style.StyleBuilder
+import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.longhand.FontFamilyDeclaration
+import de.krall.flare.style.properties.longhand.FontFamilyId
 import de.krall.flare.style.properties.longhand.FontSizeDeclaration
+import de.krall.flare.style.properties.longhand.FontSizeId
+import de.krall.flare.style.ruletree.CascadeLevel
+import de.krall.flare.style.ruletree.RuleNode
+import de.krall.flare.style.value.Context
 import org.reflections.Reflections
-import java.util.stream.Collectors
 import kotlin.reflect.full.companionObjectInstance
 
 /**
@@ -225,25 +233,45 @@ enum class CssWideKeyword {
     }
 }
 
+data class DeclarationAndCascadeLevel(val declaration: PropertyDeclaration, val cascadeLevel: CascadeLevel)
+
 fun cascade(device: Device,
             element: Option<Element>,
             pseudoElement: Option<PseudoElement>,
-            applicableDeclarations: List<ApplicableDeclarationBlock>,
+            ruleNode: RuleNode,
             parentStyle: Option<ComputedValues>,
             parentStyleIgnoringFirstLine: Option<ComputedValues>,
             layoutStyle: Option<ComputedValues>,
             fontMetricsProvider: FontMetricsProvider): ComputedValues {
 
-    val declarations = applicableDeclarations.reversed().stream()
-            .map { declaration -> declaration.styleSource.declarations() }
-            .flatMap { block -> block.stream() }
-            .collect(Collectors.toList())
+    val iter = {
+        ruleNode.selfAndAncestors().flatMap { node ->
+            val level = node.cascadeLevel()
+            val source = node.styleSource()
+
+            val declarations = if (source is Some) {
+                source.value.declarations().reversedDeclarationImportanceIter()
+            } else {
+                DeclarationImportanceIter(listOf<DeclarationAndImportance>().iter())
+            }
+
+            val nodeImportance = node.importance()
+
+            declarations.filterMap<DeclarationAndCascadeLevel> { (declaration, importance) ->
+                if (importance == nodeImportance) {
+                    Some(DeclarationAndCascadeLevel(declaration, level))
+                } else {
+                    None()
+                }
+            }
+        }
+    }
 
     return applyDeclarations(
             device,
             element,
             pseudoElement,
-            declarations,
+            iter,
             parentStyle,
             parentStyleIgnoringFirstLine,
             layoutStyle,
@@ -254,7 +282,7 @@ fun cascade(device: Device,
 fun applyDeclarations(device: Device,
                       element: Option<Element>,
                       pseudoElement: Option<PseudoElement>,
-                      declarations: List<PropertyDeclaration>,
+                      declarations: () -> Iter<DeclarationAndCascadeLevel>,
                       parentStyle: Option<ComputedValues>,
                       parentStyleIgnoringFirstLine: Option<ComputedValues>,
                       layoutStyle: Option<ComputedValues>,
@@ -276,7 +304,7 @@ fun applyDeclarations(device: Device,
     var fontFamily: Option<FontFamilyDeclaration> = None()
     var fontSize: Option<FontSizeDeclaration> = None()
 
-    for (declaration in declarations) {
+    for ((declaration, _) in declarations()) {
         val longhandId = declaration.id()
 
         if (!longhandId.isEarlyProperty()) {
@@ -312,7 +340,7 @@ fun applyDeclarations(device: Device,
         longhandId.cascadeProperty(fontSize.value, context)
     }
 
-    for (declaration in declarations) {
+    for ((declaration, _) in declarations()) {
         val longhandId = declaration.id()
 
         if (longhandId.isEarlyProperty()) {

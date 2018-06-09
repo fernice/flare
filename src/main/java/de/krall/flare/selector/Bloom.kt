@@ -20,7 +20,7 @@ sealed class BloomFilter(private val storage: BloomStorage) {
     }
 
     fun mightContainHash(hash: Int): Boolean {
-        return storage.isFirstSlotEmpty(hash) && storage.isSecondSlotEmpty(hash)
+        return !storage.isFirstSlotEmpty(hash) && !storage.isSecondSlotEmpty(hash)
     }
 
     fun clear() {
@@ -78,6 +78,7 @@ class CountingBloomStorage : BloomStorage {
     private val counters = ByteArray(ARRAY_SIZE)
 
     override fun isSlotEmpty(index: Int): Boolean {
+        //fixme(kralli) jvm is probably killing this one
         return counters[index] == (0x00).toByte()
     }
 

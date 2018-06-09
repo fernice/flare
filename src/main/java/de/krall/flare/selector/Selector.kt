@@ -1,7 +1,17 @@
 package de.krall.flare.selector
 
-import de.krall.flare.cssparser.*
-import de.krall.flare.std.*
+import de.krall.flare.cssparser.Delimiters
+import de.krall.flare.cssparser.Nth
+import de.krall.flare.cssparser.ParseError
+import de.krall.flare.cssparser.Parser
+import de.krall.flare.cssparser.Token
+import de.krall.flare.debugAssert
+import de.krall.flare.std.Err
+import de.krall.flare.std.None
+import de.krall.flare.std.Ok
+import de.krall.flare.std.Option
+import de.krall.flare.std.Result
+import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
 import de.krall.flare.std.iter.drain
 import de.krall.flare.std.iter.iter
@@ -123,14 +133,47 @@ sealed class Combinator {
     class PseudoElement : Combinator()
 }
 
+const val PSEUDO_COUNT = 6
+
 sealed class PseudoElement {
 
-    class Before : PseudoElement()
-    class After : PseudoElement()
-    class Selection : PseudoElement()
-    class FirstLetter : PseudoElement()
-    class FirstLine : PseudoElement()
-    class Placeholder : PseudoElement()
+    abstract fun ordinal(): Int
+
+    class Before : PseudoElement() {
+        override fun ordinal(): Int {
+            return 0
+        }
+    }
+
+    class After : PseudoElement() {
+        override fun ordinal(): Int {
+            return 1
+        }
+    }
+
+    class Selection : PseudoElement() {
+        override fun ordinal(): Int {
+            return 2
+        }
+    }
+
+    class FirstLetter : PseudoElement() {
+        override fun ordinal(): Int {
+            return 3
+        }
+    }
+
+    class FirstLine : PseudoElement() {
+        override fun ordinal(): Int {
+            return 4
+        }
+    }
+
+    class Placeholder : PseudoElement() {
+        override fun ordinal(): Int {
+            return 5
+        }
+    }
 }
 
 sealed class NonTSPseudoClass {
@@ -190,6 +233,21 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
      */
     fun specificity(): Int {
         return header.specificity()
+    }
+
+    fun pseudoElement(): Option<PseudoElement> {
+        if (!header.hasPseudoElement()) {
+            return None()
+        }
+
+        for (component in components) {
+            if (component is Component.PseudoElement) {
+                return Some(component.pseudoElement)
+            }
+        }
+
+        debugAssert(false, "something went terribly wrong")
+        return None()
     }
 
     /**

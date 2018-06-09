@@ -28,15 +28,17 @@ class Engine(val stylist: Stylist,
     }
 
     fun applyStyles(element: Element) {
-        applyStyle(element)
+        val context = createEngineContext()
+
+        applyStyle(element, context)
 
         for (child in element.children()) {
             applyStyles(child)
         }
     }
 
-    fun applyStyle(element: Element) {
-        val context = createEngineContext()
+    fun applyStyle(element: Element, context: EngineContext) {
+        context.styleContext.bloomFilter.insertParent(element)
 
         val styleResolver = ElementStyleResolver(element, context.styleContext)
 

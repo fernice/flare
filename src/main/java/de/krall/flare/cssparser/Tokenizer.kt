@@ -27,7 +27,7 @@ class Tokenizer {
                     iter.next = State.new(lexer)
                 }
 
-                println("${iter.token} ${iter.sourceLocation}")
+                // println("${iter.token} ${iter.sourceLocation}")
 
                 iter = iter.next!!
             }

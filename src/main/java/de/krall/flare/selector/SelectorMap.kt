@@ -24,6 +24,8 @@ class SelectorMap {
             return
         }
 
+        val originalLength = matchingRules.size
+
         val quirksMode = context.quirksMode()
 
         element.id().ifLet { id ->
@@ -67,6 +69,9 @@ class SelectorMap {
                 context,
                 cascadeLevel
         )
+
+        matchingRules.subList(originalLength, matchingRules.size)
+                .sortWith(RuleComparator.instance)
     }
 
     private fun getMatchingRules(element: Element,
@@ -149,6 +154,22 @@ class SelectorMap {
 
     fun size(): Int {
         return count
+    }
+}
+
+private class RuleComparator : Comparator<ApplicableDeclarationBlock> {
+    override fun compare(o1: ApplicableDeclarationBlock, o2: ApplicableDeclarationBlock): Int {
+        val c = o1.specificity.compareTo(o2.specificity)
+
+        if (c!=0){
+            return c
+        }
+
+        return o1.sourceOrder().compareTo(o2.sourceOrder())
+    }
+
+    companion object {
+        val instance: RuleComparator by lazy { RuleComparator() }
     }
 }
 

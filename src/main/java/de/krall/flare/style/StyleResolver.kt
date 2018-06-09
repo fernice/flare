@@ -9,14 +9,15 @@ import de.krall.flare.std.Option
 import de.krall.flare.std.Some
 import de.krall.flare.style.context.StyleContext
 import de.krall.flare.style.parser.QuirksMode
+import de.krall.flare.style.ruletree.RuleNode
 
-class MatchingResult(val declarations: List<ApplicableDeclarationBlock>)
+class MatchingResult(val ruleNode: RuleNode)
 
 class ResolvedElementStyles(val computedValues: ComputedValues)
 
 class PrimaryStyle(val style: ResolvedElementStyles)
 
-class CascadeInputs(val rules: Option<List<ApplicableDeclarationBlock>>)
+class CascadeInputs(val rules: Option<RuleNode>)
 
 class ElementStyleResolver(val element: Element,
                            val context: StyleContext) {
@@ -41,7 +42,7 @@ class ElementStyleResolver(val element: Element,
 
         return cascadePrimaryStyle(
                 CascadeInputs(
-                        Some(primaryStyle.declarations)
+                        Some(primaryStyle.ruleNode)
                 ),
                 parentStyle,
                 layoutStyle
@@ -53,7 +54,7 @@ class ElementStyleResolver(val element: Element,
 
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
-                None(),
+                Some(bloomFilter),
                 QuirksMode.NO_QUIRKS
         )
 
@@ -67,7 +68,9 @@ class ElementStyleResolver(val element: Element,
                 matchingContext
         )
 
-        return MatchingResult(declarations)
+        val ruleNode = stylist.ruleTree.computedRuleNode(declarations)
+
+        return MatchingResult(ruleNode)
     }
 
     fun cascadePrimaryStyle(inputs: CascadeInputs,

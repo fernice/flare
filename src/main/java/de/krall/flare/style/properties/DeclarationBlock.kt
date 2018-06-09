@@ -4,6 +4,8 @@ import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.stylesheet.AtRulePrelude
 import de.krall.flare.cssparser.*
 import de.krall.flare.std.*
+import de.krall.flare.std.iter.Iter
+import de.krall.flare.std.iter.iter
 import java.util.*
 import java.util.stream.Stream
 
@@ -14,7 +16,7 @@ enum class Importance {
     IMPORTANT
 }
 
-class PropertyDeclarationBlock : Iterable<PropertyDeclaration> {
+class PropertyDeclarationBlock {
 
     private val declarations = mutableListOf<PropertyDeclaration>()
     private val importance = BitSet()
@@ -31,12 +33,52 @@ class PropertyDeclarationBlock : Iterable<PropertyDeclaration> {
         this.declarations.addAll(declarations)
     }
 
-    override fun iterator(): Iterator<PropertyDeclaration> = declarations.iterator()
+    fun hasImportant(): Boolean {
+        return !importance.isEmpty
+    }
 
     fun stream(): Stream<PropertyDeclaration> {
         return declarations.reversed().stream()
     }
+
+    fun reversedDeclarationImportanceIter(): DeclarationImportanceIter {
+        return DeclarationImportanceIter.reversed(declarations, importance)
+    }
 }
+
+class DeclarationImportanceIter(val iter: Iter<DeclarationAndImportance>) : Iter<DeclarationAndImportance> {
+
+    companion object {
+        fun reversed(declarations: List<PropertyDeclaration>, importances: BitSet): DeclarationImportanceIter {
+            val reversed = mutableListOf<DeclarationAndImportance>()
+
+            for (i in (declarations.size - 1) downTo 0) {
+                val importance = if (importances.get(i)) {
+                    Importance.IMPORTANT
+                } else {
+                    Importance.NORMAL
+                }
+
+                reversed.add(DeclarationAndImportance(
+                        declarations[i],
+                        importance
+                ))
+            }
+
+            return DeclarationImportanceIter(reversed.iter())
+        }
+    }
+
+    override fun next(): Option<DeclarationAndImportance> {
+        return iter.next()
+    }
+
+    override fun clone(): Iter<DeclarationAndImportance> {
+        return DeclarationImportanceIter(iter.clone())
+    }
+}
+
+data class DeclarationAndImportance(val declaration: PropertyDeclaration, val importance: Importance)
 
 fun parsePropertyDeclarationList(context: ParserContext, input: Parser): PropertyDeclarationBlock {
     val declarations = mutableListOf<PropertyDeclaration>()
