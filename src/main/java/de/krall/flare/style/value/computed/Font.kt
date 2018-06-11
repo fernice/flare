@@ -31,7 +31,7 @@ sealed class SingleFontFamily {
                 is Err -> return identifierResult
             }
 
-            val cssWideKeyword = when (identifier) {
+            val cssWideKeyword = when (identifier.toLowerCase()) {
                 "serif" -> return Ok(SingleFontFamily.Generic("serif"))
                 "sans-serif" -> return Ok(SingleFontFamily.Generic("sans-serif"))
                 "cursive" -> return Ok(SingleFontFamily.Generic("cursive"))
