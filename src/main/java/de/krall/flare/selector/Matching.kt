@@ -107,7 +107,7 @@ private fun matchesComplexSelectorInternal(iter: SelectorIter, element: Element,
             }
         }
 
-        nextElement = nextElementForCombinator(element, combinator)
+        nextElement = nextElementForCombinator(innerElement, combinator)
     }
 }
 

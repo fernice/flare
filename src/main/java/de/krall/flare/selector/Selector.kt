@@ -331,6 +331,10 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
 
         return selector.iter()
     }
+
+    override fun toString(): String {
+        return "Selector[components=${components.size}, specificity=${specificity()}]"
+    }
 }
 
 class SelectorIter(private val iter: Iter<Component>, private var nextCombinator: Option<Combinator> = None()) : Iter<Component> {
