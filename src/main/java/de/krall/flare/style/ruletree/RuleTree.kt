@@ -48,7 +48,7 @@ enum class CascadeLevel {
     }
 }
 
-class StyleSource(private val either: Either<StyleRule, PropertyDeclarationBlock>) {
+data class StyleSource(private val either: Either<StyleRule, PropertyDeclarationBlock>) {
 
     companion object {
         fun fromDeclarations(declarations: PropertyDeclarationBlock): StyleSource {
@@ -145,7 +145,7 @@ class RuleTree(private val root: RuleNode) {
         return current
     }
 
-    fun root():RuleNode {
+    fun root(): RuleNode {
         return root
     }
 }

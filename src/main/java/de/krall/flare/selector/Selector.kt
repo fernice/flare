@@ -174,6 +174,30 @@ sealed class PseudoElement {
             return 5
         }
     }
+
+    companion object {
+
+        fun forEachEagerCascadedPseudoElement(function: (PseudoElement) -> Unit) {
+            for (pseudoElement in values) {
+                function(pseudoElement)
+            }
+        }
+
+        fun fromEagerOrdinal(ordinal: Int): PseudoElement {
+            return values[ordinal]
+        }
+
+        val values: Array<PseudoElement> by lazy {
+            arrayOf(
+                    PseudoElement.Before(),
+                    PseudoElement.After(),
+                    PseudoElement.Selection(),
+                    PseudoElement.FirstLetter(),
+                    PseudoElement.FirstLine(),
+                    PseudoElement.Placeholder()
+            )
+        }
+    }
 }
 
 sealed class NonTSPseudoClass {

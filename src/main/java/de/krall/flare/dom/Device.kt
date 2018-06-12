@@ -13,4 +13,6 @@ interface Device {
     fun viewportSize(): Size2D<Au>
 
     fun rootFontSize(): Au
+
+    fun setRootFontSize(size: Au)
 }

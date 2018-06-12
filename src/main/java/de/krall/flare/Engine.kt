@@ -44,7 +44,9 @@ class Engine(val stylist: Stylist,
 
         val styles = styleResolver.resolvePrimaryStyleWithDefaultParentStyles()
 
-        element.ensureData().setStyles(styles.style)
+        val data = element.ensureData()
+
+        element.finishRestyle(context.styleContext, data, styles)
     }
 }
 

@@ -44,7 +44,7 @@ class Rule(val selector: Selector,
     }
 }
 
-class Stylist(private val device: Device,
+class Stylist(val device: Device,
               private val quirksMode: QuirksMode,
               val ruleTree: RuleTree,
               private val stylesheets: DocumentStylesheetList,

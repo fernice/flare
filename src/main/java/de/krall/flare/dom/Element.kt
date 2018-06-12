@@ -7,7 +7,9 @@ import de.krall.flare.std.Option
 import de.krall.flare.std.Some
 import de.krall.flare.std.unwrap
 import de.krall.flare.style.ComputedValues
+import de.krall.flare.style.PerPseudoElementMap
 import de.krall.flare.style.ResolvedElementStyles
+import de.krall.flare.style.context.StyleContext
 import de.krall.flare.style.properties.PropertyDeclarationBlock
 
 interface Element {
@@ -35,7 +37,7 @@ interface Element {
     fun parent(): Option<Element>
 
     /**
-     * Returns the owner of this element. This is the case for pseudo elements.
+     * Returns the owner of this element. This is the case for pseudos elements.
      */
     fun owner(): Option<Element>
 
@@ -58,16 +60,18 @@ interface Element {
     fun getData(): Option<ElementData>
 
     fun clearData()
+
+    fun finishRestyle(context: StyleContext, data: ElementData, elementStyles: ResolvedElementStyles)
 }
 
-class ElementData(private var styles: ElementStyles) {
+class ElementData(var styles: ElementStyles) {
 
-    fun getStyles(): ElementStyles {
-        return styles
-    }
+    fun setStyles(resolvedStyles: ResolvedElementStyles): ElementStyles {
+        val oldStyles = styles
 
-    fun setStyles(resolvedStyles: ResolvedElementStyles) {
         styles = resolvedStyles.into()
+
+        return oldStyles
     }
 
     fun hasStyles(): Boolean {
@@ -75,7 +79,8 @@ class ElementData(private var styles: ElementStyles) {
     }
 }
 
-class ElementStyles(val primary: Option<ComputedValues>) {
+class ElementStyles(val primary: Option<ComputedValues>,
+                    val pseudos: PerPseudoElementMap<ComputedValues>) {
 
     /**
      * Returns the primary style, panics if unavailable.
@@ -87,6 +92,7 @@ class ElementStyles(val primary: Option<ComputedValues>) {
 
 fun ResolvedElementStyles.into(): ElementStyles {
     return ElementStyles(
-            Some(this.computedValues)
+            Some(this.primary.style()),
+            this.pseudos
     )
 }
