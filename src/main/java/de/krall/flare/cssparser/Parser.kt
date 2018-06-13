@@ -161,6 +161,21 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
         }
     }
 
+    fun expectFunction(): Result<String, ParseError> {
+        val location = sourceLocation()
+        val tokenResult = next()
+
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Function -> Ok(token.name)
+            else -> Err(location.newUnexpectedTokenError(token))
+        }
+    }
+
     fun expectString(): Result<String, ParseError> {
         val location = sourceLocation()
         val tokenResult = next()

@@ -193,7 +193,7 @@ class RuleNode(private val root: Option<RuleNode>,
         var last: Option<RuleNode> = None()
 
         for (child in iterChildren()) {
-            if (child.level == level && child.source.unwrap() === source) {
+            if (child.level == level && child.source.unwrap() == source) {
                 return child
             }
             last = Some(child)

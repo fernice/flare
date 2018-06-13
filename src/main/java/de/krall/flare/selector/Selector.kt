@@ -133,7 +133,7 @@ sealed class Combinator {
     class PseudoElement : Combinator()
 }
 
-const val PSEUDO_COUNT = 6
+const val PSEUDO_COUNT = 8
 
 sealed class PseudoElement {
 
@@ -175,6 +175,18 @@ sealed class PseudoElement {
         }
     }
 
+    class FlareTabArea : PseudoElement() {
+        override fun ordinal(): Int {
+            return 6
+        }
+    }
+
+    class FlareTab : PseudoElement() {
+        override fun ordinal(): Int {
+            return 7
+        }
+    }
+
     companion object {
 
         fun forEachEagerCascadedPseudoElement(function: (PseudoElement) -> Unit) {
@@ -194,7 +206,10 @@ sealed class PseudoElement {
                     PseudoElement.Selection(),
                     PseudoElement.FirstLetter(),
                     PseudoElement.FirstLine(),
-                    PseudoElement.Placeholder()
+                    PseudoElement.Placeholder(),
+
+                    PseudoElement.FlareTabArea(),
+                    PseudoElement.FlareTab()
             )
         }
     }

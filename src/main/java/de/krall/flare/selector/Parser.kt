@@ -1,10 +1,24 @@
 package de.krall.flare.selector
 
-import de.krall.flare.cssparser.*
-import de.krall.flare.std.*
+import de.krall.flare.cssparser.Nth
+import de.krall.flare.cssparser.ParseError
+import de.krall.flare.cssparser.ParseErrorKind
+import de.krall.flare.cssparser.Parser
+import de.krall.flare.cssparser.SourceLocation
+import de.krall.flare.cssparser.Token
+import de.krall.flare.cssparser.newError
+import de.krall.flare.cssparser.newUnexpectedTokenError
+import de.krall.flare.cssparser.parseNth
+import de.krall.flare.std.Err
+import de.krall.flare.std.None
+import de.krall.flare.std.Ok
+import de.krall.flare.std.Option
+import de.krall.flare.std.Result
+import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
+import de.krall.flare.std.let
+import de.krall.flare.std.mapOr
 import de.krall.flare.style.parser.QuirksMode
-import de.krall.flare.selector.PseudoElement as SelectorPseudoElement
 
 sealed class SelectorParseErrorKind : ParseErrorKind() {
 
@@ -470,7 +484,7 @@ private sealed class SimpleSelectorParseResult {
 
     class SimpleSelector(val component: Component) : SimpleSelectorParseResult()
 
-    class PseudoElement(val pseudoElement: SelectorPseudoElement) : SimpleSelectorParseResult()
+    class PseudoElement(val pseudoElement: de.krall.flare.selector.PseudoElement) : SimpleSelectorParseResult()
 }
 
 private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser, negated: Boolean): Result<Option<SimpleSelectorParseResult>, ParseError> {
@@ -587,18 +601,20 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
     }
 }
 
-private fun parseFunctionalPseudoElement(input: Parser, location: SourceLocation, name: String): Result<SelectorPseudoElement, ParseError> {
+private fun parseFunctionalPseudoElement(input: Parser, location: SourceLocation, name: String): Result<PseudoElement, ParseError> {
     return Err(location.newUnexpectedTokenError(Token.Function(name)))
 }
 
-private fun parsePseudoElement(location: SourceLocation, name: String): Result<SelectorPseudoElement, ParseError> {
+private fun parsePseudoElement(location: SourceLocation, name: String): Result<PseudoElement, ParseError> {
     return when (name.toLowerCase()) {
-        "before" -> Ok(SelectorPseudoElement.Before())
-        "after" -> Ok(SelectorPseudoElement.After())
-        "selection" -> Ok(SelectorPseudoElement.Selection())
-        "first-letter" -> Ok(SelectorPseudoElement.FirstLetter())
-        "first-line" -> Ok(SelectorPseudoElement.FirstLine())
-        "placeholder" -> Ok(SelectorPseudoElement.Placeholder())
+        "before" -> Ok(PseudoElement.Before())
+        "after" -> Ok(PseudoElement.After())
+        "selection" -> Ok(PseudoElement.Selection())
+        "first-letter" -> Ok(PseudoElement.FirstLetter())
+        "first-line" -> Ok(PseudoElement.FirstLine())
+        "placeholder" -> Ok(PseudoElement.Placeholder())
+        "-flr-tab-area" -> Ok(PseudoElement.FlareTabArea())
+        "-flr-tab" -> Ok(PseudoElement.FlareTab())
         else -> Err(location.newUnexpectedTokenError(Token.Identifier(name)))
     }
 }
