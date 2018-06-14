@@ -305,7 +305,7 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
         return ParseError(ParseErrorKind.UnexpectedToken(token), sourceLocation())
     }
 
-    fun <T> tryParse(parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
+    inline fun <T> tryParse(parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
         val state = state()
 
         val result = parse(this)
@@ -317,7 +317,7 @@ class Parser private constructor(val tokenizer: Tokenizer, var blockType: Option
         return result
     }
 
-    fun <T> parseEntirely(parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
+    inline fun <T> parseEntirely(parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
         val result = parse(this)
 
         return when {

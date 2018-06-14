@@ -2,12 +2,14 @@ package de.krall.flare.style.value.specified
 
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
+import de.krall.flare.cssparser.RGBA
 import de.krall.flare.std.*
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue
 import de.krall.flare.cssparser.Color as ParserColor
 import de.krall.flare.style.value.computed.Color as ComputedColor
+import de.krall.flare.style.value.computed.RGBAColor as ComputedColorPropertyValue
 
 sealed class Color : SpecifiedValue<ComputedColor> {
 
@@ -56,3 +58,29 @@ sealed class Color : SpecifiedValue<ComputedColor> {
     }
 }
 
+class RGBAColor(val color: Color) : SpecifiedValue<RGBA> {
+    companion object {
+        fun parse(context: ParserContext, input: Parser): Result<RGBAColor, ParseError> {
+            return Color.parse(context, input).map(::RGBAColor)
+        }
+    }
+
+    override fun toComputedValue(context: Context): RGBA {
+        return color.toComputedValue(context)
+                .toRGBA(context.style().getColor().color)
+    }
+}
+
+class ColorPropertyValue(val color: Color) : SpecifiedValue<ComputedColorPropertyValue> {
+
+    companion object {
+        fun parse(context: ParserContext, input: Parser): Result<ColorPropertyValue, ParseError> {
+            return Color.parse(context, input).map(::ColorPropertyValue)
+        }
+    }
+
+    override fun toComputedValue(context: Context): RGBA {
+        return color.toComputedValue(context)
+                .toRGBA(context.style().getParentColor().color)
+    }
+}

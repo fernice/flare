@@ -59,7 +59,7 @@ sealed class FontBaseSize {
     }
 }
 
-interface SpecifiedValue<C : ComputedValue> {
+interface SpecifiedValue<C> {
 
     fun toComputedValue(context: Context): C
 }

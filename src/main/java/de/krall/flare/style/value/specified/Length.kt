@@ -379,6 +379,21 @@ data class Percentage(val value: Float) : SpecifiedValue<ComputedPercentage> {
 
     companion object {
 
+        fun parse(context: ParserContext, input: Parser): Result<Percentage, ParseError> {
+            val location = input.sourceLocation()
+            val tokenResult = input.next()
+
+            val token = when (tokenResult) {
+                is Ok -> tokenResult.value
+                is Err -> return tokenResult
+            }
+
+            return when (token) {
+                is Token.Percentage -> Ok(Percentage(token.number.float()))
+                else -> Err(location.newUnexpectedTokenError(token))
+            }
+        }
+
         private val zero: Percentage by lazy { Percentage(0f) }
         private val fifty: Percentage by lazy { Percentage(0.5f) }
         private val hundred: Percentage by lazy { Percentage(1f) }
@@ -395,6 +410,10 @@ data class Percentage(val value: Float) : SpecifiedValue<ComputedPercentage> {
             return hundred
         }
     }
+}
+
+fun Percentage.intoLengthOrPercentage(): LengthOrPercentage {
+    return LengthOrPercentage.Percentage(this)
 }
 
 sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {

@@ -1,12 +1,22 @@
 package de.krall.flare.style.value.computed
 
-import de.krall.flare.style.value.ComputedValue
+import de.krall.flare.cssparser.RGBA
 
-sealed class Color : ComputedValue {
+sealed class Color {
 
-    class RGBA(val rgba: de.krall.flare.cssparser.RGBA) : Color()
+    abstract fun toRGBA(currentColor: de.krall.flare.cssparser.RGBA): de.krall.flare.cssparser.RGBA
 
-    class CurrentColor : Color()
+    class RGBA(val rgba: de.krall.flare.cssparser.RGBA) : Color() {
+        override fun toRGBA(currentColor: de.krall.flare.cssparser.RGBA): de.krall.flare.cssparser.RGBA {
+            return rgba
+        }
+    }
+
+    class CurrentColor : Color() {
+        override fun toRGBA(currentColor: de.krall.flare.cssparser.RGBA): de.krall.flare.cssparser.RGBA {
+            return currentColor
+        }
+    }
 
     companion object {
 
@@ -17,3 +27,7 @@ sealed class Color : ComputedValue {
         }
     }
 }
+
+typealias RGBAColor = RGBA
+
+typealias ColorPropertyValue = RGBA

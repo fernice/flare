@@ -1,5 +1,6 @@
 package de.krall.flare.style
 
+import de.krall.flare.cssparser.RGBA
 import de.krall.flare.dom.Device
 import de.krall.flare.font.WritingMode
 import de.krall.flare.std.Option
@@ -187,7 +188,7 @@ class StyleBuilder(val device: Device,
                     inheritStyleIgnoringFirstList,
                     resetStyle,
                     StyleStructRef.borrowed(inheritStyle.font),
-                    StyleStructRef.borrowed(resetStyle.color),
+                    StyleStructRef.borrowed(inheritStyle.color),
                     StyleStructRef.borrowed(resetStyle.background),
                     StyleStructRef.borrowed(resetStyle.border),
                     StyleStructRef.borrowed(resetStyle.margin),
@@ -200,14 +201,22 @@ class StyleBuilder(val device: Device,
     // Color
     // *****************************************************
 
+    fun getColor(): Color {
+        return color.build()
+    }
+
+    fun getParentColor(): Color {
+        return inheritStyle.color
+    }
+
     // border-top-color
 
-    fun setColor(color: ComputedColor) {
+    fun setColor(color: RGBA) {
         this.color.mutate().color = color
     }
 
     fun inheritColor() {
-        val inheritStruct = inheritStyleIgnoringFirstLine.color
+        val inheritStruct = inheritStyle.color
 
         this.color.mutate().color = inheritStruct.color
     }

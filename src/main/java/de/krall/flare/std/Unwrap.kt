@@ -37,6 +37,13 @@ fun <T> Option<T>.unwrapOr(default: T): T {
     }
 }
 
+fun <T> Option<T>.unwrapOr(default: () -> T): T {
+    return when (this) {
+        is Some -> this.value
+        is None -> default()
+    }
+}
+
 fun <T, E> Option<T>.mapOr(mapper: (T) -> E, default: E): E {
     return when (this) {
         is Some -> mapper(this.value)

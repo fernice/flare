@@ -9,7 +9,7 @@ import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.value.Context
-import de.krall.flare.style.value.specified.Color
+import de.krall.flare.style.value.specified.ColorPropertyValue
 import de.krall.flare.style.value.specified.Color as ComputedColor
 
 @PropertyEntryPoint
@@ -20,7 +20,7 @@ class ColorId : LonghandId() {
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return Color.parse(context, input).map { color -> ColorDeclaration(color) }
+        return ColorPropertyValue.parse(context, input).map(::ColorDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -55,7 +55,7 @@ class ColorId : LonghandId() {
     }
 }
 
-class ColorDeclaration(val color: Color) : PropertyDeclaration() {
+class ColorDeclaration(val color: ColorPropertyValue) : PropertyDeclaration() {
     override fun id(): LonghandId {
         return ColorId.instance
     }

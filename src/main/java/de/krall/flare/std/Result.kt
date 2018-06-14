@@ -19,6 +19,10 @@ sealed class Result<out T, out E> {
     abstract fun ok(): Option<T>
 
     abstract fun err(): Option<E>
+
+    abstract fun isOk(): Boolean
+
+    abstract fun isErr(): Boolean
 }
 
 data class Ok<out T>(val value: T) : Result<T, Nothing>() {
@@ -42,6 +46,14 @@ data class Ok<out T>(val value: T) : Result<T, Nothing>() {
     override fun err(): Option<Nothing> {
         return None()
     }
+
+    override fun isOk(): Boolean {
+        return true
+    }
+
+    override fun isErr(): Boolean {
+        return false
+    }
 }
 
 data class Err<out E>(val value: E) : Result<Nothing, E>() {
@@ -64,6 +76,14 @@ data class Err<out E>(val value: E) : Result<Nothing, E>() {
 
     override fun err(): Option<E> {
         return Some(value)
+    }
+
+    override fun isOk(): Boolean {
+        return false
+    }
+
+    override fun isErr(): Boolean {
+        return true
     }
 }
 
