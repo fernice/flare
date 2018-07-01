@@ -319,6 +319,7 @@ private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sin
                         }
                     }
                 }
+                else -> {}
             }
 
             when (qualifiedName.localName) {
@@ -988,6 +989,7 @@ class AncestorIter private constructor(private val iter: SelectorIter) : Iter<Co
             when (combinator.value) {
                 is Combinator.Child,
                 is Combinator.Descendant -> skipUntilAncestor()
+                else -> {}
             }
         }
 

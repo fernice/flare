@@ -5,8 +5,15 @@ import de.krall.flare.std.Err
 import de.krall.flare.std.Ok
 import de.krall.flare.std.Result
 
+/**
+ * Represents a one dimensional position in the source text defined by a [position] indexing the text as
+ * a string.
+ */
 class SourcePosition(val position: Int)
 
+/**
+ * Represents a two dimensional position in the source text defined by a [line] and a [column] position.
+ */
 class SourceLocation(val line: Int, val column: Int) {
 
     override fun toString(): String {
@@ -16,14 +23,22 @@ class SourceLocation(val line: Int, val column: Int) {
 
 /**
  * This is a implementation of the Css Level 3 syntax specification.
- * <br/>The specification can be found <a href="https://www.w3.org/TR/css-syntax-3/">here</a>.
+ *
+ * The specification can be found <a href="https://www.w3.org/TR/css-syntax-3/">here</a>.
  */
 class Lexer(private val reader: CssReader) {
 
+    /**
+     * Returns the current position of the [Lexer] within the char stream. This should be used for slicing the input
+     * for error reporting.
+     */
     fun position(): SourcePosition {
         return SourcePosition(reader.bp)
     }
 
+    /**
+     * Returns the corresponding location that the [Lexer] is at. This should be used to error reporting.
+     */
     fun location(): SourceLocation {
         return SourceLocation(reader.line, reader.column)
     }
@@ -142,7 +157,13 @@ class Lexer(private val reader: CssReader) {
             }
             '<' -> {
                 reader.nextChar()
-                Token.Lt()
+
+                if (reader.c == '!' && reader.peekChar() == '-' && reader.peekChar(2) == '-') {
+                    reader.nextChar(2)
+                    Token.CDO()
+                } else {
+                    Token.Lt()
+                }
             }
             '>' -> {
                 reader.nextChar()
@@ -239,7 +260,7 @@ class Lexer(private val reader: CssReader) {
                 reader.nextChar()
                 Token.Equal()
             }
-            '!'-> {
+            '!' -> {
                 reader.nextChar()
                 Token.Bang()
             }
@@ -440,7 +461,7 @@ class Lexer(private val reader: CssReader) {
             reader.putChar()
         }
 
-        if (reader.c == '.' && isDigit(reader.c)) {
+        if (reader.c == '.' && isDigit(reader.peekChar())) {
             reader.putChar(2)
             type = "number"
 
@@ -507,6 +528,7 @@ class Lexer(private val reader: CssReader) {
         var d = 0
         fd@ while (true) {
             when (reader.c) {
+                '.'-> reader.nextChar()
                 'e', 'E', '\u001a' -> {
                     break@fd
                 }
@@ -540,7 +562,7 @@ class Lexer(private val reader: CssReader) {
 
         val e = if (text.isNotEmpty()) Integer.parseInt(text) else 0
 
-        return s.toDouble() * (i + f * Math.pow(10.0, (-d).toDouble())) * Math.pow(10.0, (-t * e).toDouble())
+        return s.toDouble() * (i + f * Math.pow(10.0, (-d).toDouble())) * Math.pow(10.0, (t * e).toDouble())
     }
 
     // https://www.w3.org/TR/css-syntax-3/#consume-a-string-token0

@@ -16,6 +16,7 @@ fun debugAssert(assert: () -> Boolean, message: String = "Assert failed") {
     }
 }
 
+@Suppress("NOTHING_TO_INLINE")
 inline fun assert(assert: Boolean, message: String) {
     if (!assert) {
         throw AssertionError(message)

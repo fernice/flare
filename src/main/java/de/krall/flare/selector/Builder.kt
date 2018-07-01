@@ -132,6 +132,9 @@ private fun specificity(iter: Iter<Component>): Int {
                     simpleSelectorSpecificity(selector, specificity)
                 }
             }
+
+            else -> {
+            }
         }
     }
 

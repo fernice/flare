@@ -168,6 +168,10 @@ class Number(val type: Str,
     fun float(): Float {
         return value.toFloat()
     }
+
+    override fun toString(): kotlin.String {
+        return "Number($value)"
+    }
 }
 
 enum class BlockType {

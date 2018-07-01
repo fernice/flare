@@ -1,7 +1,18 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.*
+import de.krall.flare.cssparser.Color.RGBA
+import de.krall.flare.std.Empty
+import de.krall.flare.std.Err
+import de.krall.flare.std.Ok
+import de.krall.flare.std.Result
+import de.krall.flare.std.max
+import de.krall.flare.std.min
+import de.krall.flare.std.round
+import de.krall.flare.std.trunc
 
+/**
+ * Represents a 8 bit, int based RGBA color.
+ */
 class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int)
 
 /**
@@ -226,6 +237,7 @@ private fun parseHash(hash: String): Result<Color, Empty> {
 /**
  * Returns a [RGBA] color with the specified [red], [green] and [blue] values and a alpha value of 255.
  */
+@Suppress("NOTHING_TO_INLINE")
 private inline fun rgb(red: Int, green: Int, blue: Int): Color {
     return rgba(red, green, blue, 255)
 }
@@ -233,6 +245,7 @@ private inline fun rgb(red: Int, green: Int, blue: Int): Color {
 /**
  * Returns a [RGBA] color with the specified [red], [green], [blue] and [alpha] values.
  */
+@Suppress("NOTHING_TO_INLINE")
 private inline fun rgba(red: Int, green: Int, blue: Int, alpha: Int): Color {
     return Color.RGBA(RGBA(red, green, blue, alpha))
 }

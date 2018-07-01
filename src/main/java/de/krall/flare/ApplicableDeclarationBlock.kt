@@ -5,9 +5,9 @@ import de.krall.flare.style.properties.PropertyDeclarationBlock
 import de.krall.flare.style.ruletree.CascadeLevel
 import de.krall.flare.style.ruletree.StyleSource
 
-class ApplicableDeclarationBlock(val source: StyleSource,
-                                 val bits: ApplicableDeclarationBits,
-                                 val specificity: Int) {
+data class ApplicableDeclarationBlock(val source: StyleSource,
+                                      val bits: ApplicableDeclarationBits,
+                                      val specificity: Int) {
 
     companion object {
         fun fromDeclarations(declarations: PropertyDeclarationBlock,
@@ -78,5 +78,13 @@ class ApplicableDeclarationBits private constructor(private val bits: Int) {
         val ordinal = (bits and CASCADE_LEVEL_MASK) shr CASCADE_LEVEL_SHIFT
 
         return CascadeLevel.values()[ordinal]
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is ApplicableDeclarationBits && bits == other.bits
+    }
+
+    override fun hashCode(): Int {
+        return bits.hashCode()
     }
 }

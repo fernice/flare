@@ -3,7 +3,11 @@ package de.krall.flare.style.value.specified
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.RGBA
-import de.krall.flare.std.*
+import de.krall.flare.std.Err
+import de.krall.flare.std.Ok
+import de.krall.flare.std.Option
+import de.krall.flare.std.Result
+import de.krall.flare.std.Some
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue

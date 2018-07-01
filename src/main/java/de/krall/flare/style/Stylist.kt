@@ -284,6 +284,7 @@ class CascadeData(private val normalRules: ElementAndPseudoRules) {
                     }
                     sourceOrder++
                 }
+                else -> {}
             }
         }
     }

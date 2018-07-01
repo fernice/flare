@@ -1,7 +1,15 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.*
-import java.util.*
+import de.krall.flare.std.Empty
+import de.krall.flare.std.Err
+import de.krall.flare.std.Ok
+import de.krall.flare.std.Result
+import de.krall.flare.std.Some
+import de.krall.flare.std.getBooleanProperty
+import de.krall.flare.std.unwrap
+import java.util.Stack
+
+private val print_token: Boolean by lazy { getBooleanProperty("flare.print_token") }
 
 class Tokenizer {
 
@@ -9,13 +17,12 @@ class Tokenizer {
     private val lexer: Lexer
     private var state: State
 
-    private constructor(text: String, lexer: Lexer, state: State, print: Boolean) {
+    private constructor(text: String, lexer: Lexer, state: State) {
         this.text = text
         this.lexer = lexer
         this.state = state
 
-        if (print) {
-
+        if (print_token) {
             var iter = state
 
             while (true) {
@@ -27,16 +34,16 @@ class Tokenizer {
                     iter.next = State.new(lexer)
                 }
 
-                // println("${iter.token} ${iter.sourceLocation}")
+                println("${iter.token} ${iter.sourceLocation}")
 
                 iter = iter.next!!
             }
         }
     }
 
-    private constructor(text: String, lexer: Lexer, print: Boolean) : this(text, lexer, State.new(lexer), print)
+    private constructor(text: String, lexer: Lexer) : this(text, lexer, State.new(lexer))
 
-    constructor(text: String) : this(text, Lexer(CssReader(text)), true)
+    constructor(text: String) : this(text, Lexer(CssReader(text)))
 
     fun nextToken(): Result<Token, Empty> {
         val token = state.token
@@ -97,7 +104,7 @@ class Tokenizer {
     }
 
     fun copy(): Tokenizer {
-        return Tokenizer(text, lexer, state, false)
+        return Tokenizer(text, lexer, state)
     }
 
     fun consumeUntilEndOfBlock(type: BlockType) {
@@ -154,7 +161,9 @@ class Tokenizer {
     }
 }
 
-class State(val token: Result<Token, Empty>, val sourcePosition: SourcePosition, val sourceLocation: SourceLocation) {
+class State(val token: Result<Token, Empty>,
+            val sourcePosition: SourcePosition,
+            val sourceLocation: SourceLocation) {
 
     var next: State? = null
 

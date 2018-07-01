@@ -49,15 +49,11 @@ class DeclarationListParser<A, D, P>(private val input: Parser, private val pars
                 is Token.SemiColon,
                 is Token.Comment -> continue@loop
                 is Token.Identifier -> {
-                    val result = input.parseUntilBefore(Delimiters.SemiColon, { input ->
+                    val result = input.parseUntilBefore(Delimiters.SemiColon) { input ->
                         val colon = input.expectColon()
 
-                        if (colon is Err) {
-                            colon
-                        } else {
-                            parser.parseValue(input, token.name)
-                        }
-                    })
+                        colon as? Err ?: parser.parseValue(input, token.name)
+                    }
 
                     return Some(result.mapErr { e -> ParseErrorSlice(e, input.sliceFrom(state.position())) })
                 }

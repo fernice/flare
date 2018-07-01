@@ -1,6 +1,5 @@
 package de.krall.flare.std
 
-
 fun Float.max(other: Float): Float {
     return Math.max(this, other)
 }
