@@ -134,6 +134,11 @@ class Stylist(val device: Device,
                 .insertStylesheet(stylesheet, quirksMode)
     }
 
+    /**
+     * Remove the stylesheet from the pool.
+     * This operation is rather expensive as optimization for inserting and especially matching prevent this from being a simple
+     * remove. The style origin has to be rebuild completely in order to remove a single.
+     */
     fun removeStylesheet(stylesheet: Stylesheet) {
         stylesheets.perOrigin
                 .get(stylesheet.origin)

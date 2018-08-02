@@ -32,10 +32,10 @@ class ColorId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
                     CssWideKeyword.INITIAL -> {
                         context.builder.resetBackgroundColor()
                     }
+                    CssWideKeyword.UNSET,
                     CssWideKeyword.INHERIT -> {
                         context.builder.inheritBackgroundColor()
                     }

@@ -30,6 +30,13 @@ fun <T, E> Result<T, E>.unwrapErr(): E {
     }
 }
 
+fun <T, E> Result<T, E>.unwrapOr(alternative: T): T {
+    return when (this) {
+        is Ok -> this.value
+        is Err -> alternative
+    }
+}
+
 fun <T> Option<T>.unwrapOr(default: T): T {
     return when (this) {
         is Some -> this.value

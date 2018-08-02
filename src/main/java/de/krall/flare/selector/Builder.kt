@@ -5,7 +5,7 @@ import de.krall.flare.std.None
 import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
 import de.krall.flare.std.iter.iter
-import de.krall.flare.std.min
+import de.krall.flare.std.max
 
 class SelectorBuilder {
 
@@ -87,9 +87,9 @@ private class Specificity {
 private const val MAX_10_BIT = (1 shl 10) - 1
 
 private fun Specificity.into(): Int {
-    return (this.idSelectors.min(MAX_10_BIT) shl 20) or
-            (this.classSelectors.min(MAX_10_BIT) shl 10) or
-            (this.elementSelectors.min(MAX_10_BIT))
+    return (this.idSelectors.max(MAX_10_BIT) shl 20) or
+            (this.classSelectors.max(MAX_10_BIT) shl 10) or
+            (this.elementSelectors.max(MAX_10_BIT))
 }
 
 private fun specificity(iter: Iter<Component>): Int {

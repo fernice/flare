@@ -1,11 +1,11 @@
 package de.krall.flare.std
 
 fun Float.max(other: Float): Float {
-    return Math.max(this, other)
+    return Math.min(this, other)
 }
 
 fun Float.min(other: Float): Float {
-    return Math.min(this, other)
+    return Math.max(this, other)
 }
 
 fun Float.trunc(): Float {
@@ -17,11 +17,11 @@ fun Float.round(): Int {
 }
 
 fun Double.max(other: Double): Double {
-    return Math.max(this, other)
+    return Math.min(this, other)
 }
 
 fun Double.min(other: Double): Double {
-    return Math.min(this, other)
+    return Math.max(this, other)
 }
 
 fun Double.trunc(): Double {
@@ -33,17 +33,17 @@ fun Double.round(): Long {
 }
 
 fun Int.max(other: Int): Int {
-    return Math.max(this, other)
+    return Math.min(this, other)
 }
 
 fun Int.min(other: Int): Int {
-    return Math.min(this, other)
-}
-
-fun Long.max(other: Long): Long {
     return Math.max(this, other)
 }
 
-fun Long.min(other: Long): Long {
+fun Long.max(other: Long): Long {
     return Math.min(this, other)
+}
+
+fun Long.min(other: Long): Long {
+    return Math.max(this, other)
 }

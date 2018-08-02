@@ -6,9 +6,9 @@ import de.krall.flare.std.None
 import de.krall.flare.std.Option
 import de.krall.flare.std.Some
 
-class CalcLengthOrPercentage(private val clampingMode: ClampingMode,
-                             private val length: PixelLength,
-                             private val percentage: Option<Percentage>) : ComputedValue {
+class CalcLengthOrPercentage(val clampingMode: ClampingMode,
+                             val length: PixelLength,
+                             val percentage: Option<Percentage>) : ComputedValue {
 
     fun length(): PixelLength {
         if (percentage is Some) {
@@ -39,6 +39,25 @@ class CalcLengthOrPercentage(private val clampingMode: ClampingMode,
             Some(length)
         } else {
             None()
+        }
+    }
+
+    companion object {
+
+        fun new(length: Length, percentage: Option<Percentage>): CalcLengthOrPercentage {
+            return withClampingMode(length, percentage, ClampingMode.All())
+        }
+
+        fun withClampingMode(
+                length: Length,
+                percentage: Option<Percentage>,
+                clampingMode: ClampingMode
+        ): CalcLengthOrPercentage {
+            return CalcLengthOrPercentage(
+                    clampingMode,
+                    length,
+                    percentage
+            )
         }
     }
 }

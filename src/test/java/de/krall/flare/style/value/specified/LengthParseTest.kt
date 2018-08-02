@@ -9,6 +9,7 @@ import de.krall.flare.std.Result
 import de.krall.flare.style.parser.ParseMode
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.parser.QuirksMode
+import de.krall.flare.url.Url
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -303,7 +304,7 @@ class LengthParseTest {
 
     private inline fun <T> withInput(text: String, parse: (ParserContext, Parser) -> Result<T, ParseError>): T {
         val input = Parser(ParserInput(text))
-        val context = ParserContext(ParseMode.Default(), QuirksMode.NO_QUIRKS)
+        val context = ParserContext(ParseMode.Default(), QuirksMode.NO_QUIRKS, Url(""))
 
         val result = parse(context, input)
 

@@ -7,6 +7,11 @@ import de.krall.flare.style.Rule
 import de.krall.flare.style.parser.QuirksMode
 import de.krall.flare.style.ruletree.CascadeLevel
 
+/**
+ * An optimized implementation of a Map that tries to accelerate the lookup of [Rule] for an [Element]
+ * through trying to find the most fitting bucket for each rule and its corresponding selector in order
+ * to reduce the rules that need to be matched.
+ */
 class SelectorMap {
 
     private val idHash = RuleMap.new()
@@ -158,10 +163,11 @@ class SelectorMap {
 }
 
 private class RuleComparator : Comparator<ApplicableDeclarationBlock> {
+
     override fun compare(o1: ApplicableDeclarationBlock, o2: ApplicableDeclarationBlock): Int {
         val c = o1.specificity.compareTo(o2.specificity)
 
-        if (c!=0){
+        if (c != 0) {
             return c
         }
 
@@ -185,7 +191,7 @@ class RuleMap {
     private val map = mutableMapOf<String, MutableList<Rule>>()
 
     fun entry(key: String): MutableList<Rule> {
-        return map.computeIfAbsent(key, { mutableListOf() })
+        return map.computeIfAbsent(key) { mutableListOf() }
     }
 
     fun get(key: String, quirksMode: QuirksMode): Option<List<Rule>> {

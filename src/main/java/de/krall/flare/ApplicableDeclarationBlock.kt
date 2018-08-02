@@ -1,6 +1,6 @@
 package de.krall.flare
 
-import de.krall.flare.std.min
+import de.krall.flare.std.max
 import de.krall.flare.style.properties.PropertyDeclarationBlock
 import de.krall.flare.style.ruletree.CascadeLevel
 import de.krall.flare.style.ruletree.StyleSource
@@ -64,8 +64,8 @@ class ApplicableDeclarationBits private constructor(private val bits: Int) {
 
     companion object {
         fun new(sourceOrder: Int, cascadeLevel: CascadeLevel): ApplicableDeclarationBits {
-            var bits = sourceOrder.min(SOURCE_ORDER_MAX)
-            bits = bits or (cascadeLevel.ordinal.min(CASCADE_LEVEL_MAX) shl CASCADE_LEVEL_SHIFT)
+            var bits = sourceOrder.max(SOURCE_ORDER_MAX)
+            bits = bits or (cascadeLevel.ordinal.max(CASCADE_LEVEL_MAX) shl CASCADE_LEVEL_SHIFT)
             return ApplicableDeclarationBits(bits)
         }
     }

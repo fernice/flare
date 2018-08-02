@@ -3,6 +3,11 @@ package de.krall.flare.selector
 import de.krall.flare.dom.Element
 import de.krall.flare.std.*
 
+/**
+ * Checks if the [selector] matches the [element]. Performs a fast reject if both the [AncestorHashes]
+ * of the selector and the [BloomFilter] of the element's parent is given. See [mayMatch] for the premise
+ * of fast rejecting.
+ */
 fun matchesSelector(selector: Selector,
                     hashes: Option<AncestorHashes>,
                     element: Element,
@@ -19,6 +24,13 @@ fun matchesSelector(selector: Selector,
     return matchesComplexSelector(selector.iter(), element, context)
 }
 
+/**
+ * Performs a fast reject if the any of the [AncestorHashes] is not contained in the bloom filter. This work on
+ * the premise that the AncestorHashes are an excerpt of all relevant components in a selector that match a parent
+ * and are hashable. In combination with a [BloomFilter], filled with all corresponding hashes of all parents,
+ * a selector can be fast rejected if a ancestor hash is not contained the BloomFilter as that would be the
+ * requirement for them to match. This optimization does only work for selector that do have a parental combinator.
+ */
 private fun mayMatch(hashes: AncestorHashes, bloomFilter: BloomFilter): Boolean {
     for (i in 0..3) {
         val hash = hashes.packedHashes[i]

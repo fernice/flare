@@ -650,5 +650,5 @@ private fun clampUnit(value: Float): Int {
  * Clamps [value] to a value ranging from 0 to 255.
  */
 private fun clampFloor(value: Float): Int {
-    return value.round().min(255).max(0)
+    return value.round().min(0).max(255)
 }

@@ -59,9 +59,21 @@ sealed class FontBaseSize {
     }
 }
 
+/**
+ * Marks a value to has a computed representation for itself. Whereas the specified value should be
+ * designed in a way that the original input can be restored, converting a specified value into
+ * a computed value may cause a loss in unnecessary information.
+ */
 interface SpecifiedValue<C> {
 
+    /**
+     * Turns this object into its computed representation.
+     */
     fun toComputedValue(context: Context): C
 }
 
+/**
+ * Marks a value that has specified representation for itself. A computed value is a concrete from
+ * of the generic specified value specific to the context it has been created with.
+ */
 interface ComputedValue

@@ -11,6 +11,26 @@ data class PixelLength(val value: Float) : ComputedValue {
         return value
     }
 
+    operator fun unaryMinus(): PixelLength {
+        return PixelLength(-value)
+    }
+
+    operator fun plus(length: PixelLength): PixelLength {
+        return PixelLength(value + length.value)
+    }
+
+    operator fun minus(length: PixelLength): PixelLength {
+        return PixelLength(value - length.value)
+    }
+
+    operator fun times(length: PixelLength): PixelLength {
+        return PixelLength(value * length.value)
+    }
+
+    operator fun div(length: PixelLength): PixelLength {
+        return PixelLength(value / length.value)
+    }
+
     companion object {
 
         private val zero: PixelLength by lazy { PixelLength(0f) }
@@ -20,6 +40,8 @@ data class PixelLength(val value: Float) : ComputedValue {
         }
     }
 }
+
+typealias Length = PixelLength
 
 fun PixelLength.into(): Au {
     return Au.fromPx(this.value)
@@ -149,7 +171,17 @@ class Au(val value: Int) {
     }
 }
 
-class Percentage(val value: Float) : ComputedValue
+class Percentage(val value: Float) : ComputedValue {
+
+    companion object {
+
+        private val hundred: Percentage by lazy { Percentage(1f) }
+
+        fun hundred(): Percentage {
+            return hundred
+        }
+    }
+}
 
 sealed class LengthOrPercentage : ComputedValue {
 
@@ -176,18 +208,23 @@ sealed class LengthOrPercentage : ComputedValue {
     companion object {
 
         private val zero: LengthOrPercentage by lazy { LengthOrPercentage.Length(PixelLength.zero()) }
+        private val fifty: LengthOrPercentage by lazy { LengthOrPercentage.Length(PixelLength(0.5f)) }
 
         fun zero(): LengthOrPercentage {
             return zero
+        }
+
+        fun fifty(): LengthOrPercentage {
+            return fifty
         }
     }
 }
 
 class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : ComputedValue {
 
-     fun toPixelLength(containingLength: Au): PixelLength {
-         return value.toPixelLength(containingLength)
-     }
+    fun toPixelLength(containingLength: Au): PixelLength {
+        return value.toPixelLength(containingLength)
+    }
 
     companion object {
 
@@ -203,7 +240,7 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
 
     abstract fun toPixelLength(containingLength: Au): PixelLength
 
-    data class Length(val length: PixelLength) : LengthOrPercentageOrAuto()  {
+    data class Length(val length: PixelLength) : LengthOrPercentageOrAuto() {
         override fun toPixelLength(containingLength: Au): PixelLength {
             return length
         }

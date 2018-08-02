@@ -17,6 +17,10 @@ import de.krall.flare.style.parser.ParserContext
 
 sealed class Image {
 
+    class Url(val url: ImageUrl) : Image()
+
+    class Gradient(val gradient: ImageGradient) : Image()
+
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<Image, ParseError> {
             val url = input.tryParse { nestedParser -> ImageUrl.parse(context, nestedParser) }
@@ -33,19 +37,17 @@ sealed class Image {
             }
         }
     }
-
-    class Url(url: ImageUrl) : Image()
-
-    class Gradient(gradient: ImageGradient) : Image()
 }
 
 private typealias ImageGradient = Gradient
 
 typealias Repeating = Boolean
 
-class Gradient(val items: List<GradientItem>,
-               val repeating: Repeating,
-               val kind: GradientKind) {
+class Gradient(
+        val items: List<GradientItem>,
+        val repeating: Repeating,
+        val kind: GradientKind
+) {
 
     companion object {
         private enum class Shape {
@@ -116,6 +118,10 @@ class Gradient(val items: List<GradientItem>,
 
 sealed class GradientItem {
 
+    class InterpolationHint(val hint: LengthOrPercentage) : GradientItem()
+
+    class ColorStop(val colorStop: de.krall.flare.style.value.specified.ColorStop) : GradientItem()
+
     companion object {
         fun parseCommaSeparated(context: ParserContext, input: Parser): Result<List<GradientItem>, ParseError> {
             var seenStop = false
@@ -145,14 +151,12 @@ sealed class GradientItem {
             return Ok(items)
         }
     }
-
-    class InterpolationHint(hint: LengthOrPercentage) : GradientItem()
-
-    class ColorStop(colorStop: de.krall.flare.style.value.specified.ColorStop) : GradientItem()
 }
 
-class ColorStop(val color: RGBAColor,
-                val position: Option<LengthOrPercentage>) {
+class ColorStop(
+        val color: RGBAColor,
+        val position: Option<LengthOrPercentage>
+) {
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<ColorStop, ParseError> {
@@ -174,6 +178,10 @@ class ColorStop(val color: RGBAColor,
 }
 
 sealed class GradientKind {
+
+    class Linear(val lineDirection: LineDirection) : GradientKind()
+
+    class Radial(val endingShape: EndingShape, val position: Position) : GradientKind()
 
     companion object {
         fun parseLinear(context: ParserContext, input: Parser): Result<GradientKind, ParseError> {
@@ -222,15 +230,19 @@ sealed class GradientKind {
             return Ok(GradientKind.Radial(shape, position))
         }
     }
-
-    class Linear(lineDirection: LineDirection) : GradientKind()
-
-    class Radial(endingShape: EndingShape, position: Position) : GradientKind()
 }
 
 private typealias OuterAngle = Angle
 
 sealed class LineDirection {
+
+    class Angle(val angle: OuterAngle) : LineDirection()
+
+    class Horizontal(val x: X) : LineDirection()
+
+    class Vertical(val y: Y) : LineDirection()
+
+    class Corner(val x: X, val y: Y) : LineDirection()
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<LineDirection, ParseError> {
@@ -276,17 +288,13 @@ sealed class LineDirection {
             }
         }
     }
-
-    class Angle(angle: OuterAngle) : LineDirection()
-
-    class Horizontal(x: X) : LineDirection()
-
-    class Vertical(y: Y) : LineDirection()
-
-    class Corner(x: X, y: Y) : LineDirection()
 }
 
 sealed class EndingShape {
+
+    class Circle(val circle: de.krall.flare.style.value.specified.Circle) : EndingShape()
+
+    class Ellipse(val ellipse: de.krall.flare.style.value.specified.Ellipse) : EndingShape()
 
     companion object {
 
@@ -388,24 +396,20 @@ sealed class EndingShape {
             }
         }
     }
-
-    class Circle(circle: de.krall.flare.style.value.specified.Circle) : EndingShape()
-
-    class Ellipse(ellipse: de.krall.flare.style.value.specified.Ellipse) : EndingShape()
 }
 
 sealed class Circle {
 
-    class Radius(length: Length) : Circle()
+    class Radius(val length: Length) : Circle()
 
-    class Extend(shapeExtend: ShapeExtend) : Circle()
+    class Extend(val shapeExtend: ShapeExtend) : Circle()
 }
 
 sealed class Ellipse {
 
-    class Radii(horizontal: LengthOrPercentage, vertical: LengthOrPercentage) : Ellipse()
+    class Radii(val horizontal: LengthOrPercentage, val vertical: LengthOrPercentage) : Ellipse()
 
-    class Extend(shapeExtend: ShapeExtend) : Ellipse()
+    class Extend(val shapeExtend: ShapeExtend) : Ellipse()
 }
 
 enum class ShapeExtend {

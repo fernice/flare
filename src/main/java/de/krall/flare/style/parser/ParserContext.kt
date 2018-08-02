@@ -3,8 +3,13 @@ package de.krall.flare.style.parser
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.std.Result
+import de.krall.flare.url.Url
 
-class ParserContext(val parseMode: ParseMode, val quirksMode: QuirksMode)
+class ParserContext(
+        val parseMode: ParseMode,
+        val quirksMode: QuirksMode,
+        val baseUrl: Url
+)
 
 interface Parse<T> {
 

@@ -234,6 +234,21 @@ class Parser private constructor(private val tokenizer: Tokenizer,
         }
     }
 
+    fun expectUrl(): Result<String, ParseError> {
+        val location = sourceLocation()
+        val tokenResult = next()
+
+        val token = when (tokenResult) {
+            is Ok -> tokenResult.value
+            is Err -> return tokenResult
+        }
+
+        return when (token) {
+            is Token.Url -> Ok(token.url)
+            else -> Err(location.newUnexpectedTokenError(token))
+        }
+    }
+
     /**
      * Expects the next token to be [Token.Function]. Returns [Ok] if the token matches, otherwise [Err].
      */

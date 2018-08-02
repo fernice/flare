@@ -21,7 +21,7 @@
         <compile.debuglevel>lines,vars,source</compile.debuglevel>
         <maven-compile-plugin.version>3.5.1</maven-compile-plugin.version>
         <git-commit-id-plugin.version>2.1.11</git-commit-id-plugin.version>
-        <kotlin.version>1.2.50</kotlin.version>
+        <kotlin.version>1.2.51</kotlin.version>
     </properties>
 
     <dependencies>
@@ -159,6 +159,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>

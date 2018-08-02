@@ -101,8 +101,8 @@ sealed class FontRelativeLength {
     fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
         val (referencedSize, factor) = referencedSizeAndFactor(context, baseSize)
         val pixel = (referencedSize.toFloat() * factor)
-                .min(Float.MAX_VALUE)
-                .max(Float.MIN_VALUE)
+                .min(Float.MIN_VALUE)
+                .max(Float.MAX_VALUE)
         return PixelLength(pixel)
     }
 
