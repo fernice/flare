@@ -5,6 +5,9 @@ import de.krall.flare.style.value.computed.Au
 import de.krall.flare.style.value.generic.Size2D
 import de.krall.flare.dom.Device
 import de.krall.flare.font.FontMetricsProvider
+import de.krall.flare.std.None
+import de.krall.flare.std.Option
+import de.krall.flare.std.Some
 
 class Context(val rootElement: Boolean,
               val builder: StyleBuilder,
@@ -77,3 +80,14 @@ interface SpecifiedValue<C> {
  * of the generic specified value specific to the context it has been created with.
  */
 interface ComputedValue
+
+fun <E : SpecifiedValue<C>, C> List<E>.toComputedValue(context: Context): List<C> {
+    return this.map { item -> item.toComputedValue(context) }
+}
+
+fun <E : SpecifiedValue<C>, C> Option<E>.toComputedValue(context: Context): Option<C> {
+    return when (this) {
+        is Some -> Some(this.value.toComputedValue(context))
+        is None -> None()
+    }
+}

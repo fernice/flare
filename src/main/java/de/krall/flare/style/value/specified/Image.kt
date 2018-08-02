@@ -14,12 +14,31 @@ import de.krall.flare.std.Some
 import de.krall.flare.std.unwrapOr
 import de.krall.flare.std.unwrapOrElse
 import de.krall.flare.style.parser.ParserContext
+import de.krall.flare.style.value.Context
+import de.krall.flare.style.value.SpecifiedValue
+import de.krall.flare.style.value.toComputedValue
+import de.krall.flare.style.value.computed.Image as ComputedImage
+import de.krall.flare.style.value.computed.Gradient as ComputedGradient
+import de.krall.flare.style.value.computed.GradientItem as ComputedGradientItem
+import de.krall.flare.style.value.computed.GradientKind as ComputedGradientKind
+import de.krall.flare.style.value.computed.ColorStop as ComputedColorStop
+import de.krall.flare.style.value.computed.LineDirection as ComputedLineDirection
+import de.krall.flare.style.value.computed.EndingShape as ComputedEndingShape
+import de.krall.flare.style.value.computed.Circle as ComputedCircle
+import de.krall.flare.style.value.computed.Ellipse as ComputedEllipse
 
-sealed class Image {
+sealed class Image : SpecifiedValue<ComputedImage> {
 
     class Url(val url: ImageUrl) : Image()
 
-    class Gradient(val gradient: ImageGradient) : Image()
+    class Gradient(val gradient: SpecifiedGradient) : Image()
+
+    override fun toComputedValue(context: Context): ComputedImage {
+        return when (this) {
+            is Image.Url -> ComputedImage.Url(url.toComputedValue(context))
+            is Image.Gradient -> ComputedImage.Gradient(gradient.toComputedValue(context))
+        }
+    }
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<Image, ParseError> {
@@ -29,7 +48,7 @@ sealed class Image {
                 return Ok(Image.Url(url.value))
             }
 
-            val gradient = ImageGradient.parse(context, input)
+            val gradient = SpecifiedGradient.parse(context, input)
 
             return when (gradient) {
                 is Ok -> Ok(Image.Gradient(gradient.value))
@@ -39,15 +58,23 @@ sealed class Image {
     }
 }
 
-private typealias ImageGradient = Gradient
-
 typealias Repeating = Boolean
+
+private typealias SpecifiedGradient = Gradient
 
 class Gradient(
         val items: List<GradientItem>,
         val repeating: Repeating,
         val kind: GradientKind
-) {
+) : SpecifiedValue<ComputedGradient> {
+
+    override fun toComputedValue(context: Context): ComputedGradient {
+        return ComputedGradient(
+                items.toComputedValue(context),
+                repeating,
+                kind.toComputedValue(context)
+        )
+    }
 
     companion object {
         private enum class Shape {
@@ -116,11 +143,18 @@ class Gradient(
     }
 }
 
-sealed class GradientItem {
+sealed class GradientItem : SpecifiedValue<ComputedGradientItem> {
 
     class InterpolationHint(val hint: LengthOrPercentage) : GradientItem()
 
-    class ColorStop(val colorStop: de.krall.flare.style.value.specified.ColorStop) : GradientItem()
+    class ColorStop(val colorStop: SpecifiedColorStop) : GradientItem()
+
+    override fun toComputedValue(context: Context): ComputedGradientItem {
+        return when (this) {
+            is GradientItem.InterpolationHint -> ComputedGradientItem.InterpolationHint(hint.toComputedValue(context))
+            is GradientItem.ColorStop -> ComputedGradientItem.ColorStop(colorStop.toComputedValue(context))
+        }
+    }
 
     companion object {
         fun parseCommaSeparated(context: ParserContext, input: Parser): Result<List<GradientItem>, ParseError> {
@@ -153,10 +187,19 @@ sealed class GradientItem {
     }
 }
 
+private typealias SpecifiedColorStop = ColorStop
+
 class ColorStop(
         val color: RGBAColor,
         val position: Option<LengthOrPercentage>
-) {
+) : SpecifiedValue<ComputedColorStop> {
+
+    override fun toComputedValue(context: Context): ComputedColorStop {
+        return ComputedColorStop(
+                color.toComputedValue(context),
+                position.toComputedValue(context)
+        )
+    }
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<ColorStop, ParseError> {
@@ -177,11 +220,18 @@ class ColorStop(
     }
 }
 
-sealed class GradientKind {
+sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
     class Linear(val lineDirection: LineDirection) : GradientKind()
 
     class Radial(val endingShape: EndingShape, val position: Position) : GradientKind()
+
+    override fun toComputedValue(context: Context): ComputedGradientKind {
+        return when (this) {
+            is GradientKind.Linear -> ComputedGradientKind.Linear(lineDirection.toComputedValue(context))
+            is GradientKind.Radial -> ComputedGradientKind.Radial(endingShape.toComputedValue(context), position.toComputedValue(context))
+        }
+    }
 
     companion object {
         fun parseLinear(context: ParserContext, input: Parser): Result<GradientKind, ParseError> {
@@ -232,17 +282,26 @@ sealed class GradientKind {
     }
 }
 
-private typealias OuterAngle = Angle
+private typealias ImageAngle = Angle
 
-sealed class LineDirection {
+sealed class LineDirection : SpecifiedValue<ComputedLineDirection> {
 
-    class Angle(val angle: OuterAngle) : LineDirection()
+    class Angle(val angle: ImageAngle) : LineDirection()
 
     class Horizontal(val x: X) : LineDirection()
 
     class Vertical(val y: Y) : LineDirection()
 
     class Corner(val x: X, val y: Y) : LineDirection()
+
+    override fun toComputedValue(context: Context): ComputedLineDirection {
+        return when (this) {
+            is LineDirection.Angle -> ComputedLineDirection.Angle(angle.toComputedValue(context))
+            is LineDirection.Horizontal -> ComputedLineDirection.Horizontal(x)
+            is LineDirection.Vertical -> ComputedLineDirection.Vertical(y)
+            is LineDirection.Corner -> ComputedLineDirection.Corner(x, y)
+        }
+    }
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<LineDirection, ParseError> {
@@ -290,11 +349,18 @@ sealed class LineDirection {
     }
 }
 
-sealed class EndingShape {
+sealed class EndingShape : SpecifiedValue<ComputedEndingShape> {
 
-    class Circle(val circle: de.krall.flare.style.value.specified.Circle) : EndingShape()
+    class Circle(val circle: SpecifiedCircle) : EndingShape()
 
-    class Ellipse(val ellipse: de.krall.flare.style.value.specified.Ellipse) : EndingShape()
+    class Ellipse(val ellipse: SpecifiedEllipse) : EndingShape()
+
+    override fun toComputedValue(context: Context): ComputedEndingShape {
+        return when (this) {
+            is EndingShape.Circle -> ComputedEndingShape.Circle(circle.toComputedValue(context))
+            is EndingShape.Ellipse -> ComputedEndingShape.Ellipse(ellipse.toComputedValue(context))
+        }
+    }
 
     companion object {
 
@@ -398,18 +464,36 @@ sealed class EndingShape {
     }
 }
 
-sealed class Circle {
+private typealias SpecifiedCircle = Circle
+
+sealed class Circle : SpecifiedValue<ComputedCircle> {
 
     class Radius(val length: Length) : Circle()
 
     class Extend(val shapeExtend: ShapeExtend) : Circle()
+
+    override fun toComputedValue(context: Context): ComputedCircle {
+        return when (this) {
+            is Circle.Radius -> ComputedCircle.Radius(length.toComputedValue(context))
+            is Circle.Extend -> ComputedCircle.Extend(shapeExtend)
+        }
+    }
 }
 
-sealed class Ellipse {
+private typealias  SpecifiedEllipse = Ellipse
+
+sealed class Ellipse : SpecifiedValue<ComputedEllipse> {
 
     class Radii(val horizontal: LengthOrPercentage, val vertical: LengthOrPercentage) : Ellipse()
 
     class Extend(val shapeExtend: ShapeExtend) : Ellipse()
+
+    override fun toComputedValue(context: Context): ComputedEllipse {
+        return when (this) {
+            is Ellipse.Radii -> ComputedEllipse.Radii(horizontal.toComputedValue(context), vertical.toComputedValue(context))
+            is Ellipse.Extend -> ComputedEllipse.Extend(shapeExtend)
+        }
+    }
 }
 
 enum class ShapeExtend {

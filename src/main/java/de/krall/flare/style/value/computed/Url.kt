@@ -1,8 +1,11 @@
 package de.krall.flare.style.value.computed
 
-sealed class ComputedUrl {
+import de.krall.flare.style.value.ComputedValue
+import de.krall.flare.url.Url
 
-    class Valid(text: String) : ComputedUrl()
+sealed class ComputedUrl : ComputedValue {
 
-    class Invalid()
+    class Valid(url: Url) : ComputedUrl()
+
+    class Invalid(text: String) : ComputedUrl()
 }

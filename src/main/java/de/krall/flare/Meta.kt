@@ -28,3 +28,7 @@ inline fun assert(assert: () -> Boolean, message: String = "Assert failed") {
         throw AssertionError(message)
     }
 }
+
+fun panic(message: String): Nothing {
+    throw IllegalStateException(message)
+}
