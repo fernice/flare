@@ -168,6 +168,10 @@ sealed class PropertyId {
 
                 val instance = instanceMethod.invoke(type.kotlin.companionObjectInstance)
 
+                if (!type.isInstance(instance)) {
+                    throw IllegalStateException("property id instance is expected to be of type ${type.name} but returned ${instance.javaClass.name}")
+                }
+
                 val (name, id) = when (instance) {
                     is LonghandId -> {
                         Pair(instance.name(), PropertyId.Longhand(instance))

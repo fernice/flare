@@ -16,7 +16,7 @@ sealed class SingleFontFamily {
     companion object Contract {
 
         fun parse(input: Parser): Result<SingleFontFamily, ParseError> {
-            val stringResult = input.tryParse { input -> input.expectIdentifier() }
+            val stringResult = input.tryParse { input -> input.expectString() }
 
             if (stringResult is Ok) {
                 return Ok(SingleFontFamily.FamilyName(de.krall.flare.style.value.computed.FamilyName(
@@ -84,7 +84,7 @@ sealed class SingleFontFamily {
 
 class FontFamilyList(private val values: List<SingleFontFamily>) : Iterable<SingleFontFamily> {
 
-    override fun iterator(): Iterator<SingleFontFamily> = values.iterator()
+    override fun iterator(): Iterator<SingleFontFamily> = values.asReversed().iterator()
 }
 
 class FamilyName(val value: String)

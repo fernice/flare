@@ -281,7 +281,7 @@ class Parser private constructor(private val tokenizer: Tokenizer,
         }
 
         return when (token) {
-            is Token.Identifier -> Ok(token.name)
+            is Token.String -> Ok(token.value)
             else -> Err(location.newUnexpectedTokenError(token))
         }
     }

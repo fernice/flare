@@ -657,6 +657,10 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
 
 class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrAuto> {
 
+    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrAuto {
+        return ComputedNonNegativeLengthOrPercentageOrAuto(value.toComputedValue(context))
+    }
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<NonNegativeLengthOrPercentageOrAuto, ParseError> {
@@ -670,10 +674,16 @@ class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) :
             return LengthOrPercentageOrAuto.parseQuirky(context, input, allowQuirks)
                     .map(::NonNegativeLengthOrPercentageOrAuto)
         }
-    }
 
-    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrAuto {
-        return ComputedNonNegativeLengthOrPercentageOrAuto(value.toComputedValue(context))
+        private val auto: NonNegativeLengthOrPercentageOrAuto by lazy {
+            NonNegativeLengthOrPercentageOrAuto(
+                    LengthOrPercentageOrAuto.Auto()
+            )
+        }
+
+        fun auto(): NonNegativeLengthOrPercentageOrAuto {
+            return auto
+        }
     }
 }
 

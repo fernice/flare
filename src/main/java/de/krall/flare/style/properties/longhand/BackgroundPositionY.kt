@@ -3,41 +3,45 @@ package de.krall.flare.style.properties.longhand
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.std.Result
+import de.krall.flare.style.parser.AllowQuirks
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.CssWideKeyword
 import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.value.Context
-import de.krall.flare.style.value.specified.ColorPropertyValue
-import de.krall.flare.style.value.specified.Color as ComputedColor
+import de.krall.flare.style.value.specified.VerticalPosition
+import de.krall.flare.style.value.specified.Y
+import de.krall.flare.style.value.toComputedValue
+import de.krall.flare.style.value.computed.VerticalPosition as ComputedVerticalPosition
 
 @PropertyEntryPoint
-class ColorId : LonghandId() {
+class BackgroundPositionYId : LonghandId() {
 
     override fun name(): String {
-        return "color"
+        return "background-position-y"
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return ColorPropertyValue.parse(context, input).map(::ColorDeclaration)
+        return input.parseCommaSeparated { VerticalPosition.parseQuirky(context, it, AllowQuirks.Yes(), Y.Companion) }
+                .map(::BackgroundPositionYDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is ColorDeclaration -> {
-                val color = declaration.color.toComputedValue(context)
+            is BackgroundPositionXDeclaration -> {
+                val computed = declaration.position.toComputedValue(context)
 
-                context.builder.setColor(color)
+                context.builder.setBackgroundPositionY(computed)
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.INITIAL -> {
-                        context.builder.resetColor()
-                    }
                     CssWideKeyword.UNSET,
+                    CssWideKeyword.INITIAL -> {
+                        context.builder.resetBackgroundPositionY()
+                    }
                     CssWideKeyword.INHERIT -> {
-                        context.builder.inheritColor()
+                        context.builder.inheritBackgroundPositionY()
                     }
                 }
             }
@@ -51,17 +55,17 @@ class ColorId : LonghandId() {
 
     companion object {
 
-        val instance: ColorId by lazy { ColorId() }
+        val instance: BackgroundPositionYId by lazy { BackgroundPositionYId() }
     }
 }
 
-class ColorDeclaration(val color: ColorPropertyValue) : PropertyDeclaration() {
+class BackgroundPositionYDeclaration(val position: List<VerticalPosition>) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return ColorId.instance
+        return BackgroundPositionYId.instance
     }
 
     companion object {
 
-        val initialValue: ComputedColor by lazy { ComputedColor.transparent() }
+        val initialValue: List<ComputedVerticalPosition> by lazy { listOf(ComputedVerticalPosition.zero()) }
     }
 }

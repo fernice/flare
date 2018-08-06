@@ -9,7 +9,9 @@ interface Iter<E> : Iterable<E> {
 
     fun next(): Option<E>
 
-    fun clone(): Iter<E>
+    fun clone(): Iter<E> {
+        throw UnsupportedOperationException()
+    }
 
     fun <B> map(function: (E) -> B): Map<E, B> {
         return Map(this, function)

@@ -275,7 +275,16 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
     }
 }
 
-class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : ComputedValue
+class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : ComputedValue {
+
+    companion object {
+        private val auto: NonNegativeLengthOrPercentageOrAuto by lazy { NonNegativeLengthOrPercentageOrAuto(LengthOrPercentageOrAuto.Auto()) }
+
+        fun auto(): NonNegativeLengthOrPercentageOrAuto {
+            return auto
+        }
+    }
+}
 
 sealed class LengthOrPercentageOrNone : ComputedValue {
 

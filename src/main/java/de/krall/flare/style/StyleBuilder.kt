@@ -7,6 +7,7 @@ import de.krall.flare.std.Option
 import de.krall.flare.std.unwrapOr
 import de.krall.flare.style.properties.longhand.Attachment
 import de.krall.flare.style.properties.longhand.Clip
+import de.krall.flare.style.properties.longhand.Origin
 import de.krall.flare.style.properties.stylestruct.Background
 import de.krall.flare.style.properties.stylestruct.Border
 import de.krall.flare.style.properties.stylestruct.Color
@@ -19,13 +20,18 @@ import de.krall.flare.style.properties.stylestruct.MutFont
 import de.krall.flare.style.properties.stylestruct.MutMargin
 import de.krall.flare.style.properties.stylestruct.MutPadding
 import de.krall.flare.style.properties.stylestruct.Padding
+import de.krall.flare.style.value.computed.BackgroundRepeat
+import de.krall.flare.style.value.computed.BackgroundSize
 import de.krall.flare.style.value.computed.BorderCornerRadius
 import de.krall.flare.style.value.computed.FontFamily
 import de.krall.flare.style.value.computed.FontSize
+import de.krall.flare.style.value.computed.HorizontalPosition
+import de.krall.flare.style.value.computed.Image
 import de.krall.flare.style.value.computed.LengthOrPercentageOrAuto
 import de.krall.flare.style.value.computed.NonNegativeLength
 import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentage
 import de.krall.flare.style.value.computed.Style
+import de.krall.flare.style.value.computed.VerticalPosition
 import de.krall.flare.style.value.computed.Color as ComputedColor
 
 interface StyleStruct<T : MutStyleStruct> {
@@ -257,6 +263,24 @@ class StyleBuilder(val device: Device,
         background.mutate().color = resetStruct.color
     }
 
+    // background-image
+
+    fun setBackgroundImage(image: List<Image>) {
+        background.mutate().image = image
+    }
+
+    fun inheritBackgroundImage() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
+
+        background.mutate().image = inheritStruct.image
+    }
+
+    fun resetBackgroundImage() {
+        val resetStruct = resetStyle.background
+
+        background.mutate().image = resetStruct.image
+    }
+
     // background-attachment
 
     fun setBackgroundAttachment(attachment: List<Attachment>) {
@@ -275,7 +299,97 @@ class StyleBuilder(val device: Device,
         background.mutate().attachment = resetStruct.attachment
     }
 
-    // background-attachment
+    // background-position-x
+
+    fun setBackgroundPositionX(positionX: List<HorizontalPosition>) {
+        background.mutate().positionX = positionX
+    }
+
+    fun inheritBackgroundPositionX() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
+
+        background.mutate().positionX = inheritStruct.positionX
+    }
+
+    fun resetBackgroundPositionX() {
+        val resetStruct = resetStyle.background
+
+        background.mutate().positionX = resetStruct.positionX
+    }
+
+    // background-position-y
+
+    fun setBackgroundPositionY(positionY: List<VerticalPosition>) {
+        background.mutate().positionY = positionY
+    }
+
+    fun inheritBackgroundPositionY() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
+
+        background.mutate().positionY = inheritStruct.positionY
+    }
+
+    fun resetBackgroundPositionY() {
+        val resetStruct = resetStyle.background
+
+        background.mutate().positionY = resetStruct.positionY
+    }
+
+    // background-size
+
+    fun setBackgroundSize(size: List<BackgroundSize>) {
+        background.mutate().size = size
+    }
+
+    fun inheritBackgroundSize() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
+
+        background.mutate().size = inheritStruct.size
+    }
+
+    fun resetBackgroundSize() {
+        val resetStruct = resetStyle.background
+
+        background.mutate().size = resetStruct.size
+    }
+
+    // background-repeat
+
+    fun setBackgroundRepeat(repeat: List<BackgroundRepeat>) {
+        background.mutate().repeat = repeat
+    }
+
+    fun inheritBackgroundRepeat() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
+
+        background.mutate().repeat = inheritStruct.repeat
+    }
+
+    fun resetBackgroundRepeat() {
+        val resetStruct = resetStyle.background
+
+        background.mutate().repeat = resetStruct.repeat
+    }
+
+    // background-origin
+
+    fun setBackgroundOrigin(origin: List<Origin>) {
+        background.mutate().origin = origin
+    }
+
+    fun inheritBackgroundOrigin() {
+        val inheritStruct = inheritStyleIgnoringFirstLine.background
+
+        background.mutate().origin = inheritStruct.origin
+    }
+
+    fun resetBackgroundOrigin() {
+        val resetStruct = resetStyle.background
+
+        background.mutate().origin = resetStruct.origin
+    }
+
+    // background-clip
 
     fun setBackgroundClip(clip: Clip) {
         background.mutate().clip = clip

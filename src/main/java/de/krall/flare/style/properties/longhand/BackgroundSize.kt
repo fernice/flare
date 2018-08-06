@@ -9,35 +9,37 @@ import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.value.Context
-import de.krall.flare.style.value.specified.ColorPropertyValue
-import de.krall.flare.style.value.specified.Color as ComputedColor
+import de.krall.flare.style.value.specified.BackgroundSize
+import de.krall.flare.style.value.computed.BackgroundSize as ComputedBackgroundSize
+import de.krall.flare.style.value.toComputedValue
 
 @PropertyEntryPoint
-class ColorId : LonghandId() {
+class BackgroundSizeId : LonghandId() {
 
     override fun name(): String {
-        return "color"
+        return "background-size"
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return ColorPropertyValue.parse(context, input).map(::ColorDeclaration)
+        return input.parseCommaSeparated { BackgroundSize.parse(context, it) }
+                .map(::BackgroundSizeDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is ColorDeclaration -> {
-                val color = declaration.color.toComputedValue(context)
+            is BackgroundSizeDeclaration -> {
+                val computed = declaration.size.toComputedValue(context)
 
-                context.builder.setColor(color)
+                context.builder.setBackgroundSize(computed)
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.INITIAL -> {
-                        context.builder.resetColor()
-                    }
                     CssWideKeyword.UNSET,
+                    CssWideKeyword.INITIAL -> {
+                        context.builder.resetBackgroundSize()
+                    }
                     CssWideKeyword.INHERIT -> {
-                        context.builder.inheritColor()
+                        context.builder.inheritBackgroundSize()
                     }
                 }
             }
@@ -51,17 +53,18 @@ class ColorId : LonghandId() {
 
     companion object {
 
-        val instance: ColorId by lazy { ColorId() }
+        val instance: BackgroundSizeId by lazy { BackgroundSizeId() }
     }
 }
 
-class ColorDeclaration(val color: ColorPropertyValue) : PropertyDeclaration() {
+class BackgroundSizeDeclaration(val size: List<BackgroundSize>) : PropertyDeclaration() {
+
     override fun id(): LonghandId {
-        return ColorId.instance
+        return BackgroundSizeId.instance
     }
 
     companion object {
 
-        val initialValue: ComputedColor by lazy { ComputedColor.transparent() }
+        val initialValue: List<ComputedBackgroundSize> by lazy { listOf(ComputedBackgroundSize.auto()) }
     }
 }

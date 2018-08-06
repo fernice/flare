@@ -43,7 +43,9 @@ class Lexer(private val reader: CssReader) {
         return SourceLocation(reader.line, reader.column)
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-a-token
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-token)
+     */
     fun nextToken(): Result<Token, Empty> {
         if (reader.isEoF) {
             return Err()
@@ -278,7 +280,9 @@ class Lexer(private val reader: CssReader) {
         return Ok(token)
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-a-token
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-token)
+     */
     private fun consumeHash(): Token {
         val identifier = startsIdentifier(reader.c, reader.peekChar(), reader.peekChar(2))
 
@@ -291,7 +295,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-an-ident-like-token0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-an-ident-like-token0)
+     */
     private fun consumeIdentifier(): Token {
         val name = consumeName()
 
@@ -306,7 +312,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-a-name0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-name0)
+     */
     private fun consumeName(): String {
         while (true) {
             when {
@@ -325,7 +333,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-a-url-token0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-url-token0)
+     */
     private fun consumeUrl(): Token {
         while (isWhitespace(reader.c)) {
             reader.nextChar()
@@ -410,7 +420,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-the-remnants-of-a-bad-url0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-the-remnants-of-a-bad-url0)
+     */
     private fun consumeUrlRemnants() {
         while (true) {
             if (reader.c == ')' || reader.isEoF) {
@@ -426,7 +438,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-a-numeric-token0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-numeric-token0)
+     */
     private fun consumeNumeric(): Token {
         val number = consumeNumber()
 
@@ -446,7 +460,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-a-number0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-number0)
+     */
     private fun consumeNumber(): Number {
         var type = "int"
 
@@ -494,7 +510,9 @@ class Lexer(private val reader: CssReader) {
         return Number(type, number, convertNumber(number), negative)
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#convert-a-string-to-a-number0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#convert-a-string-to-a-number0)
+     */
     private fun convertNumber(number: String): Double {
         val reader = CssReader(number.toCharArray(), number.length)
 
@@ -528,7 +546,7 @@ class Lexer(private val reader: CssReader) {
         var d = 0
         fd@ while (true) {
             when (reader.c) {
-                '.'-> reader.nextChar()
+                '.' -> reader.nextChar()
                 'e', 'E', '\u001a' -> {
                     break@fd
                 }
@@ -565,7 +583,9 @@ class Lexer(private val reader: CssReader) {
         return s.toDouble() * (i + f * Math.pow(10.0, (-d).toDouble())) * Math.pow(10.0, (t * e).toDouble())
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-a-string-token0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-string-token0)
+     */
     private fun consumeString(delimiter: Char): Token {
         reader.nextChar()
 
@@ -605,12 +625,14 @@ class Lexer(private val reader: CssReader) {
             reader.putChar()
         } while (reader.c != '*' && reader.peekChar() != '/' || reader.isEoF)
         // also consume the /
-        reader.nextChar()
+        reader.nextChar(2)
 
         return Token.Comment(reader.text())
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-a-unicode-range-token0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-unicode-range-token0)
+     */
     private fun consumeUnicodeRange(): Token {
         var containsWildcard = false
         for (i in 0..5) {
@@ -654,7 +676,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#consume-an-escaped-code-point0
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#consume-an-escaped-code-point0)
+     */
     private fun readEscaped(): Char {
         if (isHexDigit(reader.c)) {
             for (i in 0..5) {
@@ -685,46 +709,65 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#non-printable-code-point
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#non-printable-code-point)
+     */
     private fun isNonPrintable(c: Char): Boolean {
         return c <= '\u0008' || c == '\u000B' || c in '\u000E'..'\u001F' || c == '\u007E'
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#whitespace
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#whitespace)
+     */
     private fun isWhitespace(c: Char): Boolean {
         return c == ' ' || c == '\t'
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#name-code-point
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#name-code-point)
+     */
     private fun isName(c: Char): Boolean {
         return isNameStart(c) || isDigit(c) || c == '-'
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#name-start-code-point
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#name-start-code-point)
+     */
     private fun isNameStart(c: Char): Boolean {
         return isLetter(c) || c.toInt() > 128 || c == '_'
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#letter
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#letter)
+     */
     private fun isLetter(c: Char): Boolean {
         return c in 'A'..'Z' || c in 'a'..'z'
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#digit
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#digit)
+     */
     private fun isDigit(c: Char): Boolean {
         return c in '0'..'9'
     }
 
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#hex-digit)
+     */
     private fun isHexDigit(c: Char): Boolean {
         return isDigit(c) || c in 'A'..'F' || c in 'a'..'f'
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#check-if-two-code-points-are-a-valid-escape
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#check-if-two-code-points-are-a-valid-escape)
+     */
     private fun isEscape(c0: Char, c1: Char): Boolean {
         return c0 == '\\' && c1 != '\n'
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#check-if-three-code-points-would-start-an-identifier
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#check-if-three-code-points-would-start-an-identifier)
+     */
     private fun startsIdentifier(c0: Char, c1: Char, c2: Char): Boolean {
         return if (c0 == '-') {
             isNameStart(c1) || isEscape(c1, c2)
@@ -733,7 +776,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#check-if-three-code-points-would-start-a-number
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#check-if-three-code-points-would-start-a-number)
+     */
     private fun startsNumber(c0: Char, c1: Char, c2: Char): Boolean {
         return if (c0 == '+' || c0 == '-') {
             isDigit(c1) || c1 == '.' && isDigit(c2)
@@ -744,7 +789,9 @@ class Lexer(private val reader: CssReader) {
         }
     }
 
-    // https://www.w3.org/TR/css-syntax-3/#surrogate-code-point
+    /**
+     * [spec](https://www.w3.org/TR/css-syntax-3/#surrogate-code-point)
+     */
     private fun isSurrogate(c: Char): Boolean {
         return c in '\ud800'..'\udfff'
     }
