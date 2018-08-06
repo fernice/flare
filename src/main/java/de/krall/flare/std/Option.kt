@@ -38,6 +38,14 @@ class None<T> : Option<T>() {
     override fun <R> andThen(mapper: (T) -> Option<R>): Option<R> {
         return None()
     }
+
+    override fun equals(other: Any?): Boolean {
+        return other is None<*>
+    }
+
+    override fun hashCode(): Int {
+        return 17
+    }
 }
 
 data class Some<T>(val value: T) : Option<T>() {

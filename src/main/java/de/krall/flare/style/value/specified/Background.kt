@@ -31,8 +31,8 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize> {
                     width.toComputedValue(context),
                     height.toComputedValue(context)
             )
-            is BackgroundSize.Cover -> ComputedBackgroundSize.Cover()
-            is BackgroundSize.Contain -> ComputedBackgroundSize.Contain()
+            is BackgroundSize.Cover -> ComputedBackgroundSize.Cover
+            is BackgroundSize.Contain -> ComputedBackgroundSize.Contain
         }
     }
 

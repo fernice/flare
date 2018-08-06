@@ -69,7 +69,7 @@ class FontSizeDeclaration(val fontSize: FontSize) : PropertyDeclaration() {
             ComputedFontSize(
                     NonNegativeLength.new(16f),
                     Some(KeywordInfo(
-                            KeywordSize.Medium(),
+                            KeywordSize.Medium,
                             1f,
                             NonNegativeLength.new(0f)
                     ))

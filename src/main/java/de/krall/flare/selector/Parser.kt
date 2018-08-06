@@ -705,7 +705,7 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
 
     val parsed = when (typeSelectorResult) {
         is Err -> {
-            return if (typeSelectorResult.value.kind == ParseErrorKind.EndOfFile()) {
+            return if (typeSelectorResult.value.kind == ParseErrorKind.EndOfFile) {
                 Err(input.newError(SelectorParseErrorKind.EmptyNegation()))
             } else {
                 typeSelectorResult

@@ -25,7 +25,7 @@ sealed class Color : SpecifiedValue<ComputedColor> {
 
     class CurrentColor : Color() {
         override fun toComputedValue(context: Context): ComputedColor {
-            return ComputedColor.CurrentColor()
+            return ComputedColor.CurrentColor
         }
     }
 

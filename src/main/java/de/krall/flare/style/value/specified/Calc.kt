@@ -583,7 +583,7 @@ sealed class CalcNode {
             }
 
             return calcNode.toNumber()
-                    .mapErr { input.newError(ParseErrorKind.Unkown()) }
+                    .mapErr { input.newError(ParseErrorKind.Unkown) }
         }
 
         /**
@@ -602,7 +602,7 @@ sealed class CalcNode {
 
             return calcNode.toNumber()
                     .map { number -> number.toInt() }
-                    .mapErr { input.newError(ParseErrorKind.Unkown()) }
+                    .mapErr { input.newError(ParseErrorKind.Unkown) }
         }
 
         /**
@@ -620,7 +620,7 @@ sealed class CalcNode {
             }
 
             return calcNode.toLengthOrPercentage(clampingMode)
-                    .mapErr { input.newError(ParseErrorKind.Unkown()) }
+                    .mapErr { input.newError(ParseErrorKind.Unkown) }
         }
 
         /**
@@ -638,7 +638,7 @@ sealed class CalcNode {
             }
 
             return calcNode.toPercentage()
-                    .mapErr { input.newError(ParseErrorKind.Unkown()) }
+                    .mapErr { input.newError(ParseErrorKind.Unkown) }
         }
 
         /**
@@ -667,7 +667,7 @@ sealed class CalcNode {
                 return Ok(NumberOrPercentage.Percentage(percentage.value))
             }
 
-            return Err(input.newError(ParseErrorKind.Unkown()))
+            return Err(input.newError(ParseErrorKind.Unkown))
         }
 
         /**
@@ -685,7 +685,7 @@ sealed class CalcNode {
             }
 
             return calcNode.toLengthOrPercentage(clampingMode)
-                    .mapErr { input.newError(ParseErrorKind.Unkown()) }
+                    .mapErr { input.newError(ParseErrorKind.Unkown) }
         }
 
         /**
@@ -703,7 +703,7 @@ sealed class CalcNode {
 
             return calcNode
                     .toAngle()
-                    .mapErr { input.newError(ParseErrorKind.Unkown()) }
+                    .mapErr { input.newError(ParseErrorKind.Unkown) }
         }
 
         /**

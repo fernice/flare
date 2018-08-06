@@ -4,23 +4,20 @@ import de.krall.flare.cssparser.RGBA
 
 sealed class Color {
 
-    abstract fun toRGBA(currentColor: de.krall.flare.cssparser.RGBA): de.krall.flare.cssparser.RGBA
+    data class RGBA(val rgba: RGBAColor) : Color()
 
-    class RGBA(val rgba: de.krall.flare.cssparser.RGBA) : Color() {
-        override fun toRGBA(currentColor: de.krall.flare.cssparser.RGBA): de.krall.flare.cssparser.RGBA {
-            return rgba
-        }
-    }
+    object CurrentColor : Color()
 
-    class CurrentColor : Color() {
-        override fun toRGBA(currentColor: de.krall.flare.cssparser.RGBA): de.krall.flare.cssparser.RGBA {
-            return currentColor
+    fun toRGBA(currentColor: RGBAColor): RGBAColor {
+        return when (this) {
+            is Color.RGBA -> rgba
+            is Color.CurrentColor -> currentColor
         }
     }
 
     companion object {
 
-        private val transparent: Color by lazy { Color.RGBA(de.krall.flare.cssparser.RGBA(0, 0, 0, 0)) }
+        private val transparent: Color by lazy { Color.RGBA(RGBAColor(0, 0, 0, 0)) }
 
         fun transparent(): Color {
             return transparent

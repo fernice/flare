@@ -5,7 +5,7 @@ import de.krall.flare.url.Url
 
 sealed class ComputedUrl : ComputedValue {
 
-    class Valid(url: Url) : ComputedUrl()
+    data class Valid(val url: Url) : ComputedUrl()
 
-    class Invalid(text: String) : ComputedUrl()
+    data class Invalid(val text: String) : ComputedUrl()
 }

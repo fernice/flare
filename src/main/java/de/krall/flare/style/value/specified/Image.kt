@@ -131,7 +131,7 @@ class Gradient(
             }
 
             if (items.size < 2) {
-                return Err(input.newError(ParseErrorKind.Unkown()))
+                return Err(input.newError(ParseErrorKind.Unkown))
             }
 
             return Ok(Gradient(
@@ -179,7 +179,7 @@ sealed class GradientItem : SpecifiedValue<ComputedGradientItem> {
             }
 
             if (!seenStop || items.size < 2) {
-                return Err(input.newError(ParseErrorKind.Unkown()))
+                return Err(input.newError(ParseErrorKind.Unkown))
             }
 
             return Ok(items)

@@ -119,14 +119,14 @@ class Parser private constructor(private val tokenizer: Tokenizer,
         val token = when (tokenResult) {
             is Err -> {
                 reset(state)
-                return Err(newError(ParseErrorKind.EndOfFile()))
+                return Err(newError(ParseErrorKind.EndOfFile))
             }
             is Ok -> tokenResult.value
         }
 
         if (delimiters and Delimiters.from(token).bits != 0) {
             reset(state)
-            return Err(newError(ParseErrorKind.EndOfFile()))
+            return Err(newError(ParseErrorKind.EndOfFile))
         }
 
         blockType = BlockType.opening(token)
@@ -456,7 +456,7 @@ class Parser private constructor(private val tokenizer: Tokenizer,
 
         return when {
             result is Err -> result
-            !isExhausted() -> Err(newError(ParseErrorKind.Unexhausted()))
+            !isExhausted() -> Err(newError(ParseErrorKind.Unexhausted))
             else -> result
         }
     }
@@ -636,13 +636,13 @@ abstract class ParseErrorKind {
         return "ParseErrorKind::${javaClass.simpleName}"
     }
 
-    class EndOfFile : ParseErrorKind()
+    object EndOfFile : ParseErrorKind()
 
-    class Unexhausted : ParseErrorKind()
+    object Unexhausted : ParseErrorKind()
 
-    class UnexpectedToken(val token: Token) : ParseErrorKind()
+    data class UnexpectedToken(val token: Token) : ParseErrorKind()
 
-    class UnsupportedFeature : ParseErrorKind()
+    object UnsupportedFeature : ParseErrorKind()
 
-    class Unkown : ParseErrorKind()
+    object Unkown : ParseErrorKind()
 }

@@ -85,7 +85,7 @@ class Angle(
         }
 
         fun parseAllowingUnitless(context: ParserContext, input: Parser): Result<Angle, ParseError> {
-            return Err(input.newError(ParseErrorKind.Unkown()))
+            return Err(input.newError(ParseErrorKind.Unkown))
         }
 
         fun parseInternal(context: ParserContext, input: Parser, allowUnitless: Boolean): Result<Angle, ParseError> {

@@ -15,11 +15,11 @@ import de.krall.flare.std.iter.Iter
 interface AtRuleParser<P, R> {
 
     fun parseAtRulePrelude(input: Parser): Result<P, ParseError> {
-        return Err(input.newError(ParseErrorKind.UnsupportedFeature()))
+        return Err(input.newError(ParseErrorKind.UnsupportedFeature))
     }
 
     fun parseAtRule(input: Parser, prelude: P): Result<R, ParseError> {
-        return Err(input.newError(ParseErrorKind.UnsupportedFeature()))
+        return Err(input.newError(ParseErrorKind.UnsupportedFeature))
     }
 }
 
@@ -35,7 +35,7 @@ interface QualifiedRuleParser<P, R> {
      * The input is limited to the scope of the prelude preceding the block.
      */
     fun parseQualifiedRulePrelude(input: Parser): Result<P, ParseError> {
-        return Err(input.newError(ParseErrorKind.UnsupportedFeature()))
+        return Err(input.newError(ParseErrorKind.UnsupportedFeature))
     }
 
     /**
@@ -43,7 +43,7 @@ interface QualifiedRuleParser<P, R> {
      * at-rules. The input is limited to the scope of the block.
      */
     fun parseQualifiedRule(input: Parser, prelude: P): Result<R, ParseError> {
-        return Err(input.newError(ParseErrorKind.UnsupportedFeature()))
+        return Err(input.newError(ParseErrorKind.UnsupportedFeature))
     }
 }
 

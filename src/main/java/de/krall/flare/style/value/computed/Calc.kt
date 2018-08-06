@@ -6,7 +6,7 @@ import de.krall.flare.std.None
 import de.krall.flare.std.Option
 import de.krall.flare.std.Some
 
-class CalcLengthOrPercentage(val clampingMode: ClampingMode,
+data class CalcLengthOrPercentage(val clampingMode: ClampingMode,
                              val length: PixelLength,
                              val percentage: Option<Percentage>) : ComputedValue {
 

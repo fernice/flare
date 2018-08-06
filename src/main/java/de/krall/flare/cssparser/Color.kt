@@ -13,7 +13,7 @@ import de.krall.flare.std.trunc
 /**
  * Represents a 8 bit, int based RGBA color.
  */
-class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int)
+data class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int)
 
 /**
  * Represents either a [RGBA] color or the keyword 'currentcolor'.

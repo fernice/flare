@@ -51,7 +51,15 @@ fun Au.into(): PixelLength {
     return PixelLength(this.toPx())
 }
 
-class NonNegativeLength(val length: PixelLength) : ComputedValue {
+data class NonNegativeLength(val length: PixelLength) : ComputedValue {
+
+    fun scaleBy(factor: Float): NonNegativeLength {
+        return new(length.px() * factor.max(0f))
+    }
+
+    operator fun plus(other: NonNegativeLength): NonNegativeLength {
+        return new(length.px() + other.length.px())
+    }
 
     companion object {
 
@@ -64,14 +72,6 @@ class NonNegativeLength(val length: PixelLength) : ComputedValue {
         fun zero(): NonNegativeLength {
             return zero
         }
-    }
-
-    fun scaleBy(factor: Float): NonNegativeLength {
-        return new(length.px() * factor.max(0f))
-    }
-
-    operator fun plus(other: NonNegativeLength): NonNegativeLength {
-        return new(length.px() + other.length.px())
     }
 }
 
@@ -87,7 +87,7 @@ fun PixelLength.intoNonNegative(): NonNegativeLength {
     return NonNegativeLength(this)
 }
 
-class Au(val value: Int) {
+data class Au(val value: Int) {
 
     fun toPx(): Float {
         return value / AU_PER_PX.toFloat()
@@ -171,7 +171,7 @@ class Au(val value: Int) {
     }
 }
 
-class Percentage(val value: Float) : ComputedValue {
+data class Percentage(val value: Float) : ComputedValue {
 
     companion object {
 
@@ -185,23 +185,23 @@ class Percentage(val value: Float) : ComputedValue {
 
 sealed class LengthOrPercentage : ComputedValue {
 
-    abstract fun toPixelLength(containingLength: Au): PixelLength
+    data class Length(val length: PixelLength) : LengthOrPercentage()
 
-    data class Length(val length: PixelLength) : LengthOrPercentage() {
-        override fun toPixelLength(containingLength: Au): PixelLength {
-            return length
-        }
-    }
+    data class Percentage(val percentage: de.krall.flare.style.value.computed.Percentage) : LengthOrPercentage()
 
-    data class Percentage(val percentage: de.krall.flare.style.value.computed.Percentage) : LengthOrPercentage() {
-        override fun toPixelLength(containingLength: Au): PixelLength {
-            return containingLength.scaleBy(percentage.value).into()
-        }
-    }
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage()
 
-    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage() {
-        override fun toPixelLength(containingLength: Au): PixelLength {
-            return calc.toPixelLength(Some(containingLength)).unwrap()
+    fun toPixelLength(containingLength: Au): PixelLength {
+        return when (this) {
+            is LengthOrPercentage.Length -> {
+                length
+            }
+            is LengthOrPercentage.Percentage -> {
+                containingLength.scaleBy(percentage.value).into()
+            }
+            is LengthOrPercentage.Calc -> {
+                calc.toPixelLength(Some(containingLength)).unwrap()
+            }
         }
     }
 
@@ -220,7 +220,7 @@ sealed class LengthOrPercentage : ComputedValue {
     }
 }
 
-class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : ComputedValue {
+data class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : ComputedValue {
 
     fun toPixelLength(containingLength: Au): PixelLength {
         return value.toPixelLength(containingLength)
@@ -238,30 +238,28 @@ class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : ComputedVal
 
 sealed class LengthOrPercentageOrAuto : ComputedValue {
 
-    abstract fun toPixelLength(containingLength: Au): PixelLength
+    data class Length(val length: PixelLength) : LengthOrPercentageOrAuto()
 
-    data class Length(val length: PixelLength) : LengthOrPercentageOrAuto() {
-        override fun toPixelLength(containingLength: Au): PixelLength {
-            return length
-        }
-    }
+    data class Percentage(val percentage: de.krall.flare.style.value.computed.Percentage) : LengthOrPercentageOrAuto()
 
-    data class Percentage(val percentage: de.krall.flare.style.value.computed.Percentage) : LengthOrPercentageOrAuto() {
-        override fun toPixelLength(containingLength: Au): PixelLength {
-            return containingLength.scaleBy(percentage.value).into()
-        }
-    }
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto()
 
+    object Auto : LengthOrPercentageOrAuto()
 
-    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto() {
-        override fun toPixelLength(containingLength: Au): PixelLength {
-            return calc.toPixelLength(Some(containingLength)).unwrap()
-        }
-    }
-
-    class Auto : LengthOrPercentageOrAuto() {
-        override fun toPixelLength(containingLength: Au): PixelLength {
-            return PixelLength.zero()
+    fun toPixelLength(containingLength: Au): PixelLength {
+        return when (this) {
+            is LengthOrPercentageOrAuto.Length -> {
+                length
+            }
+            is LengthOrPercentageOrAuto.Percentage -> {
+                containingLength.scaleBy(percentage.value).into()
+            }
+            is LengthOrPercentageOrAuto.Calc -> {
+                calc.toPixelLength(Some(containingLength)).unwrap()
+            }
+            is LengthOrPercentageOrAuto.Auto -> {
+                PixelLength.zero()
+            }
         }
     }
 
@@ -275,10 +273,10 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
     }
 }
 
-class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : ComputedValue {
+data class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : ComputedValue {
 
     companion object {
-        private val auto: NonNegativeLengthOrPercentageOrAuto by lazy { NonNegativeLengthOrPercentageOrAuto(LengthOrPercentageOrAuto.Auto()) }
+        private val auto: NonNegativeLengthOrPercentageOrAuto by lazy { NonNegativeLengthOrPercentageOrAuto(LengthOrPercentageOrAuto.Auto) }
 
         fun auto(): NonNegativeLengthOrPercentageOrAuto {
             return auto
@@ -294,7 +292,7 @@ sealed class LengthOrPercentageOrNone : ComputedValue {
 
     data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrNone()
 
-    class None : LengthOrPercentageOrNone()
+    object None : LengthOrPercentageOrNone()
 }
 
-class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) : ComputedValue
+data class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) : ComputedValue

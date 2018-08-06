@@ -68,7 +68,7 @@ private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands
                 style.unwrapOr(Style.NONE)
         ))
     } else {
-        Err(input.newError(ParseErrorKind.Unkown()))
+        Err(input.newError(ParseErrorKind.Unkown))
     }
 }
 

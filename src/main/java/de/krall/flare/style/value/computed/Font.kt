@@ -9,14 +9,18 @@ import de.krall.flare.std.Ok
 import de.krall.flare.std.Option
 import de.krall.flare.std.Result
 
-class FontFamily(val values: FontFamilyList) : ComputedValue
+data class FontFamily(val values: FontFamilyList) : ComputedValue
 
 sealed class SingleFontFamily {
+
+    data class FamilyName(val name: de.krall.flare.style.value.computed.FamilyName) : SingleFontFamily()
+
+    data class Generic(val name: String) : SingleFontFamily()
 
     companion object Contract {
 
         fun parse(input: Parser): Result<SingleFontFamily, ParseError> {
-            val stringResult = input.tryParse { input -> input.expectString() }
+            val stringResult = input.tryParse(Parser::expectString)
 
             if (stringResult is Ok) {
                 return Ok(SingleFontFamily.FamilyName(de.krall.flare.style.value.computed.FamilyName(
@@ -61,7 +65,7 @@ sealed class SingleFontFamily {
 
             loop@
             while (true) {
-                val nextResult = input.tryParse { input -> input.expectIdentifier() }
+                val nextResult = input.tryParse(Parser::expectIdentifier)
 
                 val next = when (nextResult) {
                     is Ok -> nextResult.value
@@ -76,21 +80,19 @@ sealed class SingleFontFamily {
             )))
         }
     }
-
-    class FamilyName(val name: de.krall.flare.style.value.computed.FamilyName) : SingleFontFamily()
-
-    class Generic(val name: String) : SingleFontFamily()
 }
 
-class FontFamilyList(private val values: List<SingleFontFamily>) : Iterable<SingleFontFamily> {
+data class FontFamilyList(private val values: List<SingleFontFamily>) : Iterable<SingleFontFamily> {
 
     override fun iterator(): Iterator<SingleFontFamily> = values.asReversed().iterator()
 }
 
-class FamilyName(val value: String)
+data class FamilyName(val value: String)
 
-class FontSize(val size: NonNegativeLength,
-               val keywordInfo: Option<KeywordInfo>) : ComputedValue {
+data class FontSize(
+        val size: NonNegativeLength,
+        val keywordInfo: Option<KeywordInfo>
+) : ComputedValue {
 
     fun size(): Au {
         return size.into()

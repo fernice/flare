@@ -1,6 +1,6 @@
 package de.krall.flare.style.value.computed
 
-class Position(
+data class Position(
         val horizontal: HorizontalPosition,
         val vertical: VerticalPosition
 ) {

@@ -22,69 +22,48 @@ import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentageOrNone a
 
 sealed class LengthParseErrorKind : ParseErrorKind() {
 
-    class ForbiddenNumeric : LengthParseErrorKind()
-    class UnitlessNumber : LengthParseErrorKind()
+    object ForbiddenNumeric : LengthParseErrorKind()
+    object UnitlessNumber : LengthParseErrorKind()
 }
+
+private const val AU_PER_PX = 60
+private const val AU_PER_IN = AU_PER_PX * 96
+private const val AU_PER_CM = AU_PER_IN / 2.54f
+private const val AU_PER_MM = AU_PER_IN / 25.4f
+private const val AU_PER_Q = AU_PER_MM / 4
+private const val AU_PER_PT = AU_PER_IN / 72
+private const val AU_PER_PC = AU_PER_PT * 12
 
 sealed class AbsoluteLength : SpecifiedValue<PixelLength> {
 
-    companion object Constants {
+    data class Px(val value: Float) : AbsoluteLength()
 
-        private const val AU_PER_PX = 60
-        private const val AU_PER_IN = AU_PER_PX * 96
-        private const val AU_PER_CM = AU_PER_IN / 2.54f
-        private const val AU_PER_MM = AU_PER_IN / 25.4f
-        private const val AU_PER_Q = AU_PER_MM / 4
-        private const val AU_PER_PT = AU_PER_IN / 72
-        private const val AU_PER_PC = AU_PER_PT * 12
+    data class In(val value: Float) : AbsoluteLength()
+
+    data class Cm(val value: Float) : AbsoluteLength()
+
+    data class Mm(val value: Float) : AbsoluteLength()
+
+    data class Q(val value: Float) : AbsoluteLength()
+
+    data class Pt(val value: Float) : AbsoluteLength()
+
+    data class Pc(val value: Float) : AbsoluteLength()
+
+    fun toPx(): Float {
+        return when (this) {
+            is AbsoluteLength.Px -> value
+            is AbsoluteLength.In -> value * (AU_PER_IN / AU_PER_PX)
+            is AbsoluteLength.Cm -> value * (AU_PER_CM / AU_PER_PX)
+            is AbsoluteLength.Mm -> value * (AU_PER_MM / AU_PER_PX)
+            is AbsoluteLength.Q -> value * (AU_PER_Q / AU_PER_PX)
+            is AbsoluteLength.Pt -> value * (AU_PER_PT / AU_PER_PX)
+            is AbsoluteLength.Pc -> value * (AU_PER_PC / AU_PER_PX)
+        }
     }
-
-    abstract fun toPx(): Float
 
     override fun toComputedValue(context: Context): PixelLength {
         return PixelLength(toPx())
-    }
-
-    class Px(val value: Float) : AbsoluteLength() {
-        override fun toPx(): Float {
-            return value
-        }
-    }
-
-    class In(val value: Float) : AbsoluteLength() {
-        override fun toPx(): Float {
-            return value * (AU_PER_IN / AU_PER_PX)
-        }
-    }
-
-    class Cm(val value: Float) : AbsoluteLength() {
-        override fun toPx(): Float {
-            return value * (AU_PER_CM / AU_PER_PX)
-        }
-    }
-
-    class Mm(val value: Float) : AbsoluteLength() {
-        override fun toPx(): Float {
-            return value * (AU_PER_MM / AU_PER_PX)
-        }
-    }
-
-    class Q(val value: Float) : AbsoluteLength() {
-        override fun toPx(): Float {
-            return value * (AU_PER_Q / AU_PER_PX)
-        }
-    }
-
-    class Pt(val value: Float) : AbsoluteLength() {
-        override fun toPx(): Float {
-            return value * (AU_PER_PT / AU_PER_PX)
-        }
-    }
-
-    class Pc(val value: Float) : AbsoluteLength() {
-        override fun toPx(): Float {
-            return value * (AU_PER_PC / AU_PER_PX)
-        }
     }
 
     operator fun plus(length: AbsoluteLength): AbsoluteLength {
@@ -98,6 +77,14 @@ sealed class AbsoluteLength : SpecifiedValue<PixelLength> {
 
 sealed class FontRelativeLength {
 
+    data class Em(val value: Float) : FontRelativeLength()
+
+    data class Ex(val value: Float) : FontRelativeLength()
+
+    data class Ch(val value: Float) : FontRelativeLength()
+
+    data class Rem(val value: Float) : FontRelativeLength()
+
     fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
         val (referencedSize, factor) = referencedSizeAndFactor(context, baseSize)
         val pixel = (referencedSize.toFloat() * factor)
@@ -106,7 +93,56 @@ sealed class FontRelativeLength {
         return PixelLength(pixel)
     }
 
-    internal abstract fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float>
+    internal fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
+        return when (this) {
+            is FontRelativeLength.Em -> {
+                if (baseSize is FontBaseSize.InheritStyleButStripEmUnits) {
+                    Pair(Au(0), value)
+                } else {
+                    val referencedFontSize = baseSize.resolve(context)
+
+                    Pair(referencedFontSize, value)
+                }
+            }
+            is FontRelativeLength.Ex -> {
+                val referencedFontSize = baseSize.resolve(context)
+                val metricsResult = queryFontMetrics(context, referencedFontSize)
+
+                val referenceSize = when (metricsResult) {
+                    is FontMetricsQueryResult.Available -> metricsResult.metrics.xHeight
+                    is FontMetricsQueryResult.NotAvailable -> referencedFontSize.scaleBy(0.5f)
+                }
+
+                Pair(referenceSize, value)
+            }
+            is FontRelativeLength.Ch -> {
+                val referencedFontSize = baseSize.resolve(context)
+                val metricsResult = queryFontMetrics(context, referencedFontSize)
+
+                val referenceSize = when (metricsResult) {
+                    is FontMetricsQueryResult.Available -> metricsResult.metrics.zeroAdvanceMeasure
+                    is FontMetricsQueryResult.NotAvailable -> {
+                        if (context.style().writingMode.isVertical()) {
+                            referencedFontSize
+                        } else {
+                            referencedFontSize.scaleBy(0.5f)
+                        }
+                    }
+                }
+
+                Pair(referenceSize, value)
+            }
+            is FontRelativeLength.Rem -> {
+                val referencedSize = if (context.isRootElement()) {
+                    baseSize.resolve(context)
+                } else {
+                    context.device().rootFontSize()
+                }
+
+                Pair(referencedSize, value)
+            }
+        }
+    }
 
     internal fun queryFontMetrics(context: Context, fontSize: Au): FontMetricsQueryResult {
         return context.fontMetricsProvider.query(
@@ -115,122 +151,65 @@ sealed class FontRelativeLength {
                 context.device()
         )
     }
-
-    class Em(val value: Float) : FontRelativeLength() {
-        override fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
-            return if (baseSize is FontBaseSize.InheritStyleButStripEmUnits) {
-                Pair(Au(0), value)
-            } else {
-                val referencedFontSize = baseSize.resolve(context)
-
-                Pair(referencedFontSize, value)
-            }
-        }
-    }
-
-    class Ex(val value: Float) : FontRelativeLength() {
-        override fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
-            val referencedFontSize = baseSize.resolve(context)
-            val metricsResult = queryFontMetrics(context, referencedFontSize)
-
-            val referenceSize = when (metricsResult) {
-                is FontMetricsQueryResult.Available -> metricsResult.metrics.xHeight
-                is FontMetricsQueryResult.NotAvailable -> referencedFontSize.scaleBy(0.5f)
-            }
-
-            return Pair(referenceSize, value)
-        }
-    }
-
-    class Ch(val value: Float) : FontRelativeLength() {
-        override fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
-            val referencedFontSize = baseSize.resolve(context)
-            val metricsResult = queryFontMetrics(context, referencedFontSize)
-
-            val referenceSize = when (metricsResult) {
-                is FontMetricsQueryResult.Available -> metricsResult.metrics.zeroAdvanceMeasure
-                is FontMetricsQueryResult.NotAvailable -> {
-                    if (context.style().writingMode.isVertical()) {
-                        referencedFontSize
-                    } else {
-                        referencedFontSize.scaleBy(0.5f)
-                    }
-                }
-            }
-
-            return Pair(referenceSize, value)
-        }
-    }
-
-    class Rem(val value: Float) : FontRelativeLength() {
-        override fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
-            val referencedSize = if (context.isRootElement()) {
-                baseSize.resolve(context)
-            } else {
-                context.device().rootFontSize()
-            }
-
-            return Pair(referencedSize, value)
-        }
-    }
 }
 
 sealed class ViewportPercentageLength {
 
-    abstract fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength
+    data class Vw(val value: Float) : ViewportPercentageLength()
 
-    class Vw(val value: Float) : ViewportPercentageLength() {
-        override fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
-            val au = (viewportSize.width.value * value / 100.0).trunc()
+    data class Vh(val value: Float) : ViewportPercentageLength()
 
-            return Au.fromAu64(au).into()
-        }
-    }
+    data class Vmin(val value: Float) : ViewportPercentageLength()
 
-    class Vh(val value: Float) : ViewportPercentageLength() {
-        override fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
-            val au = (viewportSize.height.value * value / 100.0).trunc()
+    data class Vmax(val value: Float) : ViewportPercentageLength()
 
-            return Au.fromAu64(au).into()
-        }
-    }
+    fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
+        return when (this) {
+            is ViewportPercentageLength.Vw -> {
+                val au = (viewportSize.width.value * value / 100.0).trunc()
 
-    class Vmin(val value: Float) : ViewportPercentageLength() {
-        override fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
-            val au = (viewportSize.width.max(viewportSize.height).value * value / 100.0).trunc()
+                Au.fromAu64(au).into()
+            }
+            is ViewportPercentageLength.Vh -> {
+                val au = (viewportSize.height.value * value / 100.0).trunc()
 
-            return Au.fromAu64(au).into()
-        }
-    }
+                Au.fromAu64(au).into()
+            }
+            is ViewportPercentageLength.Vmin -> {
+                val au = (viewportSize.width.max(viewportSize.height).value * value / 100.0).trunc()
 
-    class Vmax(val value: Float) : ViewportPercentageLength() {
-        override fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
-            val au = (viewportSize.width.min(viewportSize.height).value * value / 100.0).trunc()
+                Au.fromAu64(au).into()
+            }
+            is ViewportPercentageLength.Vmax -> {
+                val au = (viewportSize.width.min(viewportSize.height).value * value / 100.0).trunc()
 
-            return Au.fromAu64(au).into()
+                Au.fromAu64(au).into()
+            }
         }
     }
 }
 
 sealed class NoCalcLength : SpecifiedValue<PixelLength> {
 
-    class Absolute(val length: AbsoluteLength) : NoCalcLength() {
-        override fun toComputedValue(context: Context): PixelLength {
-            return length.toComputedValue(context)
-        }
-    }
+    data class Absolute(val length: AbsoluteLength) : NoCalcLength()
 
-    class FontRelative(val length: FontRelativeLength) : NoCalcLength() {
-        override fun toComputedValue(context: Context): PixelLength {
-            return length.toComputedValue(context, FontBaseSize.CurrentStyle())
-        }
-    }
+    data class FontRelative(val length: FontRelativeLength) : NoCalcLength()
 
-    class ViewportPercentage(val length: ViewportPercentageLength) : NoCalcLength() {
-        override fun toComputedValue(context: Context): PixelLength {
-            val viewportSize = context.viewportSizeForViewportUnitResolution()
+    data class ViewportPercentage(val length: ViewportPercentageLength) : NoCalcLength()
 
-            return length.toComputedValue(context, viewportSize)
+    final override fun toComputedValue(context: Context): PixelLength {
+        return when (this) {
+            is NoCalcLength.Absolute -> {
+                length.toComputedValue(context)
+            }
+            is NoCalcLength.FontRelative -> {
+                length.toComputedValue(context, FontBaseSize.CurrentStyle())
+            }
+            is NoCalcLength.ViewportPercentage -> {
+                val viewportSize = context.viewportSizeForViewportUnitResolution()
+
+                length.toComputedValue(context, viewportSize)
+            }
         }
     }
 
@@ -264,15 +243,18 @@ sealed class NoCalcLength : SpecifiedValue<PixelLength> {
 
 sealed class Length : SpecifiedValue<PixelLength> {
 
-    class NoCalc(val length: NoCalcLength) : Length() {
-        override fun toComputedValue(context: Context): PixelLength {
-            return length.toComputedValue(context)
-        }
-    }
+    data class NoCalc(val length: NoCalcLength) : Length()
 
-    class Calc(val calc: CalcLengthOrPercentage) : Length() {
-        override fun toComputedValue(context: Context): PixelLength {
-            return calc.toComputedValue(context).length()
+    data class Calc(val calc: CalcLengthOrPercentage) : Length()
+
+    final override fun toComputedValue(context: Context): PixelLength {
+        return when (this) {
+            is Length.NoCalc -> {
+                length.toComputedValue(context)
+            }
+            is Length.Calc -> {
+                calc.toComputedValue(context).length()
+            }
         }
     }
 
@@ -313,7 +295,7 @@ sealed class Length : SpecifiedValue<PixelLength> {
             when (token) {
                 is Token.Dimension -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
@@ -322,13 +304,13 @@ sealed class Length : SpecifiedValue<PixelLength> {
                 }
                 is Token.Number -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     if (token.number.float() != 0f
                             && !context.parseMode.allowsUnitlessNumbers()
                             && !allowQuirks.allowed(context.quirksMode)) {
-                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber()))
+                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber))
                     }
 
                     return Ok(Length.NoCalc(NoCalcLength.Absolute(AbsoluteLength.Px(token.number.float()))))
@@ -351,7 +333,12 @@ sealed class Length : SpecifiedValue<PixelLength> {
     }
 }
 
-class NonNegativeLength(val length: Length) : SpecifiedValue<ComputedNonNegativeLength> {
+data class NonNegativeLength(val length: Length) : SpecifiedValue<ComputedNonNegativeLength> {
+
+    override fun toComputedValue(context: Context): ComputedNonNegativeLength {
+        return ComputedNonNegativeLength(length.toComputedValue(context))
+    }
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<NonNegativeLength, ParseError> {
@@ -366,13 +353,10 @@ class NonNegativeLength(val length: Length) : SpecifiedValue<ComputedNonNegative
                     .map(::NonNegativeLength)
         }
     }
-
-    override fun toComputedValue(context: Context): ComputedNonNegativeLength {
-        return ComputedNonNegativeLength(length.toComputedValue(context))
-    }
 }
 
 data class Percentage(val value: Float) : SpecifiedValue<ComputedPercentage> {
+
     override fun toComputedValue(context: Context): ComputedPercentage {
         return ComputedPercentage(value)
     }
@@ -418,6 +402,26 @@ fun Percentage.intoLengthOrPercentage(): LengthOrPercentage {
 
 sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
 
+    data class Length(val length: NoCalcLength) : LengthOrPercentage()
+
+    data class Percentage(val percentage: de.krall.flare.style.value.specified.Percentage) : LengthOrPercentage()
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage()
+
+    final override fun toComputedValue(context: Context): ComputedLengthOrPercentage {
+        return when (this) {
+            is LengthOrPercentage.Length -> {
+                ComputedLengthOrPercentage.Length(length.toComputedValue(context))
+            }
+            is LengthOrPercentage.Percentage -> {
+                ComputedLengthOrPercentage.Percentage(percentage.toComputedValue(context))
+            }
+            is LengthOrPercentage.Calc -> {
+                ComputedLengthOrPercentage.Calc(calc.toComputedValue(context))
+            }
+        }
+    }
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentage, ParseError> {
@@ -455,7 +459,7 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
             when (token) {
                 is Token.Dimension -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
@@ -464,20 +468,20 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
                 }
                 is Token.Percentage -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     return Ok(LengthOrPercentage.Percentage(de.krall.flare.style.value.specified.Percentage(token.number.float())))
                 }
                 is Token.Number -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     if (token.number.float() != 0f
                             && !context.parseMode.allowsUnitlessNumbers()
                             && !allowQuirks.allowed(context.quirksMode)) {
-                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber()))
+                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber))
                     }
 
                     return Ok(LengthOrPercentage.Length(NoCalcLength.Absolute(AbsoluteLength.Px(token.number.float()))))
@@ -498,27 +502,13 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
             }
         }
     }
-
-    data class Length(val length: NoCalcLength) : LengthOrPercentage() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentage {
-            return ComputedLengthOrPercentage.Length(length.toComputedValue(context))
-        }
-    }
-
-    data class Percentage(val percentage: de.krall.flare.style.value.specified.Percentage) : LengthOrPercentage() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentage {
-            return ComputedLengthOrPercentage.Percentage(percentage.toComputedValue(context))
-        }
-    }
-
-    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentage {
-            return ComputedLengthOrPercentage.Calc(calc.toComputedValue(context))
-        }
-    }
 }
 
-class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : SpecifiedValue<ComputedNonNegativeLengthOrPercentage> {
+data class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : SpecifiedValue<ComputedNonNegativeLengthOrPercentage> {
+
+    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentage {
+        return ComputedNonNegativeLengthOrPercentage(value.toComputedValue(context))
+    }
 
     companion object {
 
@@ -534,13 +524,34 @@ class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : SpecifiedVa
                     .map(::NonNegativeLengthOrPercentage)
         }
     }
-
-    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentage {
-        return ComputedNonNegativeLengthOrPercentage(value.toComputedValue(context))
-    }
 }
 
 sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentageOrAuto> {
+
+    data class Length(val length: NoCalcLength) : LengthOrPercentageOrAuto()
+
+    data class Percentage(val percentage: de.krall.flare.style.value.specified.Percentage) : LengthOrPercentageOrAuto()
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto()
+
+    object Auto : LengthOrPercentageOrAuto()
+
+    final override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
+        return when (this) {
+            is LengthOrPercentageOrAuto.Length -> {
+                ComputedLengthOrPercentageOrAuto.Length(length.toComputedValue(context))
+            }
+            is LengthOrPercentageOrAuto.Percentage -> {
+                ComputedLengthOrPercentageOrAuto.Percentage(percentage.toComputedValue(context))
+            }
+            is LengthOrPercentageOrAuto.Calc -> {
+                ComputedLengthOrPercentageOrAuto.Calc(calc.toComputedValue(context))
+            }
+            is LengthOrPercentageOrAuto.Auto -> {
+                ComputedLengthOrPercentageOrAuto.Auto
+            }
+        }
+    }
 
     companion object {
 
@@ -579,7 +590,7 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
             when (token) {
                 is Token.Dimension -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
@@ -588,20 +599,20 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
                 }
                 is Token.Percentage -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     return Ok(LengthOrPercentageOrAuto.Percentage(de.krall.flare.style.value.specified.Percentage(token.number.float())))
                 }
                 is Token.Number -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     if (token.number.float() != 0f
                             && !context.parseMode.allowsUnitlessNumbers()
                             && !allowQuirks.allowed(context.quirksMode)) {
-                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber()))
+                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber))
                     }
 
                     return Ok(LengthOrPercentageOrAuto.Length(NoCalcLength.Absolute(AbsoluteLength.Px(token.number.float()))))
@@ -621,7 +632,7 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
                         return Err(location.newUnexpectedTokenError(token))
                     }
 
-                    return Ok(LengthOrPercentageOrAuto.Auto())
+                    return Ok(LengthOrPercentageOrAuto.Auto)
                 }
                 else -> {
                     return Err(location.newUnexpectedTokenError(token))
@@ -629,33 +640,9 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
             }
         }
     }
-
-    data class Length(val length: NoCalcLength) : LengthOrPercentageOrAuto() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
-            return ComputedLengthOrPercentageOrAuto.Length(length.toComputedValue(context))
-        }
-    }
-
-    data class Percentage(val percentage: de.krall.flare.style.value.specified.Percentage) : LengthOrPercentageOrAuto() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
-            return ComputedLengthOrPercentageOrAuto.Percentage(percentage.toComputedValue(context))
-        }
-    }
-
-    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
-            return ComputedLengthOrPercentageOrAuto.Calc(calc.toComputedValue(context))
-        }
-    }
-
-    class Auto : LengthOrPercentageOrAuto() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrAuto {
-            return ComputedLengthOrPercentageOrAuto.Auto()
-        }
-    }
 }
 
-class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrAuto> {
+data class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrAuto> {
 
     override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrAuto {
         return ComputedNonNegativeLengthOrPercentageOrAuto(value.toComputedValue(context))
@@ -677,7 +664,7 @@ class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) :
 
         private val auto: NonNegativeLengthOrPercentageOrAuto by lazy {
             NonNegativeLengthOrPercentageOrAuto(
-                    LengthOrPercentageOrAuto.Auto()
+                    LengthOrPercentageOrAuto.Auto
             )
         }
 
@@ -688,6 +675,31 @@ class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) :
 }
 
 sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentageOrNone> {
+
+    data class Length(val length: NoCalcLength) : LengthOrPercentageOrNone()
+
+    data class Percentage(val percentage: de.krall.flare.style.value.specified.Percentage) : LengthOrPercentageOrNone()
+
+    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrNone()
+
+    object None : LengthOrPercentageOrNone()
+
+    final override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
+        return when (this) {
+            is LengthOrPercentageOrNone.Length -> {
+                ComputedLengthOrPercentageOrNone.Length(length.toComputedValue(context))
+            }
+            is LengthOrPercentageOrNone.Percentage -> {
+                ComputedLengthOrPercentageOrNone.Percentage(percentage.toComputedValue(context))
+            }
+            is LengthOrPercentageOrNone.Calc -> {
+                ComputedLengthOrPercentageOrNone.Calc(calc.toComputedValue(context))
+            }
+            is LengthOrPercentageOrNone.None -> {
+                ComputedLengthOrPercentageOrNone.None
+            }
+        }
+    }
 
     companion object {
 
@@ -726,7 +738,7 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
             when (token) {
                 is Token.Dimension -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
@@ -735,20 +747,20 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
                 }
                 is Token.Percentage -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     return Ok(LengthOrPercentageOrNone.Percentage(de.krall.flare.style.value.specified.Percentage(token.number.float())))
                 }
                 is Token.Number -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric()))
+                        return Err(location.newError(LengthParseErrorKind.ForbiddenNumeric))
                     }
 
                     if (token.number.float() != 0f
                             && !context.parseMode.allowsUnitlessNumbers()
                             && !allowQuirks.allowed(context.quirksMode)) {
-                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber()))
+                        return Err(location.newError(LengthParseErrorKind.UnitlessNumber))
                     }
 
                     return Ok(LengthOrPercentageOrNone.Length(NoCalcLength.Absolute(AbsoluteLength.Px(token.number.float()))))
@@ -768,7 +780,7 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
                         return Err(location.newUnexpectedTokenError(token))
                     }
 
-                    return Ok(LengthOrPercentageOrNone.None())
+                    return Ok(LengthOrPercentageOrNone.None)
                 }
                 else -> {
                     return Err(location.newUnexpectedTokenError(token))
@@ -776,33 +788,13 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
             }
         }
     }
-
-    data class Length(val length: NoCalcLength) : LengthOrPercentageOrNone() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
-            return ComputedLengthOrPercentageOrNone.Length(length.toComputedValue(context))
-        }
-    }
-
-    data class Percentage(val percentage: de.krall.flare.style.value.specified.Percentage) : LengthOrPercentageOrNone() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
-            return ComputedLengthOrPercentageOrNone.Percentage(percentage.toComputedValue(context))
-        }
-    }
-
-    data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrNone() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
-            return ComputedLengthOrPercentageOrNone.Calc(calc.toComputedValue(context))
-        }
-    }
-
-    class None : LengthOrPercentageOrNone() {
-        override fun toComputedValue(context: Context): ComputedLengthOrPercentageOrNone {
-            return ComputedLengthOrPercentageOrNone.None()
-        }
-    }
 }
 
-class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrNone> {
+data class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrNone> {
+
+    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrNone {
+        return ComputedNonNegativeLengthOrPercentageOrNone(value.toComputedValue(context))
+    }
 
     companion object {
 
@@ -817,9 +809,5 @@ class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) :
             return LengthOrPercentageOrNone.parseQuirky(context, input, allowQuirks)
                     .map(::NonNegativeLengthOrPercentageOrNone)
         }
-    }
-
-    override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrNone {
-        return ComputedNonNegativeLengthOrPercentageOrNone(value.toComputedValue(context))
     }
 }

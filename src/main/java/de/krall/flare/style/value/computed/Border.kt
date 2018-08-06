@@ -9,8 +9,10 @@ import de.krall.flare.std.Ok
 import de.krall.flare.std.Result
 import de.krall.flare.style.value.ComputedValue
 
-class BorderCornerRadius(val width: LengthOrPercentage,
-                         val height: LengthOrPercentage) : ComputedValue {
+data class BorderCornerRadius(
+        val width: LengthOrPercentage,
+        val height: LengthOrPercentage
+) : ComputedValue {
 
     companion object {
 

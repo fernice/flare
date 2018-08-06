@@ -5,13 +5,13 @@ import de.krall.flare.style.value.specified.BackgroundRepeatKeyword
 
 sealed class BackgroundSize : ComputedValue {
 
-    class Explicit(val width: NonNegativeLengthOrPercentageOrAuto, val height: NonNegativeLengthOrPercentageOrAuto) : BackgroundSize()
+    data class Explicit(val width: NonNegativeLengthOrPercentageOrAuto, val height: NonNegativeLengthOrPercentageOrAuto) : BackgroundSize()
 
-    class Cover : BackgroundSize()
+    object Cover : BackgroundSize()
 
-    class Contain : BackgroundSize()
+    object Contain : BackgroundSize()
 
-    companion object  {
+    companion object {
 
         fun auto(): BackgroundSize {
             return BackgroundSize.Explicit(
@@ -22,7 +22,7 @@ sealed class BackgroundSize : ComputedValue {
     }
 }
 
-class BackgroundRepeat(val horizontal: BackgroundRepeatKeyword, val vertical: BackgroundRepeatKeyword) : ComputedValue {
+data class BackgroundRepeat(val horizontal: BackgroundRepeatKeyword, val vertical: BackgroundRepeatKeyword) : ComputedValue {
 
     companion object {
         fun repeat(): BackgroundRepeat {
