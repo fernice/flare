@@ -153,7 +153,7 @@ sealed class PropertyId {
         val ids: Map<String, PropertyId> by lazy { indexProperties() }
 
         private fun indexProperties(): Map<String, PropertyId> {
-            println("initializing properties:")
+            println("initializing properties...")
 
             val ids = mutableMapOf<String, PropertyId>()
 
@@ -189,8 +189,19 @@ sealed class PropertyId {
                 }
 
                 ids[name] = id
+            }
 
-                println("> $name")
+            val properties = ids.entries.sortedBy { entry -> entry.key }
+
+            println("Loaded ${properties.size} properties:")
+
+            for (entry in properties) {
+                val letter = if (entry.value is PropertyId.Longhand) {
+                    "L"
+                } else {
+                    "S"
+                }
+                println("$letter ${entry.key}")
             }
 
             return ids
