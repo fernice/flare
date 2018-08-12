@@ -67,17 +67,17 @@ class BackgroundAttachmentDeclaration(val attachment: List<Attachment>) : Proper
 
     companion object {
 
-        val initialValue: List<Attachment> by lazy { listOf(Attachment.SCROLL) }
+        val initialValue: List<Attachment> by lazy { listOf(Attachment.Scroll) }
     }
 }
 
-enum class Attachment {
+sealed class Attachment {
 
-    SCROLL,
+    object Scroll : Attachment()
 
-    FIXED,
+    object Fixed : Attachment()
 
-    LOCAL;
+    object Local : Attachment()
 
     companion object {
 
@@ -92,9 +92,9 @@ enum class Attachment {
             }
 
             return when (identifier.toLowerCase()) {
-                "scroll" -> Ok(Attachment.SCROLL)
-                "fixed" -> Ok(Attachment.FIXED)
-                "local" -> Ok(Attachment.LOCAL)
+                "scroll" -> Ok(Attachment.Scroll)
+                "fixed" -> Ok(Attachment.Fixed)
+                "local" -> Ok(Attachment.Local)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }

@@ -29,9 +29,9 @@ import de.krall.flare.style.value.computed.Ellipse as ComputedEllipse
 
 sealed class Image : SpecifiedValue<ComputedImage> {
 
-    class Url(val url: ImageUrl) : Image()
+    data class Url(val url: ImageUrl) : Image()
 
-    class Gradient(val gradient: SpecifiedGradient) : Image()
+    data class Gradient(val gradient: SpecifiedGradient) : Image()
 
     override fun toComputedValue(context: Context): ComputedImage {
         return when (this) {
@@ -62,7 +62,7 @@ typealias Repeating = Boolean
 
 private typealias SpecifiedGradient = Gradient
 
-class Gradient(
+data class Gradient(
         val items: List<GradientItem>,
         val repeating: Repeating,
         val kind: GradientKind
@@ -145,9 +145,9 @@ class Gradient(
 
 sealed class GradientItem : SpecifiedValue<ComputedGradientItem> {
 
-    class InterpolationHint(val hint: LengthOrPercentage) : GradientItem()
+    data class InterpolationHint(val hint: LengthOrPercentage) : GradientItem()
 
-    class ColorStop(val colorStop: SpecifiedColorStop) : GradientItem()
+    data class ColorStop(val colorStop: SpecifiedColorStop) : GradientItem()
 
     override fun toComputedValue(context: Context): ComputedGradientItem {
         return when (this) {
@@ -189,7 +189,7 @@ sealed class GradientItem : SpecifiedValue<ComputedGradientItem> {
 
 private typealias SpecifiedColorStop = ColorStop
 
-class ColorStop(
+data class ColorStop(
         val color: RGBAColor,
         val position: Option<LengthOrPercentage>
 ) : SpecifiedValue<ComputedColorStop> {
@@ -222,9 +222,9 @@ class ColorStop(
 
 sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
-    class Linear(val lineDirection: LineDirection) : GradientKind()
+    data class Linear(val lineDirection: LineDirection) : GradientKind()
 
-    class Radial(val endingShape: EndingShape, val position: Position) : GradientKind()
+    data class Radial(val endingShape: EndingShape, val position: Position) : GradientKind()
 
     override fun toComputedValue(context: Context): ComputedGradientKind {
         return when (this) {
@@ -286,13 +286,13 @@ private typealias ImageAngle = Angle
 
 sealed class LineDirection : SpecifiedValue<ComputedLineDirection> {
 
-    class Angle(val angle: ImageAngle) : LineDirection()
+    data class Angle(val angle: ImageAngle) : LineDirection()
 
-    class Horizontal(val x: X) : LineDirection()
+    data class Horizontal(val x: X) : LineDirection()
 
-    class Vertical(val y: Y) : LineDirection()
+    data class Vertical(val y: Y) : LineDirection()
 
-    class Corner(val x: X, val y: Y) : LineDirection()
+    data class Corner(val x: X, val y: Y) : LineDirection()
 
     override fun toComputedValue(context: Context): ComputedLineDirection {
         return when (this) {
@@ -351,9 +351,9 @@ sealed class LineDirection : SpecifiedValue<ComputedLineDirection> {
 
 sealed class EndingShape : SpecifiedValue<ComputedEndingShape> {
 
-    class Circle(val circle: SpecifiedCircle) : EndingShape()
+    data class Circle(val circle: SpecifiedCircle) : EndingShape()
 
-    class Ellipse(val ellipse: SpecifiedEllipse) : EndingShape()
+    data class Ellipse(val ellipse: SpecifiedEllipse) : EndingShape()
 
     override fun toComputedValue(context: Context): ComputedEndingShape {
         return when (this) {
@@ -468,9 +468,9 @@ private typealias SpecifiedCircle = Circle
 
 sealed class Circle : SpecifiedValue<ComputedCircle> {
 
-    class Radius(val length: Length) : Circle()
+    data class Radius(val length: Length) : Circle()
 
-    class Extend(val shapeExtend: ShapeExtend) : Circle()
+    data class Extend(val shapeExtend: ShapeExtend) : Circle()
 
     override fun toComputedValue(context: Context): ComputedCircle {
         return when (this) {
@@ -484,9 +484,9 @@ private typealias  SpecifiedEllipse = Ellipse
 
 sealed class Ellipse : SpecifiedValue<ComputedEllipse> {
 
-    class Radii(val horizontal: LengthOrPercentage, val vertical: LengthOrPercentage) : Ellipse()
+    data class Radii(val horizontal: LengthOrPercentage, val vertical: LengthOrPercentage) : Ellipse()
 
-    class Extend(val shapeExtend: ShapeExtend) : Ellipse()
+    data class Extend(val shapeExtend: ShapeExtend) : Ellipse()
 
     override fun toComputedValue(context: Context): ComputedEllipse {
         return when (this) {
@@ -496,15 +496,15 @@ sealed class Ellipse : SpecifiedValue<ComputedEllipse> {
     }
 }
 
-enum class ShapeExtend {
+sealed class ShapeExtend {
 
-    ClosestSide,
+    object ClosestSide : ShapeExtend()
 
-    FarthestSide,
+    object FarthestSide : ShapeExtend()
 
-    ClosestCorner,
+    object ClosestCorner : ShapeExtend()
 
-    FarthestCorner;
+    object FarthestCorner : ShapeExtend()
 
     companion object {
 

@@ -33,6 +33,14 @@ interface Background : StyleStruct<MutBackground> {
     val origin: List<Origin>
     val clip: Clip
 
+    fun shapeHash(): Int {
+        return clip.hashCode()
+    }
+
+    fun reversedImageLayerIterator(): Iterator<ImageLayer> {
+        return ImageLayerIterator(this)
+    }
+
     companion object {
 
         val initial: Background by lazy {
@@ -78,7 +86,7 @@ private class StaticBackground(
     }
 }
 
-class MutBackground(
+data class MutBackground(
         override var color: Color,
         override var image: List<Image>,
         override var attachment: List<Attachment>,
@@ -104,3 +112,49 @@ class MutBackground(
         )
     }
 }
+
+class ImageLayer(
+        val image: Image,
+        val attachment: Attachment,
+        val positionX: HorizontalPosition,
+        val positionY: VerticalPosition,
+        val size: BackgroundSize,
+        val repeat: BackgroundRepeat,
+        val origin: Origin
+)
+
+class ImageLayerIterator(private val background: Background) : Iterator<ImageLayer> {
+
+    private var index: Int = 0
+
+    override fun hasNext(): Boolean {
+        return index < background.image.size
+    }
+
+    override fun next(): ImageLayer {
+        val i = index++
+
+        val image = background.image[i]
+        val attachment = background.attachment.drag(i)
+        val positionX = background.positionX.drag(i)
+        val positionY = background.positionY.drag(i)
+        val size = background.size.drag(i)
+        val repeat = background.repeat.drag(i)
+        val origin = background.origin.drag(i)
+
+        return ImageLayer(
+                image,
+                attachment,
+                positionX,
+                positionY,
+                size,
+                repeat,
+                origin
+        )
+    }
+}
+
+private fun <E> List<E>.drag(index: Int): E {
+    return if (index < this.size) this[index] else this[index]
+}
+

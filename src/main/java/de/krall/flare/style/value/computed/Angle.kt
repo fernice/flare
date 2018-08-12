@@ -10,13 +10,13 @@ private const val RAD_PER_TURN = Math.PI * 2.0
 
 sealed class Angle : ComputedValue {
 
-    class Deg(val value: Float) : Angle()
+    data class Deg(val value: Float) : Angle()
 
-    class Grad(val value: Float) : Angle()
+    data class Grad(val value: Float) : Angle()
 
-    class Rad(val value: Float) : Angle()
+    data class Rad(val value: Float) : Angle()
 
-    class Turn(val value: Float) : Angle()
+    data class Turn(val value: Float) : Angle()
 
     fun radians(): Float {
         return radians64().toFloat()

@@ -63,7 +63,7 @@ private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands
 
     return if (any) {
         Ok(Longhands(
-                width.unwrapOr(BorderSideWidth.Medium()),
+                width.unwrapOr(BorderSideWidth.Medium),
                 color.unwrapOr(Color.transparent()),
                 style.unwrapOr(Style.NONE)
         ))

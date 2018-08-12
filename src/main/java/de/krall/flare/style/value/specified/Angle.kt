@@ -13,7 +13,7 @@ import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue
 import de.krall.flare.style.value.computed.Angle as ComputedAngle
 
-class Angle(
+data class Angle(
         val value: ComputedAngle,
         val wasCalc: Boolean
 ) : SpecifiedValue<ComputedAngle> {

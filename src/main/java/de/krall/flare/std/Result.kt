@@ -1,11 +1,11 @@
 package de.krall.flare.std
 
 fun Err(): Result<Nothing, Empty> {
-    return Err(Empty.instance)
+    return Err(Empty)
 }
 
 fun Ok(): Result<Empty, Nothing> {
-    return Ok(Empty.instance)
+    return Ok(Empty)
 }
 
 sealed class Result<out T, out E> {
@@ -87,8 +87,4 @@ data class Err<out E>(val value: E) : Result<Nothing, E>() {
     }
 }
 
-class Empty private constructor() {
-    companion object {
-        val instance: Empty by lazy { Empty() }
-    }
-}
+object Empty

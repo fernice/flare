@@ -14,8 +14,32 @@ import de.krall.flare.style.value.computed.PixelLength
 import de.krall.flare.style.value.computed.intoNonNegative
 import de.krall.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
 
-
 sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength> {
+
+    object Thin : BorderSideWidth()
+
+    object Medium : BorderSideWidth()
+
+    object Thick : BorderSideWidth()
+
+    data class Length(val length: de.krall.flare.style.value.specified.NonNegativeLength) : BorderSideWidth()
+
+    final override fun toComputedValue(context: Context): de.krall.flare.style.value.computed.NonNegativeLength {
+        return when (this) {
+            is BorderSideWidth.Thin -> {
+                PixelLength(1f).intoNonNegative()
+            }
+            is BorderSideWidth.Medium -> {
+                PixelLength(3f).intoNonNegative()
+            }
+            is BorderSideWidth.Thick -> {
+                PixelLength(5f).intoNonNegative()
+            }
+            is BorderSideWidth.Length -> {
+                length.toComputedValue(context)
+            }
+        }
+    }
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<BorderSideWidth, ParseError> {
@@ -38,41 +62,26 @@ sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength> {
             }
 
             return when (ident.toLowerCase()) {
-                "thin" -> Ok(BorderSideWidth.Thin())
-                "medium" -> Ok(BorderSideWidth.Medium())
-                "thick" -> Ok(BorderSideWidth.Thick())
+                "thin" -> Ok(BorderSideWidth.Thin)
+                "medium" -> Ok(BorderSideWidth.Medium)
+                "thick" -> Ok(BorderSideWidth.Thick)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
             }
         }
     }
-
-    class Thin : BorderSideWidth() {
-        override fun toComputedValue(context: Context): ComputedNonNegativeLength {
-            return PixelLength(1f).intoNonNegative()
-        }
-    }
-
-    class Medium : BorderSideWidth() {
-        override fun toComputedValue(context: Context): ComputedNonNegativeLength {
-            return PixelLength(1f).intoNonNegative()
-        }
-    }
-
-    class Thick : BorderSideWidth() {
-        override fun toComputedValue(context: Context): ComputedNonNegativeLength {
-            return PixelLength(1f).intoNonNegative()
-        }
-    }
-
-    class Length(val length: de.krall.flare.style.value.specified.NonNegativeLength) : BorderSideWidth() {
-        override fun toComputedValue(context: Context): ComputedNonNegativeLength {
-            return length.toComputedValue(context)
-        }
-    }
 }
 
-class BorderCornerRadius(val width: LengthOrPercentage,
-                         val height: LengthOrPercentage) : SpecifiedValue<ComputedBorderCornerRadius> {
+data class BorderCornerRadius(
+        val width: LengthOrPercentage,
+        val height: LengthOrPercentage
+) : SpecifiedValue<ComputedBorderCornerRadius> {
+
+    override fun toComputedValue(context: Context): ComputedBorderCornerRadius {
+        return ComputedBorderCornerRadius(
+                width.toComputedValue(context),
+                height.toComputedValue(context)
+        )
+    }
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<BorderCornerRadius, ParseError> {
@@ -88,12 +97,5 @@ class BorderCornerRadius(val width: LengthOrPercentage,
 
             return Ok(BorderCornerRadius(width, height))
         }
-    }
-
-    override fun toComputedValue(context: Context): ComputedBorderCornerRadius {
-        return ComputedBorderCornerRadius(
-                width.toComputedValue(context),
-                height.toComputedValue(context)
-        )
     }
 }

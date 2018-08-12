@@ -9,6 +9,21 @@ data class ComputedValues(val font: Font,
                           val margin: Margin,
                           val padding: Padding) {
 
+    fun borderShapeHash(): Int {
+        var hash = background.shapeHash() * 31
+        hash *= margin.hashCode()
+        hash *= padding.hashCode()
+        return hash
+    }
+
+    fun backgroundShapeHash(): Int {
+        var hash = background.shapeHash() * 31
+        hash *= border.shapeHash()
+        hash *= margin.hashCode()
+        hash *= padding.hashCode()
+        return hash
+    }
+
     companion object {
 
         val initial: ComputedValues by lazy {

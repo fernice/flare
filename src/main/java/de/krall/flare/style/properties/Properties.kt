@@ -37,7 +37,7 @@ import kotlin.reflect.full.companionObjectInstance
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class PropertyEntryPoint
+annotation class PropertyEntryPoint(val legacy: Boolean = true)
 
 abstract class PropertyDeclaration {
 
@@ -162,11 +162,16 @@ sealed class PropertyId {
             val types = reflections.getTypesAnnotatedWith(PropertyEntryPoint::class.java)
 
             for (type in types) {
-                val companionType = Class.forName("${type.name}\$Companion")
+                val annotation = type.getDeclaredAnnotation(PropertyEntryPoint::class.java)
 
-                val instanceMethod = companionType.getDeclaredMethod("getInstance")
-
-                val instance = instanceMethod.invoke(type.kotlin.companionObjectInstance)
+                val instance = if (annotation.legacy) {
+                    val companionType = Class.forName("${type.name}\$Companion")
+                    val instanceMethod = companionType.getDeclaredMethod("getInstance")
+                    instanceMethod.invoke(type.kotlin.companionObjectInstance)
+                } else {
+                    val instanceField = type.getDeclaredField("INSTANCE")
+                    instanceField.get(null)
+                }
 
                 if (!type.isInstance(instance)) {
                     throw IllegalStateException("property id instance is expected to be of type ${type.name} but returned ${instance.javaClass.name}")

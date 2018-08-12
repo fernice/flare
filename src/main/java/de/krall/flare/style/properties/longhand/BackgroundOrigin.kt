@@ -1,11 +1,5 @@
 package de.krall.flare.style.properties.longhand
 
-import de.krall.flare.style.parser.ParserContext
-import de.krall.flare.style.properties.CssWideKeyword
-import de.krall.flare.style.properties.LonghandId
-import de.krall.flare.style.properties.PropertyDeclaration
-import de.krall.flare.style.properties.PropertyEntryPoint
-import de.krall.flare.style.value.Context
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
@@ -13,16 +7,23 @@ import de.krall.flare.cssparser.newUnexpectedTokenError
 import de.krall.flare.std.Err
 import de.krall.flare.std.Ok
 import de.krall.flare.std.Result
+import de.krall.flare.style.parser.Parse
+import de.krall.flare.style.parser.ParserContext
+import de.krall.flare.style.properties.CssWideKeyword
+import de.krall.flare.style.properties.LonghandId
+import de.krall.flare.style.properties.PropertyDeclaration
+import de.krall.flare.style.properties.PropertyEntryPoint
+import de.krall.flare.style.value.Context
 
-@PropertyEntryPoint
-class BackgroundOriginId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundOriginId : LonghandId() {
 
     override fun name(): String {
         return "background-origin"
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { Attachment.parse(context, it) }.map { BackgroundAttachmentDeclaration(it) }
+        return input.parseCommaSeparated { Origin.parse(context, it) }.map(::BackgroundOriginDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -52,37 +53,31 @@ class BackgroundOriginId : LonghandId() {
     override fun toString(): String {
         return "LonghandId::BackgroundOrigin"
     }
-
-    companion object {
-
-        val instance: BackgroundOriginId by lazy { BackgroundOriginId() }
-    }
 }
 
 class BackgroundOriginDeclaration(val origin: List<Origin>) : PropertyDeclaration() {
 
     override fun id(): LonghandId {
-        return BackgroundOriginId.instance
+        return BackgroundOriginId
     }
 
     companion object {
 
-        val initialValue: List<Origin> by lazy { listOf(Origin.SCROLL) }
+        val initialValue: List<Origin> by lazy { listOf(Origin.Scroll) }
     }
 }
 
-enum class Origin {
+sealed class Origin {
 
-    SCROLL,
+    object Scroll : Origin()
 
-    FIXED,
+    object Fixed : Origin()
 
-    LOCAL;
+    object Local : Origin()
 
-    companion object {
+    companion object : Parse<Origin> {
 
-        @Suppress("UNUSED_PARAMETER")
-        fun parse(context: ParserContext, input: Parser): Result<Attachment, ParseError> {
+        override fun parse(context: ParserContext, input: Parser): Result<Origin, ParseError> {
             val location = input.sourceLocation()
             val identifierResult = input.expectIdentifier()
 
@@ -92,9 +87,9 @@ enum class Origin {
             }
 
             return when (identifier.toLowerCase()) {
-                "scroll" -> Ok(Attachment.SCROLL)
-                "fixed" -> Ok(Attachment.FIXED)
-                "local" -> Ok(Attachment.LOCAL)
+                "scroll" -> Ok(Origin.Scroll)
+                "fixed" -> Ok(Origin.Fixed)
+                "local" -> Ok(Origin.Local)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }

@@ -1,5 +1,7 @@
 package de.krall.flare.cssparser;
 
+import de.krall.flare.style.properties.longhand.BackgroundOriginId;
+
 /**
  * Special implementation of a string reader for a css tokenizer. Allows direct access to the current char,
  * line, column and position as well as building a string inline.
@@ -152,7 +154,7 @@ public final class CssReader {
     /**
      * Puts the specified char into the text buffer and optionally advances the char stream.
      *
-     * @param c the char to put into the text buffer
+     * @param c    the char to put into the text buffer
      * @param read whether to advances the char stream
      */
     public void putChar(final char c, final boolean read) {

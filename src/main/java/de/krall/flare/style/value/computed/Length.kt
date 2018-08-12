@@ -275,6 +275,10 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
 
 data class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : ComputedValue {
 
+    fun toPixelLength(containingLength: Au): PixelLength {
+        return value.toPixelLength(containingLength)
+    }
+
     companion object {
         private val auto: NonNegativeLengthOrPercentageOrAuto by lazy { NonNegativeLengthOrPercentageOrAuto(LengthOrPercentageOrAuto.Auto) }
 
