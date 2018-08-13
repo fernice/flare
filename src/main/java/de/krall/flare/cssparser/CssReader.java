@@ -1,7 +1,5 @@
 package de.krall.flare.cssparser;
 
-import de.krall.flare.style.properties.longhand.BackgroundOriginId;
-
 /**
  * Special implementation of a string reader for a css tokenizer. Allows direct access to the current char,
  * line, column and position as well as building a string inline.
