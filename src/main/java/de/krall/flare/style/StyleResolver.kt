@@ -44,8 +44,7 @@ class ElementStyleResolver(val element: Element,
         }
     }
 
-    fun resolveStyle(parentStyle: Option<ComputedValues>,
-                     layoutStyle: Option<ComputedValues>): ResolvedElementStyles {
+    fun resolveStyle(parentStyle: Option<ComputedValues>, layoutStyle: Option<ComputedValues>): ResolvedElementStyles {
         val primaryStyle = resolvePrimaryStyle(parentStyle, layoutStyle)
 
         val pseudoElements = PerPseudoElementMap<ComputedValues>()
@@ -68,8 +67,10 @@ class ElementStyleResolver(val element: Element,
         )
     }
 
-    fun resolvePrimaryStyle(parentStyle: Option<ComputedValues>,
-                            layoutStyle: Option<ComputedValues>): PrimaryStyle {
+    fun resolvePrimaryStyle(
+            parentStyle: Option<ComputedValues>,
+            layoutStyle: Option<ComputedValues>
+    ): PrimaryStyle {
         val primaryStyle = matchPrimary()
 
         return cascadePrimaryStyle(
@@ -105,9 +106,11 @@ class ElementStyleResolver(val element: Element,
         return MatchingResult(ruleNode)
     }
 
-    fun cascadePrimaryStyle(inputs: CascadeInputs,
-                            parentStyle: Option<ComputedValues>,
-                            layoutStyle: Option<ComputedValues>): PrimaryStyle {
+    fun cascadePrimaryStyle(
+            inputs: CascadeInputs,
+            parentStyle: Option<ComputedValues>,
+            layoutStyle: Option<ComputedValues>
+    ): PrimaryStyle {
         return PrimaryStyle(
                 cascadeStyleAndVisited(
                         inputs,
@@ -118,9 +121,11 @@ class ElementStyleResolver(val element: Element,
         )
     }
 
-    fun resolvePseudoStyle(pseudo: PseudoElement,
-                           primaryStyle: PrimaryStyle,
-                           layoutParentStyle: Option<ComputedValues>): Option<ResolvedStyle> {
+    fun resolvePseudoStyle(
+            pseudo: PseudoElement,
+            primaryStyle: PrimaryStyle,
+            layoutParentStyle: Option<ComputedValues>
+    ): Option<ResolvedStyle> {
         val matchedStyle = matchPseudo(pseudo)
 
         val style = when (matchedStyle) {
@@ -166,11 +171,14 @@ class ElementStyleResolver(val element: Element,
         return Some(ruleNode)
     }
 
-    fun cascadeStyleAndVisited(inputs: CascadeInputs,
-                               parentStyle: Option<ComputedValues>,
-                               layoutStyle: Option<ComputedValues>,
-                               pseudoElement: Option<PseudoElement>): ResolvedStyle {
+    fun cascadeStyleAndVisited(
+            inputs: CascadeInputs,
+            parentStyle: Option<ComputedValues>,
+            layoutStyle: Option<ComputedValues>,
+            pseudoElement: Option<PseudoElement>
+    ): ResolvedStyle {
         val values = context.stylist.cascadeStyleAndVisited(
+                context.device,
                 Some(element),
                 pseudoElement,
                 inputs,

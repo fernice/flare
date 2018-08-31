@@ -62,7 +62,7 @@ class StyleBloom(private val filter: BloomFilter,
             elements.pop()
         }
 
-        for (i in 0..element.hashes) {
+        for (i in 0 until element.hashes) {
             val hash = pushedHashes.pop()
             filter.removeHash(hash)
         }

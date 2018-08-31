@@ -40,13 +40,13 @@
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
-            <version>0.9.10</version>
+            <version>0.9.11</version>
         </dependency>
 
         <dependency>
             <groupId>io.github.microutils</groupId>
             <artifactId>kotlin-logging</artifactId>
-            <version>1.5.4</version>
+            <version>1.5.9</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.jetbrains.kotlin</groupId>

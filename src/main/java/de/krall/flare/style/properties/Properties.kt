@@ -255,14 +255,16 @@ enum class CssWideKeyword {
 
 data class DeclarationAndCascadeLevel(val declaration: PropertyDeclaration, val cascadeLevel: CascadeLevel)
 
-fun cascade(device: Device,
-            element: Option<Element>,
-            pseudoElement: Option<PseudoElement>,
-            ruleNode: RuleNode,
-            parentStyle: Option<ComputedValues>,
-            parentStyleIgnoringFirstLine: Option<ComputedValues>,
-            layoutStyle: Option<ComputedValues>,
-            fontMetricsProvider: FontMetricsProvider): ComputedValues {
+fun cascade(
+        device: Device,
+        element: Option<Element>,
+        pseudoElement: Option<PseudoElement>,
+        ruleNode: RuleNode,
+        parentStyle: Option<ComputedValues>,
+        parentStyleIgnoringFirstLine: Option<ComputedValues>,
+        layoutStyle: Option<ComputedValues>,
+        fontMetricsProvider: FontMetricsProvider
+): ComputedValues {
 
     val iter = {
         ruleNode.selfAndAncestors().flatMap { node ->

@@ -8,36 +8,36 @@ import de.krall.flare.style.Stylist
 import de.krall.flare.style.context.StyleContext
 import de.krall.flare.style.parser.QuirksMode
 
-class Engine(val stylist: Stylist,
-             val fontMetricsProvider: FontMetricsProvider) {
+class Engine(
+        val device: Device,
+        val shared: SharedEngine
+) {
 
-    companion object {
-        fun from(device: Device,
-                 fontMetricsProvider: FontMetricsProvider): Engine {
-            return Engine(
-                    Stylist.new(device, QuirksMode.NO_QUIRKS),
-                    fontMetricsProvider
-            )
-        }
-    }
-
-    fun createEngineContext(): EngineContext {
+    private fun createEngineContext(): EngineContext {
         return EngineContext(
-                StyleContext.new(stylist, fontMetricsProvider)
+                StyleContext.new(
+                        device,
+                        shared.stylist,
+                        shared.fontMetricsProvider
+                )
         )
     }
 
     fun applyStyles(element: Element) {
         val context = createEngineContext()
 
+        applyStyles(element, context)
+    }
+
+    private fun applyStyles(element: Element, context: EngineContext) {
         applyStyle(element, context)
 
         for (child in element.children()) {
-            applyStyles(child)
+            applyStyles(child, context)
         }
     }
 
-    fun applyStyle(element: Element, context: EngineContext) {
+    private fun applyStyle(element: Element, context: EngineContext) {
         context.styleContext.bloomFilter.insertParent(element)
 
         val styleResolver = ElementStyleResolver(element, context.styleContext)
@@ -50,4 +50,22 @@ class Engine(val stylist: Stylist,
     }
 }
 
-class EngineContext(val styleContext: StyleContext)
+class SharedEngine(
+        val stylist: Stylist,
+        val fontMetricsProvider: FontMetricsProvider
+) {
+
+    companion object {
+        fun new(fontMetricsProvider: FontMetricsProvider): SharedEngine {
+            return SharedEngine(
+                    Stylist.new(QuirksMode.NO_QUIRKS),
+                    fontMetricsProvider
+            )
+        }
+    }
+}
+
+
+class EngineContext(
+        val styleContext: StyleContext
+)

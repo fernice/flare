@@ -25,10 +25,12 @@ import de.krall.flare.style.stylesheet.Origin
 import de.krall.flare.style.stylesheet.StyleRule
 import de.krall.flare.style.stylesheet.Stylesheet
 
-class Rule(val selector: Selector,
-           val hashes: AncestorHashes,
-           val sourceOrder: Int,
-           val styleRule: StyleRule) {
+class Rule(
+        val selector: Selector,
+        val hashes: AncestorHashes,
+        val sourceOrder: Int,
+        val styleRule: StyleRule
+) {
 
     fun specificity(): Int {
         return selector.specificity()
@@ -44,16 +46,16 @@ class Rule(val selector: Selector,
     }
 }
 
-class Stylist(val device: Device,
-              private val quirksMode: QuirksMode,
-              val ruleTree: RuleTree,
-              private val stylesheets: DocumentStylesheetList,
-              private val cascadeData: DocumentCascadeData) {
+class Stylist(
+        private val quirksMode: QuirksMode,
+        val ruleTree: RuleTree,
+        private val stylesheets: DocumentStylesheetList,
+        private val cascadeData: DocumentCascadeData
+) {
 
     companion object {
-        fun new(device: Device, quirksMode: QuirksMode): Stylist {
+        fun new(quirksMode: QuirksMode): Stylist {
             return Stylist(
-                    device,
                     quirksMode,
                     RuleTree.new(),
                     DocumentStylesheetList.new(),
@@ -105,13 +107,16 @@ class Stylist(val device: Device,
         }
     }
 
-    fun cascadeStyleAndVisited(element: Option<Element>,
-                               pseudoElement: Option<PseudoElement>,
-                               inputs: CascadeInputs,
-                               parentStyle: Option<ComputedValues>,
-                               parentStyleIgnoringFirstLine: Option<ComputedValues>,
-                               layoutStyle: Option<ComputedValues>,
-                               fontMetricsProvider: FontMetricsProvider): ComputedValues {
+    fun cascadeStyleAndVisited(
+            device: Device,
+            element: Option<Element>,
+            pseudoElement: Option<PseudoElement>,
+            inputs: CascadeInputs,
+            parentStyle: Option<ComputedValues>,
+            parentStyleIgnoringFirstLine: Option<ComputedValues>,
+            layoutStyle: Option<ComputedValues>,
+            fontMetricsProvider: FontMetricsProvider
+    ): ComputedValues {
         return cascade(
                 device,
                 element,
@@ -181,10 +186,12 @@ class DocumentStylesheetList(val perOrigin: PerOrigin<MutableList<Stylesheet>>) 
     }
 }
 
-class DocumentCascadeData(val userAgent: CascadeData,
-                          val user: CascadeData,
-                          val author: CascadeData,
-                          val preOrigin: PerOrigin<CascadeData>) {
+class DocumentCascadeData(
+        val userAgent: CascadeData,
+        val user: CascadeData,
+        val author: CascadeData,
+        val preOrigin: PerOrigin<CascadeData>
+) {
 
     companion object {
         fun default(): DocumentCascadeData {
@@ -212,8 +219,10 @@ class DocumentCascadeData(val userAgent: CascadeData,
     }
 }
 
-class ElementAndPseudoRules(private val elementMap: SelectorMap,
-                            private val pseudoMap: PerPseudoElementMap<SelectorMap>) {
+class ElementAndPseudoRules(
+        private val elementMap: SelectorMap,
+        private val pseudoMap: PerPseudoElementMap<SelectorMap>
+) {
 
     companion object {
         fun new(): ElementAndPseudoRules {
@@ -289,7 +298,8 @@ class CascadeData(private val normalRules: ElementAndPseudoRules) {
                     }
                     sourceOrder++
                 }
-                else -> {}
+                else -> {
+                }
             }
         }
     }

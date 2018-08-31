@@ -15,4 +15,6 @@ interface Device {
     fun rootFontSize(): Au
 
     fun setRootFontSize(size: Au)
+
+    fun invalidate()
 }
