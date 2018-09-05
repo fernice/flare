@@ -37,25 +37,6 @@
         </snapshotRepository>
     </distributionManagement>
 
-    <scm>
-        <connection>scm:git:ssh://git.webtravel.de:2222/bewo/build-git.git</connection>
-    </scm>
-
-    <issueManagement>
-        <system>Jira</system>
-        <url>https://jira.webtravel.de</url>
-    </issueManagement>
-
-    <ciManagement>
-        <system>Jenkins</system>
-        <url>https://ci.webtravel.de/jenkins/</url>
-    </ciManagement>
-
-    <organization>
-        <name>Bewotec Software Entwicklungs- und Vertriebs GmbH</name>
-        <url>http://www.bewotec.de</url>
-    </organization>
-
     <dependencies>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
