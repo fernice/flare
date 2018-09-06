@@ -3,27 +3,27 @@ package de.krall.flare.style.value.specified
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.RGBA
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
 import de.krall.flare.cssparser.Color as ParserColor
 import de.krall.flare.style.value.computed.Color as ComputedColor
 import de.krall.flare.style.value.computed.RGBAColor as ComputedColorPropertyValue
 
 sealed class Color : SpecifiedValue<ComputedColor> {
 
-    class RGBA(val rgba: de.krall.flare.cssparser.RGBA, keyword: Option<String>) : Color() {
+    data class RGBA(val rgba: de.krall.flare.cssparser.RGBA, val keyword: Option<String>) : Color() {
         override fun toComputedValue(context: Context): ComputedColor {
             return ComputedColor.RGBA(rgba)
         }
     }
 
-    class CurrentColor : Color() {
+    object CurrentColor : Color() {
         override fun toComputedValue(context: Context): ComputedColor {
             return ComputedColor.CurrentColor
         }
@@ -45,7 +45,7 @@ sealed class Color : SpecifiedValue<ComputedColor> {
 
             return when (color) {
                 is ParserColor.RGBA -> Ok(Color.RGBA(color.rgba, keyword))
-                is ParserColor.CurrentColor -> Ok(Color.CurrentColor())
+                is ParserColor.CurrentColor -> Ok(Color.CurrentColor)
             }
         }
 
@@ -62,7 +62,7 @@ sealed class Color : SpecifiedValue<ComputedColor> {
     }
 }
 
-class RGBAColor(val color: Color) : SpecifiedValue<RGBA> {
+data class RGBAColor(val color: Color) : SpecifiedValue<RGBA> {
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<RGBAColor, ParseError> {
             return Color.parse(context, input).map(::RGBAColor)
@@ -75,7 +75,7 @@ class RGBAColor(val color: Color) : SpecifiedValue<RGBA> {
     }
 }
 
-class ColorPropertyValue(val color: Color) : SpecifiedValue<ComputedColorPropertyValue> {
+data class ColorPropertyValue(val color: Color) : SpecifiedValue<ComputedColorPropertyValue> {
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<ColorPropertyValue, ParseError> {

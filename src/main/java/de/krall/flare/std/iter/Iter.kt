@@ -1,9 +1,9 @@
 package de.krall.flare.std.iter
 
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
-import de.krall.flare.std.unwrap
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
+import modern.std.unwrap
 
 interface Iter<E> : Iterable<E> {
 
@@ -47,7 +47,7 @@ class Map<E, B>(private val iter: Iter<E>, private val f: (E) -> B) : Iter<B> {
 
 class FlatMap<E, B>(private val iter: Iter<E>, private val f: (E) -> Iter<B>) : Iter<B> {
 
-    private var inner: Option<Iter<B>> = None()
+    private var inner: Option<Iter<B>> = None
 
     override fun next(): Option<B> {
         if (inner.isSome()) {
@@ -62,7 +62,7 @@ class FlatMap<E, B>(private val iter: Iter<E>, private val f: (E) -> Iter<B>) : 
 
         return when (inner) {
             is Some -> inner.unwrap().next()
-            is None -> None()
+            is None -> None
         }
     }
 
@@ -79,7 +79,7 @@ class Filter<E>(private val iter: Iter<E>, private val p: (E) -> Boolean) : Iter
                 return Some(item)
             }
         }
-        return None()
+        return None
     }
 
     override fun clone(): Filter<E> {
@@ -94,14 +94,14 @@ class FilterMap<E, B>(private val iter: Iter<E>, private val fp: (E) -> Option<B
 
             val item = when (next) {
                 is Some -> next.value
-                is None -> return None()
+                is None -> return None
             }
 
             val result = fp(item)
             if (result is Some) {
                 return Some(result.value)
             }
-            return None()
+            return None
         }
     }
 
@@ -140,7 +140,7 @@ class ListIter<E>(private val collection: List<E>, private var index: Int) : Ite
         return if (index < collection.size) {
             Some(collection[index++])
         } else {
-            None()
+            None
         }
     }
 
@@ -159,7 +159,7 @@ class ArrayIter<E>(private val array: Array<E>, private var index: Int) : Iter<E
         return if (index < array.size) {
             Some(array[index++])
         } else {
-            None()
+            None
         }
     }
 

@@ -1,12 +1,24 @@
 package de.krall.flare.style.properties
 
-import de.krall.flare.style.parser.ParserContext
-import de.krall.flare.style.stylesheet.AtRulePrelude
-import de.krall.flare.cssparser.*
-import de.krall.flare.std.*
+import de.krall.flare.cssparser.AtRuleParser
+import de.krall.flare.cssparser.DeclarationListParser
+import de.krall.flare.cssparser.DeclarationParser
+import de.krall.flare.cssparser.Delimiters
+import de.krall.flare.cssparser.ParseError
+import de.krall.flare.cssparser.ParseErrorKind
+import de.krall.flare.cssparser.Parser
+import de.krall.flare.cssparser.parseImportant
 import de.krall.flare.std.iter.Iter
 import de.krall.flare.std.iter.iter
-import java.util.*
+import de.krall.flare.style.parser.ParserContext
+import de.krall.flare.style.stylesheet.AtRulePrelude
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import java.util.BitSet
 import java.util.stream.Stream
 
 enum class Importance {
@@ -127,9 +139,9 @@ class PropertyDeclarationParser(private val context: ParserContext, private val 
             is Err -> return Err(input.newError(PropertyParseErrorKind.UnknownProperty()))
         }
 
-        val parseResult = input.parseUntilBefore(Delimiters.Bang, { input ->
+        val parseResult = input.parseUntilBefore(Delimiters.Bang) { input ->
             PropertyDeclaration.parseInto(declarations, id, context, input)
-        })
+        }
 
         if (parseResult is Err) {
             return parseResult

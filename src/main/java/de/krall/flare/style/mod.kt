@@ -2,17 +2,17 @@ package de.krall.flare.style
 
 import de.krall.flare.selector.PSEUDO_COUNT
 import de.krall.flare.selector.PseudoElement
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
 import de.krall.flare.std.iter.iter
-import de.krall.flare.std.unwrap
 import de.krall.flare.style.stylesheet.Origin
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
+import modern.std.unwrap
 
 class PerPseudoElementMap<E> {
 
-    private val entries: Array<Option<E>> = Array(PSEUDO_COUNT, { None<E>() })
+    private val entries: Array<Option<E>> = Array(PSEUDO_COUNT) { None }
 
     fun get(pseudoElement: PseudoElement): Option<E> {
         return entries[pseudoElement.ordinal()]
@@ -35,7 +35,7 @@ class PerPseudoElementMap<E> {
 
     fun clear() {
         for (i in 0..entries.size) {
-            entries[i] = None()
+            entries[i] = None
         }
     }
 
@@ -80,11 +80,11 @@ class PerOriginIter<E>(private val perOrigin: PerOrigin<E>,
     override fun next(): Option<E> {
         if (reversed) {
             if (index == 0) {
-                return None()
+                return None
             }
         } else {
             if (index == 3) {
-                return None()
+                return None
             }
         }
 

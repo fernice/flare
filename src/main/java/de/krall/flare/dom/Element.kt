@@ -3,14 +3,14 @@ package de.krall.flare.dom
 import de.krall.flare.selector.NamespaceUrl
 import de.krall.flare.selector.NonTSPseudoClass
 import de.krall.flare.selector.PseudoElement
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
-import de.krall.flare.std.unwrap
 import de.krall.flare.style.ComputedValues
 import de.krall.flare.style.PerPseudoElementMap
 import de.krall.flare.style.ResolvedElementStyles
 import de.krall.flare.style.context.StyleContext
 import de.krall.flare.style.properties.PropertyDeclarationBlock
+import modern.std.Option
+import modern.std.Some
+import modern.std.unwrap
 
 interface Element {
 

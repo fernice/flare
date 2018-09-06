@@ -1,7 +1,7 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
+import modern.std.Err
+import modern.std.Ok
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -202,7 +202,7 @@ class ColorParseTest {
     }
 
     private fun parse(text: String, assert: (Color) -> Unit) {
-        val input = Parser(ParserInput(text))
+        val input = Parser.new(ParserInput(text))
 
         val result = Color.parse(input)
 

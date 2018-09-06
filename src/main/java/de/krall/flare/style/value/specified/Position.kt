@@ -4,15 +4,6 @@ import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
-import de.krall.flare.std.mapOr
-import de.krall.flare.std.unwrap
-import de.krall.flare.std.unwrapOr
 import de.krall.flare.style.parser.AllowQuirks
 import de.krall.flare.style.parser.Parse
 import de.krall.flare.style.parser.ParserContext
@@ -20,8 +11,17 @@ import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue
 import de.krall.flare.style.value.computed.CalcLengthOrPercentage
 import de.krall.flare.style.value.computed.Percentage
-import de.krall.flare.style.value.computed.Position as ComputedPosition
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import modern.std.mapOr
+import modern.std.unwrap
+import modern.std.unwrapOr
 import de.krall.flare.style.value.computed.LengthOrPercentage as ComputedLengthOrPercentage
+import de.krall.flare.style.value.computed.Position as ComputedPosition
 
 class Position(
         val horizontal: HorizontalPosition,
@@ -31,7 +31,7 @@ class Position(
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<Position, ParseError> {
-            return parseQuirky(context, input, AllowQuirks.No())
+            return parseQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseQuirky(
@@ -80,7 +80,7 @@ class Position(
 
                             val (side, lop) = xPos
 
-                            val xPosSplit = PositionComponent.Side(side, None())
+                            val xPosSplit = PositionComponent.Side(side, None)
                             val yPos = lop.mapOr({ lop -> PositionComponent.Length<Y>(lop) }, PositionComponent.Center<Y>())
 
                             return Ok(Position(xPosSplit, yPos))
@@ -89,7 +89,7 @@ class Position(
                             val ySide = input.tryParse(Y.Companion::parse)
 
                             if (ySide is Ok) {
-                                val yPos = PositionComponent.Side(ySide.value, None())
+                                val yPos = PositionComponent.Side(ySide.value, None)
 
                                 return Ok(Position(xPos, yPos))
                             }
@@ -147,7 +147,7 @@ class Position(
                     }
 
                     val xPos = PositionComponent.Center<X>()
-                    val yPos = PositionComponent.Side(yKeyword, None())
+                    val yPos = PositionComponent.Side(yKeyword, None)
 
                     return Ok(Position(xPos, yPos))
                 }

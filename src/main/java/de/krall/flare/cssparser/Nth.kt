@@ -1,9 +1,9 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
+import modern.std.Empty
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 
 fun parseNth(input: Parser): Result<Nth, ParseError> {
     val location = input.sourceLocation()

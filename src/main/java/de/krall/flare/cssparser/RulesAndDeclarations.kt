@@ -1,13 +1,13 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
+import modern.std.Empty
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
 
 /**
  * Marks a parser that is capable of parsing any kind of at-rule.
@@ -93,7 +93,7 @@ class DeclarationListParser<A, D, P>(
 
             val token = when (tokenResult) {
                 is Ok -> tokenResult.value
-                is Err -> return None()
+                is Err -> return None
             }
 
             when (token) {
@@ -145,14 +145,14 @@ class RuleListParser<A, Q, R, P>(
 
             val token = when (tokenResult) {
                 is Ok -> tokenResult.value
-                is Err -> return None()
+                is Err -> return None
             }
 
             val atKeyword: Option<String> = when (token) {
                 is Token.AtKeyword -> Some(token.name)
                 else -> {
                     input.reset(state)
-                    None()
+                    None
                 }
             }
 

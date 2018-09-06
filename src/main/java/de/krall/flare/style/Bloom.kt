@@ -3,16 +3,18 @@ package de.krall.flare.style
 import de.krall.flare.dom.Element
 import de.krall.flare.selector.BloomFilter
 import de.krall.flare.selector.CountingBloomFilter
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
-import de.krall.flare.std.ifLet
-import de.krall.flare.std.unwrap
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
+import modern.std.ifLet
+import modern.std.unwrap
 import java.util.Stack
 
-class StyleBloom(private val filter: BloomFilter,
-                 private val elements: Stack<PushedElement>,
-                 private val pushedHashes: Stack<Int>) {
+class StyleBloom(
+        private val filter: BloomFilter,
+        private val elements: Stack<PushedElement>,
+        private val pushedHashes: Stack<Int>
+) {
 
     companion object {
         fun new(): StyleBloom {
@@ -46,18 +48,18 @@ class StyleBloom(private val filter: BloomFilter,
 
     fun push(element: Element) {
         var count = 0
-        forEachHash(element, { hash ->
+        forEachHash(element) { hash ->
             filter.insertHash(hash)
             pushedHashes.push(hash)
             count++
-        })
+        }
 
         elements.push(PushedElement(element, count))
     }
 
     fun pop(): Option<Element> {
         val element = if (elements.isEmpty()) {
-            return None()
+            return None
         } else {
             elements.pop()
         }
@@ -130,7 +132,7 @@ class StyleBloom(private val filter: BloomFilter,
 
     fun currentParent(): Option<Element> {
         return if (elements.isEmpty()) {
-            None()
+            None
         } else {
             Some(elements.peek().element)
         }

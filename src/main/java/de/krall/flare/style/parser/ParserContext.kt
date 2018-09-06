@@ -2,8 +2,8 @@ package de.krall.flare.style.parser
 
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Result
 import de.krall.flare.url.Url
+import modern.std.Result
 
 class ParserContext(
         val parseMode: ParseMode,
@@ -25,13 +25,13 @@ sealed class ParseMode {
 
     abstract fun allowsUnitlessNumbers(): Boolean
 
-    class Default : ParseMode() {
+    object Default : ParseMode() {
         override fun allowsUnitlessNumbers(): Boolean {
             return false
         }
     }
 
-    class UnitlessLength : ParseMode() {
+    object UnitlessLength : ParseMode() {
         override fun allowsUnitlessNumbers(): Boolean {
             return true
         }
@@ -42,13 +42,13 @@ sealed class AllowQuirks {
 
     abstract fun allowed(quirksMode: QuirksMode): Boolean
 
-    class Yes : AllowQuirks() {
+    object Yes : AllowQuirks() {
         override fun allowed(quirksMode: QuirksMode): Boolean {
             return quirksMode == QuirksMode.QUIRKS
         }
     }
 
-    class No : AllowQuirks() {
+    object No : AllowQuirks() {
         override fun allowed(quirksMode: QuirksMode): Boolean {
             return false
         }
@@ -70,7 +70,7 @@ sealed class ClampingMode {
 
     abstract fun clamp(value: Float): Float
 
-    class All : ClampingMode() {
+    object All : ClampingMode() {
         override fun isAllowed(mode: ParseMode, value: Float): Boolean {
             return true
         }
@@ -80,7 +80,7 @@ sealed class ClampingMode {
         }
     }
 
-    class NonNegative : ClampingMode() {
+    object NonNegative : ClampingMode() {
         override fun isAllowed(mode: ParseMode, value: Float): Boolean {
             return value >= 0
         }

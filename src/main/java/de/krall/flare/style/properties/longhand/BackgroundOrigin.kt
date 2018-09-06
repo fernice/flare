@@ -4,9 +4,6 @@ import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
 import de.krall.flare.style.parser.Parse
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.CssWideKeyword
@@ -14,6 +11,9 @@ import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.value.Context
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 
 @PropertyEntryPoint(legacy = false)
 object BackgroundOriginId : LonghandId() {

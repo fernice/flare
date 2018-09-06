@@ -5,18 +5,18 @@ import de.krall.flare.cssparser.ParseErrorKind
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
-import de.krall.flare.std.unwrapOr
-import de.krall.flare.std.unwrapOrElse
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue
 import de.krall.flare.style.value.toComputedValue
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import modern.std.unwrapOr
+import modern.std.unwrapOrElse
 import de.krall.flare.style.value.computed.Image as ComputedImage
 import de.krall.flare.style.value.computed.Gradient as ComputedGradient
 import de.krall.flare.style.value.computed.GradientItem as ComputedGradientItem
@@ -96,7 +96,7 @@ data class Gradient(
                 "repeating-linear-gradient" -> Some(Pair(Shape.Linear, true))
                 "radial-gradient" -> Some(Pair(Shape.Radial, false))
                 "repeating-radial-gradient" -> Some(Pair(Shape.Radial, true))
-                else -> None<Pair<Shape, Boolean>>()
+                else -> None
             }
 
             val (shape, repeating) = when (result) {
@@ -131,7 +131,7 @@ data class Gradient(
             }
 
             if (items.size < 2) {
-                return Err(input.newError(ParseErrorKind.Unkown))
+                return Err(input.newError(ParseErrorKind.Unknown))
             }
 
             return Ok(Gradient(
@@ -179,7 +179,7 @@ sealed class GradientItem : SpecifiedValue<ComputedGradientItem> {
             }
 
             if (!seenStop || items.size < 2) {
-                return Err(input.newError(ParseErrorKind.Unkown))
+                return Err(input.newError(ParseErrorKind.Unknown))
             }
 
             return Ok(items)
@@ -275,7 +275,7 @@ sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
             val shape = shapeResult.unwrapOrElse { EndingShape.Ellipse(Ellipse.Extend(ShapeExtend.FarthestCorner)) }
 
-            val position = positionResult.unwrapOr { Position.center() }
+            val position = positionResult.unwrapOr() { Position.center() }
 
             return Ok(GradientKind.Radial(shape, position))
         }

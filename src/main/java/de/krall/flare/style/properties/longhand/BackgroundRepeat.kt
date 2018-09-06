@@ -2,7 +2,6 @@ package de.krall.flare.style.properties.longhand
 
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Result
 import de.krall.flare.style.parser.AllowQuirks
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.CssWideKeyword
@@ -14,6 +13,7 @@ import de.krall.flare.style.value.specified.BackgroundRepeat
 import de.krall.flare.style.value.specified.HorizontalPosition
 import de.krall.flare.style.value.specified.X
 import de.krall.flare.style.value.toComputedValue
+import modern.std.Result
 import de.krall.flare.style.value.computed.BackgroundRepeat as ComputedBackgroundRepeat
 
 @PropertyEntryPoint
@@ -24,7 +24,7 @@ class BackgroundRepeatId : LonghandId() {
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { HorizontalPosition.parseQuirky(context, it, AllowQuirks.Yes(), X.Companion) }
+        return input.parseCommaSeparated { HorizontalPosition.parseQuirky(context, it, AllowQuirks.Yes, X.Companion) }
                 .map(::BackgroundPositionXDeclaration)
     }
 

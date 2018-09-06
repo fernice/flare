@@ -13,8 +13,8 @@ import de.krall.flare.style.value.specified.KeywordSize
 import de.krall.flare.style.value.computed.FontSize as ComputedFontSize
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
+import modern.std.Result
+import modern.std.Some
 
 @PropertyEntryPoint
 class FontSizeId : LonghandId() {

@@ -6,11 +6,11 @@ import de.krall.flare.style.parser.QuirksMode
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.ParserInput
 import de.krall.flare.cssparser.RuleListParser
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Some
 import de.krall.flare.url.Url
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Some
 
 enum class Origin {
 
@@ -21,8 +21,10 @@ enum class Origin {
     AUTHOR
 }
 
-class Stylesheet(val rules: List<CssRule>,
-                 val origin: Origin) : Iterable<CssRule> {
+class Stylesheet(
+        val rules: List<CssRule>,
+        val origin: Origin
+) : Iterable<CssRule> {
 
     override fun iterator(): Iterator<CssRule> = rules.iterator()
 
@@ -31,8 +33,8 @@ class Stylesheet(val rules: List<CssRule>,
         fun from(text: String,
                  origin: Origin): Stylesheet {
 
-            val input = Parser(ParserInput(text))
-            val context = ParserContext(ParseMode.Default(), QuirksMode.NO_QUIRKS, Url(""))
+            val input = Parser.new(ParserInput(text))
+            val context = ParserContext(ParseMode.Default, QuirksMode.NO_QUIRKS, Url(""))
 
             val parser = TopLevelRuleParser(context)
             val iter = RuleListParser(input, parser, true)

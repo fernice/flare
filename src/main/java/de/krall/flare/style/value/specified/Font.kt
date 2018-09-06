@@ -8,7 +8,15 @@ import de.krall.flare.style.value.SpecifiedValue
 import de.krall.flare.style.value.computed.*
 import de.krall.flare.style.value.computed.NonNegativeLength
 import de.krall.flare.cssparser.*
-import de.krall.flare.std.*
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import modern.std.mapOr
+import modern.std.unwrap
+import modern.std.unwrapOr
 import de.krall.flare.style.value.computed.FontFamily as ComputedFontFamily
 import de.krall.flare.style.value.computed.FontSize as ComputedFontSize
 
@@ -44,7 +52,7 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize> {
     fun toComputedValueAgainst(context: Context, baseSize: FontBaseSize): ComputedFontSize {
         return when (this) {
             is FontSize.Length -> {
-                var info: Option<KeywordInfo> = None()
+                var info: Option<KeywordInfo> = None
                 val size = when (lop) {
                     is LengthOrPercentage.Length -> {
                         val length = lop.length
@@ -73,7 +81,7 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize> {
                         if (calc.em.isSome() || calc.percentage.isSome() && parent.keywordInfo.isSome()) {
                             val ratio = calc.em.unwrapOr(0f) + calc.percentage.mapOr({ p -> p.value }, 0f)
 
-                            val abs = calc.toComputedValue(context, FontBaseSize.InheritStyleButStripEmUnits())
+                            val abs = calc.toComputedValue(context, FontBaseSize.InheritStyleButStripEmUnits)
                                     .lengthComponent()
                                     .intoNonNegative()
 
@@ -125,13 +133,13 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize> {
     }
 
     override fun toComputedValue(context: Context): ComputedFontSize {
-        return toComputedValueAgainst(context, FontBaseSize.CurrentStyle())
+        return toComputedValueAgainst(context, FontBaseSize.CurrentStyle)
     }
 
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<FontSize, ParseError> {
-            return parseQuirky(context, input, AllowQuirks.No())
+            return parseQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseQuirky(context: ParserContext, input: Parser, allowQuirks: AllowQuirks): Result<FontSize, ParseError> {

@@ -3,28 +3,66 @@ package de.krall.flare.style.properties.shorthand
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.ParseErrorKind
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.*
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.properties.ShorthandId
-import de.krall.flare.style.properties.longhand.*
+import de.krall.flare.style.properties.longhand.BorderBottomColorDeclaration
+import de.krall.flare.style.properties.longhand.BorderBottomColorId
+import de.krall.flare.style.properties.longhand.BorderBottomLeftRadiusDeclaration
+import de.krall.flare.style.properties.longhand.BorderBottomLeftRadiusId
+import de.krall.flare.style.properties.longhand.BorderBottomRightRadiusDeclaration
+import de.krall.flare.style.properties.longhand.BorderBottomRightRadiusId
+import de.krall.flare.style.properties.longhand.BorderBottomStyleDeclaration
+import de.krall.flare.style.properties.longhand.BorderBottomStyleId
+import de.krall.flare.style.properties.longhand.BorderBottomWidthDeclaration
+import de.krall.flare.style.properties.longhand.BorderBottomWidthId
+import de.krall.flare.style.properties.longhand.BorderLeftColorDeclaration
+import de.krall.flare.style.properties.longhand.BorderLeftColorId
+import de.krall.flare.style.properties.longhand.BorderLeftStyleDeclaration
+import de.krall.flare.style.properties.longhand.BorderLeftStyleId
+import de.krall.flare.style.properties.longhand.BorderLeftWidthDeclaration
+import de.krall.flare.style.properties.longhand.BorderLeftWidthId
+import de.krall.flare.style.properties.longhand.BorderRightColorDeclaration
+import de.krall.flare.style.properties.longhand.BorderRightColorId
+import de.krall.flare.style.properties.longhand.BorderRightStyleDeclaration
+import de.krall.flare.style.properties.longhand.BorderRightStyleId
+import de.krall.flare.style.properties.longhand.BorderRightWidthDeclaration
+import de.krall.flare.style.properties.longhand.BorderRightWidthId
+import de.krall.flare.style.properties.longhand.BorderTopColorDeclaration
+import de.krall.flare.style.properties.longhand.BorderTopColorId
+import de.krall.flare.style.properties.longhand.BorderTopLeftRadiusDeclaration
+import de.krall.flare.style.properties.longhand.BorderTopLeftRadiusId
+import de.krall.flare.style.properties.longhand.BorderTopRightRadiusDeclaration
+import de.krall.flare.style.properties.longhand.BorderTopRightRadiusId
+import de.krall.flare.style.properties.longhand.BorderTopStyleDeclaration
+import de.krall.flare.style.properties.longhand.BorderTopStyleId
+import de.krall.flare.style.properties.longhand.BorderTopWidthDeclaration
+import de.krall.flare.style.properties.longhand.BorderTopWidthId
 import de.krall.flare.style.value.computed.Style
 import de.krall.flare.style.value.generic.Rect
 import de.krall.flare.style.value.specified.BorderCornerRadius
 import de.krall.flare.style.value.specified.BorderSideWidth
 import de.krall.flare.style.value.specified.Color
 import de.krall.flare.style.value.specified.LengthOrPercentage
+import modern.std.Empty
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import modern.std.unwrapOr
 
 private data class Longhands(val width: BorderSideWidth,
                              val color: Color,
                              val style: Style)
 
 private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands, ParseError> {
-    var color: Option<Color> = None()
-    var style: Option<Style> = None()
-    var width: Option<BorderSideWidth> = None()
+    var color: Option<Color> = None
+    var style: Option<Style> = None
+    var width: Option<BorderSideWidth> = None
     var any = false
 
     while (true) {
@@ -68,7 +106,7 @@ private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands
                 style.unwrapOr(Style.NONE)
         ))
     } else {
-        Err(input.newError(ParseErrorKind.Unkown))
+        Err(input.newError(ParseErrorKind.Unknown))
     }
 }
 
@@ -218,7 +256,7 @@ class BorderStyleId : ShorthandId() {
     }
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
-        val result = Rect.parseWith(context, input, { _, input -> Style.parse(input) })
+        val result = Rect.parseWith(context, input) { _, input -> Style.parse(input) }
 
         val sides = when (result) {
             is Ok -> result.value

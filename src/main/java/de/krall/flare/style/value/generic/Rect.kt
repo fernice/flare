@@ -2,10 +2,10 @@ package de.krall.flare.style.value.generic
 
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
 import de.krall.flare.style.parser.ParserContext
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 
 class Rect<T>(val top: T,
               val right: T,

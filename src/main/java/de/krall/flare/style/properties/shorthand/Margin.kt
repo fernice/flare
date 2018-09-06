@@ -2,10 +2,6 @@ package de.krall.flare.style.properties.shorthand
 
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.LonghandId
 import de.krall.flare.style.properties.PropertyDeclaration
@@ -14,6 +10,10 @@ import de.krall.flare.style.properties.ShorthandId
 import de.krall.flare.style.properties.longhand.*
 import de.krall.flare.style.value.generic.Rect
 import de.krall.flare.style.value.specified.LengthOrPercentageOrAuto
+import modern.std.Empty
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 
 
 @PropertyEntryPoint

@@ -1,8 +1,8 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
 import kotlin.String as Str
 
 sealed class Token {
@@ -190,7 +190,7 @@ enum class BlockType {
                 is Token.LBracket -> Some(BRACKET)
                 is Token.LBrace -> Some(BRACE)
                 is Token.Function -> Some(PARENTHESIS)
-                else -> None()
+                else -> None
             }
         }
 
@@ -199,7 +199,7 @@ enum class BlockType {
                 is Token.RParen -> Some(PARENTHESIS)
                 is Token.RBracket -> Some(BRACKET)
                 is Token.RBrace -> Some(BRACE)
-                else -> None()
+                else -> None
             }
         }
     }

@@ -4,13 +4,13 @@ import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.ParseErrorKind
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue
+import modern.std.Empty
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 import de.krall.flare.style.value.computed.Angle as ComputedAngle
 
 data class Angle(
@@ -85,7 +85,7 @@ data class Angle(
         }
 
         fun parseAllowingUnitless(context: ParserContext, input: Parser): Result<Angle, ParseError> {
-            return Err(input.newError(ParseErrorKind.Unkown))
+            return Err(input.newError(ParseErrorKind.Unknown))
         }
 
         fun parseInternal(context: ParserContext, input: Parser, allowUnitless: Boolean): Result<Angle, ParseError> {

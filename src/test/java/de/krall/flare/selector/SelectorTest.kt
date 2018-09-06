@@ -2,8 +2,8 @@ package de.krall.flare.selector
 
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.ParserInput
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
+import modern.std.Err
+import modern.std.Ok
 import org.junit.Test
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -409,7 +409,7 @@ class SelectorParseTest {
     }
 
     private fun parse(text: String, vararg asserts: (Component) -> Unit) {
-        val input = Parser(ParserInput(text))
+        val input = Parser.new(ParserInput(text))
 
         val parser = SelectorParser()
 

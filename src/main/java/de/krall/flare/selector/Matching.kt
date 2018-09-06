@@ -1,7 +1,11 @@
 package de.krall.flare.selector
 
 import de.krall.flare.dom.Element
-import de.krall.flare.std.*
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
+import modern.std.ifLet
+import modern.std.unwrap
 
 /**
  * Checks if the [selector] matches the [element]. Performs a fast reject if both the [AncestorHashes]

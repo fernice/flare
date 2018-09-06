@@ -4,16 +4,16 @@ import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.unwrapOr
 import de.krall.flare.style.parser.Parse
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue
+import modern.std.Empty
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.unwrapOr
 import de.krall.flare.style.value.computed.BackgroundRepeat as ComputedBackgroundRepeat
 import de.krall.flare.style.value.computed.BackgroundSize as ComputedBackgroundSize
 
@@ -21,9 +21,9 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize> {
 
     class Explicit(val width: NonNegativeLengthOrPercentageOrAuto, val height: NonNegativeLengthOrPercentageOrAuto) : BackgroundSize()
 
-    class Cover : BackgroundSize()
+    object Cover : BackgroundSize()
 
-    class Contain : BackgroundSize()
+    object Contain : BackgroundSize()
 
     override fun toComputedValue(context: Context): ComputedBackgroundSize {
         return when (this) {
@@ -57,8 +57,8 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize> {
             }
 
             return Ok(when (ident.toLowerCase()) {
-                "cover" -> BackgroundSize.Cover()
-                "contain" -> BackgroundSize.Contain()
+                "cover" -> BackgroundSize.Cover
+                "contain" -> BackgroundSize.Contain
                 else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
             })
         }
@@ -74,9 +74,9 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize> {
 
 sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat> {
 
-    class RepeatX : BackgroundRepeat()
+    object RepeatX : BackgroundRepeat()
 
-    class RepeatY : BackgroundRepeat()
+    object RepeatY : BackgroundRepeat()
 
     class Keywords(val horizontal: BackgroundRepeatKeyword, val vertical: Option<BackgroundRepeatKeyword>) : BackgroundRepeat()
 
@@ -114,8 +114,8 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat> {
             }
 
             when (identifier.toLowerCase()) {
-                "repeat-x" -> return Ok(BackgroundRepeat.RepeatX())
-                "repeat-y" -> return Ok(BackgroundRepeat.RepeatY())
+                "repeat-x" -> return Ok(BackgroundRepeat.RepeatX)
+                "repeat-y" -> return Ok(BackgroundRepeat.RepeatY)
                 else -> {
                 }
             }

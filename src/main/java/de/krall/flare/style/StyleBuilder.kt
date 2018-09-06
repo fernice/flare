@@ -3,8 +3,6 @@ package de.krall.flare.style
 import de.krall.flare.cssparser.RGBA
 import de.krall.flare.dom.Device
 import de.krall.flare.font.WritingMode
-import de.krall.flare.std.Option
-import de.krall.flare.std.unwrapOr
 import de.krall.flare.style.properties.longhand.Attachment
 import de.krall.flare.style.properties.longhand.Clip
 import de.krall.flare.style.properties.longhand.Origin
@@ -32,6 +30,8 @@ import de.krall.flare.style.value.computed.NonNegativeLength
 import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentage
 import de.krall.flare.style.value.computed.Style
 import de.krall.flare.style.value.computed.VerticalPosition
+import modern.std.Option
+import modern.std.unwrapOr
 import de.krall.flare.style.value.computed.Color as ComputedColor
 
 interface StyleStruct<T : MutStyleStruct> {

@@ -9,16 +9,16 @@ import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newError
 import de.krall.flare.cssparser.newUnexpectedTokenError
 import de.krall.flare.cssparser.parseNth
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
-import de.krall.flare.std.let
-import de.krall.flare.std.mapOr
 import de.krall.flare.style.parser.QuirksMode
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import modern.std.let
+import modern.std.mapOr
 
 sealed class SelectorParseErrorKind : ParseErrorKind() {
 
@@ -26,19 +26,19 @@ sealed class SelectorParseErrorKind : ParseErrorKind() {
         return "SelectorParseErrorKind::${javaClass.simpleName}"
     }
 
-    class UnknownSelector : SelectorParseErrorKind()
-    class DanglingCombinator : SelectorParseErrorKind()
-    class PseudoElementExpectedColon : SelectorParseErrorKind()
-    class NoIdentifierForPseudo : SelectorParseErrorKind()
-    class ExpectedNamespace : SelectorParseErrorKind()
-    class ExpectedBarAttributeSelector : SelectorParseErrorKind()
-    class InvalidQualifiedNameInAttributeSelector : SelectorParseErrorKind()
-    class ExplicitNamespaceUnexpectedToken : SelectorParseErrorKind()
-    class ClassNeedsIdentifier : SelectorParseErrorKind()
-    class PseudoNeedsIdentifier : SelectorParseErrorKind()
-    class EmptyNegation : SelectorParseErrorKind()
-    class NonSimpleSelectorInNegation : SelectorParseErrorKind()
-    class NoQualifiedNameInAttributeSelector : SelectorParseErrorKind()
+    object UnknownSelector : SelectorParseErrorKind()
+    object DanglingCombinator : SelectorParseErrorKind()
+    object PseudoElementExpectedColon : SelectorParseErrorKind()
+    object NoIdentifierForPseudo : SelectorParseErrorKind()
+    object ExpectedNamespace : SelectorParseErrorKind()
+    object ExpectedBarAttributeSelector : SelectorParseErrorKind()
+    object InvalidQualifiedNameInAttributeSelector : SelectorParseErrorKind()
+    object ExplicitNamespaceUnexpectedToken : SelectorParseErrorKind()
+    object ClassNeedsIdentifier : SelectorParseErrorKind()
+    object PseudoNeedsIdentifier : SelectorParseErrorKind()
+    object EmptyNegation : SelectorParseErrorKind()
+    object NonSimpleSelectorInNegation : SelectorParseErrorKind()
+    object NoQualifiedNameInAttributeSelector : SelectorParseErrorKind()
     class UnexpectedTokenInAttributeSelector(val token: Token) : SelectorParseErrorKind()
 }
 
@@ -71,9 +71,9 @@ fun parseSelector(context: SelectorParserContext, input: Parser): Result<Selecto
             hasPseudoElement = compoundOption.value.hasPseudoElement
         } else {
             return if (builder.hasDanglingCombinator()) {
-                Err(input.newError(SelectorParseErrorKind.DanglingCombinator()))
+                Err(input.newError(SelectorParseErrorKind.DanglingCombinator))
             } else {
-                Err(input.newError(SelectorParseErrorKind.UnknownSelector()))
+                Err(input.newError(SelectorParseErrorKind.UnknownSelector))
             }
         }
 
@@ -99,21 +99,21 @@ fun parseSelector(context: SelectorParserContext, input: Parser): Result<Selecto
                     seenWhitespace = true
                 }
                 is Token.Gt -> {
-                    combinator = Combinator.Child()
+                    combinator = Combinator.Child
                     break@inner
                 }
                 is Token.Plus -> {
-                    combinator = Combinator.NextSibling()
+                    combinator = Combinator.NextSibling
                     break@inner
                 }
                 is Token.Tidle -> {
-                    combinator = Combinator.LaterSibling()
+                    combinator = Combinator.LaterSibling
                     break@inner
                 }
                 else -> {
                     input.reset(state)
                     if (seenWhitespace) {
-                        combinator = Combinator.Descendant()
+                        combinator = Combinator.Descendant
                         break@inner
                     } else {
                         break@outer
@@ -158,8 +158,10 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
 
         val selector = when (selectorResult) {
             is Ok -> {
-                if (selectorResult.value is Some) {
-                    selectorResult.value.value
+                val option = selectorResult.value
+
+                if (option is Some) {
+                    option.value
                 } else {
                     break@loop
                 }
@@ -191,7 +193,7 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
                         is Token.Colon -> {
                         }
                         else -> {
-                            return Err(location.newError(SelectorParseErrorKind.PseudoElementExpectedColon()))
+                            return Err(location.newError(SelectorParseErrorKind.PseudoElementExpectedColon))
                         }
                     }
 
@@ -217,13 +219,13 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
                             }
                         }
                         else -> {
-                            return Err(location.newError(SelectorParseErrorKind.NoIdentifierForPseudo()))
+                            return Err(location.newError(SelectorParseErrorKind.NoIdentifierForPseudo))
                         }
                     }
                 }
 
                 if (!builder.isEmpty()) {
-                    builder.pushCombinator(Combinator.PseudoElement())
+                    builder.pushCombinator(Combinator.PseudoElement)
                 }
 
                 builder.pushSimpleSelector(Component.PseudoElement(selector.pseudoElement))
@@ -241,7 +243,7 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
     }
 
     return if (empty) {
-        Ok(None())
+        Ok(None)
     } else {
         Ok(Some(ParseResult(pseudo)))
     }
@@ -249,22 +251,22 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
 
 private sealed class QualifiedNamePrefix {
 
-    class ImplicitNoNamespace : QualifiedNamePrefix()
+    object ImplicitNoNamespace : QualifiedNamePrefix()
 
-    class ImplicitAnyNamespace : QualifiedNamePrefix()
+    object ImplicitAnyNamespace : QualifiedNamePrefix()
 
     class ImplicitDefaultNamespace(val url: NamespaceUrl) : QualifiedNamePrefix()
 
-    class ExplicitNoNamespace : QualifiedNamePrefix()
+    object ExplicitNoNamespace : QualifiedNamePrefix()
 
-    class ExplicitAnyNamespace : QualifiedNamePrefix()
+    object ExplicitAnyNamespace : QualifiedNamePrefix()
 
     class ExplicitNamespace(val prefix: NamespacePrefix, val url: NamespaceUrl) : QualifiedNamePrefix()
 }
 
 private sealed class QualifiedName {
 
-    class None : QualifiedName()
+    object None : QualifiedName()
 
     class Some(val prefix: QualifiedNamePrefix, val localName: Option<String>) : QualifiedName()
 }
@@ -288,10 +290,10 @@ private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sin
             when (qualifiedName.prefix) {
                 is QualifiedNamePrefix.ImplicitNoNamespace -> throw IllegalStateException("unreachable")
                 is QualifiedNamePrefix.ImplicitDefaultNamespace -> {
-                    sink(Component.ExplicitNoNamespace())
+                    sink(Component.ExplicitNoNamespace)
                 }
                 is QualifiedNamePrefix.ExplicitNoNamespace -> {
-                    sink(Component.ExplicitNoNamespace())
+                    sink(Component.ExplicitNoNamespace)
                 }
                 is QualifiedNamePrefix.ExplicitAnyNamespace -> {
                     val defaultNamespace = context.defaultNamespace()
@@ -300,7 +302,7 @@ private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sin
                             sink(Component.DefaultNamespace(defaultNamespace.value))
                         }
                         is None -> {
-                            sink(Component.ExplicitAnyNamespace())
+                            sink(Component.ExplicitAnyNamespace)
                         }
                     }
                 }
@@ -319,7 +321,8 @@ private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sin
                         }
                     }
                 }
-                else -> {}
+                else -> {
+                }
             }
 
             when (qualifiedName.localName) {
@@ -330,7 +333,7 @@ private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sin
                     sink(Component.LocalName(localName, localNameLower))
                 }
                 is None -> {
-                    sink(Component.ExplicitUniversalType())
+                    sink(Component.ExplicitUniversalType)
                 }
             }
 
@@ -367,7 +370,7 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
                     input.reset(afterIdentState)
 
                     return if (attributeSelector) {
-                        Ok(QualifiedName.Some(QualifiedNamePrefix.ImplicitNoNamespace(), Some(token.name)))
+                        Ok(QualifiedName.Some(QualifiedNamePrefix.ImplicitNoNamespace, Some(token.name)))
                     } else {
                         defaultNamespace(context, Some(token.name))
                     }
@@ -384,14 +387,14 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
                             explicitNamespace(input, QualifiedNamePrefix.ExplicitNamespace(prefix, namespace.value), attributeSelector)
                         }
                         is None -> {
-                            Err(afterIdentState.location().newError(SelectorParseErrorKind.ExpectedNamespace()))
+                            Err(afterIdentState.location().newError(SelectorParseErrorKind.ExpectedNamespace))
                         }
                     }
                 }
                 else -> {
                     input.reset(afterIdentState)
                     if (attributeSelector) {
-                        Ok(QualifiedName.Some(QualifiedNamePrefix.ImplicitNoNamespace(), Some(token.name)))
+                        Ok(QualifiedName.Some(QualifiedNamePrefix.ImplicitNoNamespace, Some(token.name)))
                     } else {
                         defaultNamespace(context, Some(token.name))
                     }
@@ -411,32 +414,32 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
                     return if (attributeSelector) {
                         innerTokenResult
                     } else {
-                        defaultNamespace(context, None())
+                        defaultNamespace(context, None)
                     }
                 }
             }
 
             when (innerToken) {
                 is Token.Pipe -> {
-                    explicitNamespace(input, QualifiedNamePrefix.ExplicitAnyNamespace(), attributeSelector)
+                    explicitNamespace(input, QualifiedNamePrefix.ExplicitAnyNamespace, attributeSelector)
                 }
                 else -> {
                     input.reset(afterAsteriskState)
 
                     if (attributeSelector) {
-                        Err(afterAsteriskState.location().newError(SelectorParseErrorKind.ExpectedBarAttributeSelector()))
+                        Err(afterAsteriskState.location().newError(SelectorParseErrorKind.ExpectedBarAttributeSelector))
                     } else {
-                        defaultNamespace(context, None())
+                        defaultNamespace(context, None)
                     }
                 }
             }
         }
         is Token.Pipe -> {
-            explicitNamespace(input, QualifiedNamePrefix.ExplicitNoNamespace(), attributeSelector)
+            explicitNamespace(input, QualifiedNamePrefix.ExplicitNoNamespace, attributeSelector)
         }
         else -> {
             input.reset(state)
-            Ok(QualifiedName.None())
+            Ok(QualifiedName.None)
         }
     }
 }
@@ -456,16 +459,16 @@ private fun explicitNamespace(input: Parser, prefix: QualifiedNamePrefix, attrib
         }
         is Token.Asterisk -> {
             if (!attributeSelector) {
-                Ok(QualifiedName.Some(prefix, None()))
+                Ok(QualifiedName.Some(prefix, None))
             } else {
-                Err(location.newError(SelectorParseErrorKind.InvalidQualifiedNameInAttributeSelector()))
+                Err(location.newError(SelectorParseErrorKind.InvalidQualifiedNameInAttributeSelector))
             }
         }
         else -> {
             if (attributeSelector) {
-                Err(location.newError(SelectorParseErrorKind.InvalidQualifiedNameInAttributeSelector()))
+                Err(location.newError(SelectorParseErrorKind.InvalidQualifiedNameInAttributeSelector))
             } else {
-                Err(location.newError(SelectorParseErrorKind.ExplicitNamespaceUnexpectedToken()))
+                Err(location.newError(SelectorParseErrorKind.ExplicitNamespaceUnexpectedToken))
             }
         }
     }
@@ -475,7 +478,7 @@ private fun defaultNamespace(context: SelectorParserContext, name: Option<String
     val defaultNamespace = context.defaultNamespace()
     val namespace = when (defaultNamespace) {
         is Some -> QualifiedNamePrefix.ImplicitDefaultNamespace(defaultNamespace.value)
-        is None -> QualifiedNamePrefix.ImplicitAnyNamespace()
+        is None -> QualifiedNamePrefix.ImplicitAnyNamespace
     }
 
     return Ok(QualifiedName.Some(namespace, name))
@@ -496,7 +499,7 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
         is Ok -> tokenResult.value
         is Err -> {
             input.reset(state)
-            return Ok(None())
+            return Ok(None)
         }
     }
 
@@ -522,7 +525,7 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
                     Ok(Some(SimpleSelectorParseResult.SimpleSelector(component)))
                 }
                 else -> {
-                    Err(location.newError(SelectorParseErrorKind.ClassNeedsIdentifier()))
+                    Err(location.newError(SelectorParseErrorKind.ClassNeedsIdentifier))
                 }
             }
         }
@@ -567,7 +570,7 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
                     Pair(innerToken.name, true)
                 }
                 else -> {
-                    return Err(location.newError(SelectorParseErrorKind.PseudoNeedsIdentifier()))
+                    return Err(location.newError(SelectorParseErrorKind.PseudoNeedsIdentifier))
                 }
             }
 
@@ -597,30 +600,40 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
         }
         else -> {
             input.reset(state)
-            return Ok(None())
+            return Ok(None)
         }
     }
 }
 
-private fun parseFunctionalPseudoElement(input: Parser, location: SourceLocation, name: String): Result<PseudoElement, ParseError> {
+private fun parseFunctionalPseudoElement(
+        @Suppress("UNUSED_PARAMETER") input: Parser,
+        location: SourceLocation,
+        name: String
+): Result<PseudoElement, ParseError> {
     return Err(location.newUnexpectedTokenError(Token.Function(name)))
 }
 
 private fun parsePseudoElement(location: SourceLocation, name: String): Result<PseudoElement, ParseError> {
     return when (name.toLowerCase()) {
-        "before" -> Ok(PseudoElement.Before())
-        "after" -> Ok(PseudoElement.After())
-        "selection" -> Ok(PseudoElement.Selection())
-        "first-letter" -> Ok(PseudoElement.FirstLetter())
-        "first-line" -> Ok(PseudoElement.FirstLine())
-        "placeholder" -> Ok(PseudoElement.Placeholder())
-        "-flr-tab-area" -> Ok(PseudoElement.FlareTabArea())
-        "-flr-tab" -> Ok(PseudoElement.FlareTab())
+        "before" -> Ok(PseudoElement.Before)
+        "after" -> Ok(PseudoElement.After)
+        "selection" -> Ok(PseudoElement.Selection)
+        "first-letter" -> Ok(PseudoElement.FirstLetter)
+        "first-line" -> Ok(PseudoElement.FirstLine)
+        "placeholder" -> Ok(PseudoElement.Placeholder)
+        "-flr-tab-area" -> Ok(PseudoElement.FlareTabArea)
+        "-flr-tab" -> Ok(PseudoElement.FlareTab)
         else -> Err(location.newUnexpectedTokenError(Token.Identifier(name)))
     }
 }
 
-private fun parseFunctionalPseudoClass(context: SelectorParserContext, input: Parser, location: SourceLocation, name: String, negated: Boolean): Result<Component, ParseError> {
+private fun parseFunctionalPseudoClass(
+        context: SelectorParserContext,
+        input: Parser,
+        location: SourceLocation,
+        name: String,
+        negated: Boolean
+): Result<Component, ParseError> {
     return when (name.toLowerCase()) {
         "nth-child" -> parseNthPseudoClass(input, Component::NthChild)
         "nth-of-type" -> parseNthPseudoClass(input, Component::NthOfType)
@@ -662,36 +675,36 @@ private fun parseNonTSFunctionalPseudoClass(input: Parser, location: SourceLocat
 
 private fun parsePseudoClass(location: SourceLocation, name: String): Result<Component, ParseError> {
     return when (name.toLowerCase()) {
-        "first-child" -> Ok(Component.FirstChild())
-        "last-child" -> Ok(Component.LastChild())
-        "only-child" -> Ok(Component.OnlyChild())
-        "first-of-type" -> Ok(Component.FirstOfType())
-        "last-of-type" -> Ok(Component.LastOfType())
-        "only-type" -> Ok(Component.OnlyType())
-        "root" -> Ok(Component.Root())
-        "empty" -> Ok(Component.Empty())
-        "scope" -> Ok(Component.Scope())
-        "host" -> Ok(Component.Host())
+        "first-child" -> Ok(Component.FirstChild)
+        "last-child" -> Ok(Component.LastChild)
+        "only-child" -> Ok(Component.OnlyChild)
+        "first-of-type" -> Ok(Component.FirstOfType)
+        "last-of-type" -> Ok(Component.LastOfType)
+        "only-type" -> Ok(Component.OnlyType)
+        "root" -> Ok(Component.Root)
+        "empty" -> Ok(Component.Empty)
+        "scope" -> Ok(Component.Scope)
+        "host" -> Ok(Component.Host)
         else -> parseNonTSPseudoClass(location, name).map(Component::NonTSPseudoClass)
     }
 }
 
 private fun parseNonTSPseudoClass(location: SourceLocation, name: String): Result<NonTSPseudoClass, ParseError> {
     return when (name.toLowerCase()) {
-        "active" -> Ok(NonTSPseudoClass.Active())
-        "checked" -> Ok(NonTSPseudoClass.Checked())
-        "disabled" -> Ok(NonTSPseudoClass.Disabled())
-        "enabled" -> Ok(NonTSPseudoClass.Enabled())
-        "focus" -> Ok(NonTSPseudoClass.Focus())
-        "fullscreen" -> Ok(NonTSPseudoClass.Fullscreen())
-        "hover" -> Ok(NonTSPseudoClass.Hover())
-        "indeterminate" -> Ok(NonTSPseudoClass.Indeterminate())
-        "link" -> Ok(NonTSPseudoClass.Link())
-        "placeholder-shown" -> Ok(NonTSPseudoClass.PlaceholderShown())
-        "read-write" -> Ok(NonTSPseudoClass.ReadWrite())
-        "read-only" -> Ok(NonTSPseudoClass.ReadOnly())
-        "target" -> Ok(NonTSPseudoClass.Target())
-        "visited" -> Ok(NonTSPseudoClass.Visited())
+        "active" -> Ok(NonTSPseudoClass.Active)
+        "checked" -> Ok(NonTSPseudoClass.Checked)
+        "disabled" -> Ok(NonTSPseudoClass.Disabled)
+        "enabled" -> Ok(NonTSPseudoClass.Enabled)
+        "focus" -> Ok(NonTSPseudoClass.Focus)
+        "fullscreen" -> Ok(NonTSPseudoClass.Fullscreen)
+        "hover" -> Ok(NonTSPseudoClass.Hover)
+        "indeterminate" -> Ok(NonTSPseudoClass.Indeterminate)
+        "link" -> Ok(NonTSPseudoClass.Link)
+        "placeholder-shown" -> Ok(NonTSPseudoClass.PlaceholderShown)
+        "read-write" -> Ok(NonTSPseudoClass.ReadWrite)
+        "read-only" -> Ok(NonTSPseudoClass.ReadOnly)
+        "target" -> Ok(NonTSPseudoClass.Target)
+        "visited" -> Ok(NonTSPseudoClass.Visited)
         else -> Err(location.newUnexpectedTokenError(Token.Identifier(name)))
     }
 }
@@ -701,12 +714,12 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
 
     input.skipWhitespace()
 
-    val typeSelectorResult = parseTypeSelector(context, input, { simpleSelector.add(it) })
+    val typeSelectorResult = parseTypeSelector(context, input) { simpleSelector.add(it) }
 
     val parsed = when (typeSelectorResult) {
         is Err -> {
             return if (typeSelectorResult.value.kind == ParseErrorKind.EndOfFile) {
-                Err(input.newError(SelectorParseErrorKind.EmptyNegation()))
+                Err(input.newError(SelectorParseErrorKind.EmptyNegation))
             } else {
                 typeSelectorResult
             }
@@ -719,9 +732,11 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
 
         val selector = when (selectorResult) {
             is Ok -> {
-                when (selectorResult.value) {
-                    is Some -> selectorResult.value.value
-                    is None -> return Err(input.newError(SelectorParseErrorKind.EmptyNegation()))
+                val option = selectorResult.value
+
+                when (option) {
+                    is Some -> option.value
+                    is None -> return Err(input.newError(SelectorParseErrorKind.EmptyNegation))
                 }
             }
             is Err -> return selectorResult
@@ -732,7 +747,7 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
                 simpleSelector.add(selector.component)
             }
             is SimpleSelectorParseResult.PseudoElement -> {
-                return Err(input.newError(SelectorParseErrorKind.NonSimpleSelectorInNegation()))
+                return Err(input.newError(SelectorParseErrorKind.NonSimpleSelectorInNegation))
             }
         }
     }
@@ -762,19 +777,19 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
             val prefix = qualifiedName.prefix
             namespace = when (prefix) {
                 is QualifiedNamePrefix.ImplicitNoNamespace, is QualifiedNamePrefix.ExplicitNoNamespace -> {
-                    None()
+                    None
                 }
                 is QualifiedNamePrefix.ExplicitNamespace -> {
                     Some(NamespaceConstraint.Specific(prefix.prefix, prefix.url))
                 }
-                is QualifiedNamePrefix.ExplicitAnyNamespace -> Some(NamespaceConstraint.Any())
+                is QualifiedNamePrefix.ExplicitAnyNamespace -> Some(NamespaceConstraint.Any)
                 is QualifiedNamePrefix.ImplicitAnyNamespace, is QualifiedNamePrefix.ImplicitDefaultNamespace -> {
                     throw IllegalStateException("unreachable")
                 }
             }
         }
         is QualifiedName.None -> {
-            return Err(input.newError(SelectorParseErrorKind.NoQualifiedNameInAttributeSelector()))
+            return Err(input.newError(SelectorParseErrorKind.NoQualifiedNameInAttributeSelector))
         }
     }
 
@@ -790,7 +805,7 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
                         namespace.value,
                         localName,
                         localNameLower,
-                        AttributeSelectorOperation.Exists(),
+                        AttributeSelectorOperation.Exists,
                         false
                 ))
             } else {
@@ -803,12 +818,12 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
     }
 
     val operator = when (token) {
-        is Token.Equal -> AttributeSelectorOperator.Equal()
-        is Token.IncludeMatch -> AttributeSelectorOperator.Includes()
-        is Token.DashMatch -> AttributeSelectorOperator.DashMatch()
-        is Token.PrefixMatch -> AttributeSelectorOperator.Prefix()
-        is Token.SubstringMatch -> AttributeSelectorOperator.Substring()
-        is Token.SuffixMatch -> AttributeSelectorOperator.Suffix()
+        is Token.Equal -> AttributeSelectorOperator.Equal
+        is Token.IncludeMatch -> AttributeSelectorOperator.Includes
+        is Token.DashMatch -> AttributeSelectorOperator.DashMatch
+        is Token.PrefixMatch -> AttributeSelectorOperator.Prefix
+        is Token.SubstringMatch -> AttributeSelectorOperator.Substring
+        is Token.SuffixMatch -> AttributeSelectorOperator.Suffix
         else -> return Err(location.newError(SelectorParseErrorKind.UnexpectedTokenInAttributeSelector(token)))
     }
 
@@ -817,8 +832,10 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
     val value = when (valueResult) {
         is Ok -> valueResult.value
         is Err -> {
-            return if (valueResult.value.kind is ParseErrorKind.UnexpectedToken) {
-                Err(valueResult.value.location.newError(SelectorParseErrorKind.UnexpectedTokenInAttributeSelector(valueResult.value.kind.token)))
+            val error = valueResult.value
+
+            return if (error.kind is ParseErrorKind.UnexpectedToken) {
+                Err(valueResult.value.location.newError(SelectorParseErrorKind.UnexpectedTokenInAttributeSelector(error.kind.token)))
             } else {
                 valueResult
             }
@@ -915,7 +932,7 @@ class AncestorHashes(val packedHashes: IntArray) {
         }
 
         private fun fromIter(selector: SelectorIter, quirksMode: QuirksMode): AncestorHashes {
-            val iter = AncestorIter.new(selector).filterMap({ component -> component.ancestorHash(quirksMode) })
+            val iter = AncestorIter.new(selector).filterMap { component -> component.ancestorHash(quirksMode) }
 
             val hashes = IntArray(4)
 
@@ -989,7 +1006,8 @@ class AncestorIter private constructor(private val iter: SelectorIter) : Iter<Co
             when (combinator.value) {
                 is Combinator.Child,
                 is Combinator.Descendant -> skipUntilAncestor()
-                else -> {}
+                else -> {
+                }
             }
         }
 

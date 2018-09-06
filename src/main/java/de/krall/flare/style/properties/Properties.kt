@@ -9,13 +9,6 @@ import de.krall.flare.dom.Element
 import de.krall.flare.font.FontMetricsProvider
 import de.krall.flare.font.WritingMode
 import de.krall.flare.selector.PseudoElement
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
 import de.krall.flare.std.iter.iter
 import de.krall.flare.style.ComputedValues
@@ -28,6 +21,13 @@ import de.krall.flare.style.properties.longhand.FontSizeId
 import de.krall.flare.style.ruletree.CascadeLevel
 import de.krall.flare.style.ruletree.RuleNode
 import de.krall.flare.style.value.Context
+import modern.std.Empty
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
 import org.reflections.Reflections
 import kotlin.reflect.full.companionObjectInstance
 
@@ -283,7 +283,7 @@ fun cascade(
                 if (importance == nodeImportance) {
                     Some(DeclarationAndCascadeLevel(declaration, level))
                 } else {
-                    None()
+                    None
                 }
             }
         }
@@ -323,8 +323,8 @@ fun applyDeclarations(device: Device,
 
     val seen = mutableSetOf<LonghandId>()
 
-    var fontFamily: Option<FontFamilyDeclaration> = None()
-    var fontSize: Option<FontSizeDeclaration> = None()
+    var fontFamily: Option<FontFamilyDeclaration> = None
+    var fontSize: Option<FontSizeDeclaration> = None
 
     for ((declaration, _) in declarations()) {
         val longhandId = declaration.id()

@@ -1,7 +1,8 @@
 package de.krall.flare.url
 
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
+import modern.std.Ok
+import modern.std.Result
+
 
 data class Url(val value: String) {
 

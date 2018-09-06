@@ -2,7 +2,6 @@ package de.krall.flare.style.properties.longhand
 
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Result
 import de.krall.flare.style.parser.AllowQuirks
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.CssWideKeyword
@@ -13,6 +12,7 @@ import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.specified.VerticalPosition
 import de.krall.flare.style.value.specified.Y
 import de.krall.flare.style.value.toComputedValue
+import modern.std.Result
 import de.krall.flare.style.value.computed.VerticalPosition as ComputedVerticalPosition
 
 @PropertyEntryPoint
@@ -23,7 +23,7 @@ class BackgroundPositionYId : LonghandId() {
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { VerticalPosition.parseQuirky(context, it, AllowQuirks.Yes(), Y.Companion) }
+        return input.parseCommaSeparated { VerticalPosition.parseQuirky(context, it, AllowQuirks.Yes, Y.Companion) }
                 .map(::BackgroundPositionYDeclaration)
     }
 

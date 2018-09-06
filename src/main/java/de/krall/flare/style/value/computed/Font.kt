@@ -4,10 +4,10 @@ import de.krall.flare.style.value.ComputedValue
 import de.krall.flare.style.value.specified.KeywordInfo
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
 
 data class FontFamily(val values: FontFamilyList) : ComputedValue
 

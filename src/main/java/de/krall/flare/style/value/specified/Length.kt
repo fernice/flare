@@ -1,6 +1,18 @@
 package de.krall.flare.style.value.specified
 
-import de.krall.flare.style.parser.*
+import de.krall.flare.cssparser.ParseError
+import de.krall.flare.cssparser.ParseErrorKind
+import de.krall.flare.cssparser.Parser
+import de.krall.flare.cssparser.Token
+import de.krall.flare.cssparser.newError
+import de.krall.flare.cssparser.newUnexpectedTokenError
+import de.krall.flare.font.FontMetricsQueryResult
+import de.krall.flare.std.max
+import de.krall.flare.std.min
+import de.krall.flare.std.trunc
+import de.krall.flare.style.parser.AllowQuirks
+import de.krall.flare.style.parser.ClampingMode
+import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.FontBaseSize
 import de.krall.flare.style.value.SpecifiedValue
@@ -8,17 +20,18 @@ import de.krall.flare.style.value.computed.Au
 import de.krall.flare.style.value.computed.PixelLength
 import de.krall.flare.style.value.computed.into
 import de.krall.flare.style.value.generic.Size2D
-import de.krall.flare.cssparser.*
-import de.krall.flare.font.FontMetricsQueryResult
-import de.krall.flare.std.*
-import de.krall.flare.style.value.computed.Percentage as ComputedPercentage
-import de.krall.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
+import modern.std.Empty
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 import de.krall.flare.style.value.computed.LengthOrPercentage as ComputedLengthOrPercentage
-import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage
 import de.krall.flare.style.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
-import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentageOrAuto as ComputedNonNegativeLengthOrPercentageOrAuto
 import de.krall.flare.style.value.computed.LengthOrPercentageOrNone as ComputedLengthOrPercentageOrNone
+import de.krall.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
+import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage
+import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentageOrAuto as ComputedNonNegativeLengthOrPercentageOrAuto
 import de.krall.flare.style.value.computed.NonNegativeLengthOrPercentageOrNone as ComputedNonNegativeLengthOrPercentageOrNone
+import de.krall.flare.style.value.computed.Percentage as ComputedPercentage
 
 sealed class LengthParseErrorKind : ParseErrorKind() {
 
@@ -203,7 +216,7 @@ sealed class NoCalcLength : SpecifiedValue<PixelLength> {
                 length.toComputedValue(context)
             }
             is NoCalcLength.FontRelative -> {
-                length.toComputedValue(context, FontBaseSize.CurrentStyle())
+                length.toComputedValue(context, FontBaseSize.CurrentStyle)
             }
             is NoCalcLength.ViewportPercentage -> {
                 val viewportSize = context.viewportSizeForViewportUnitResolution()
@@ -261,23 +274,23 @@ sealed class Length : SpecifiedValue<PixelLength> {
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<Length, ParseError> {
-            return parseQuirky(context, input, AllowQuirks.No())
+            return parseQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseQuirky(context: ParserContext,
                         input: Parser,
                         allowQuirks: AllowQuirks): Result<Length, ParseError> {
-            return parseInternal(context, input, ClampingMode.All(), allowQuirks)
+            return parseInternal(context, input, ClampingMode.All, allowQuirks)
         }
 
         fun parseNonNegative(context: ParserContext, input: Parser): Result<Length, ParseError> {
-            return parseNonNegativeQuirky(context, input, AllowQuirks.No())
+            return parseNonNegativeQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseNonNegativeQuirky(context: ParserContext,
                                    input: Parser,
                                    allowQuirks: AllowQuirks): Result<Length, ParseError> {
-            return parseInternal(context, input, ClampingMode.NonNegative(), allowQuirks)
+            return parseInternal(context, input, ClampingMode.NonNegative, allowQuirks)
         }
 
         private fun parseInternal(context: ParserContext,
@@ -425,23 +438,23 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentage, ParseError> {
-            return parseQuirky(context, input, AllowQuirks.No())
+            return parseQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseQuirky(context: ParserContext,
                         input: Parser,
                         allowQuirks: AllowQuirks): Result<LengthOrPercentage, ParseError> {
-            return parseInternal(context, input, ClampingMode.All(), allowQuirks)
+            return parseInternal(context, input, ClampingMode.All, allowQuirks)
         }
 
         fun parseNonNegative(context: ParserContext, input: Parser): Result<LengthOrPercentage, ParseError> {
-            return parseNonNegativeQuirky(context, input, AllowQuirks.No())
+            return parseNonNegativeQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseNonNegativeQuirky(context: ParserContext,
                                    input: Parser,
                                    allowQuirks: AllowQuirks): Result<LengthOrPercentage, ParseError> {
-            return parseInternal(context, input, ClampingMode.NonNegative(), allowQuirks)
+            return parseInternal(context, input, ClampingMode.NonNegative, allowQuirks)
         }
 
         private fun parseInternal(context: ParserContext,
@@ -556,23 +569,23 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentageOrAuto, ParseError> {
-            return parseQuirky(context, input, AllowQuirks.No())
+            return parseQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseQuirky(context: ParserContext,
                         input: Parser,
                         allowQuirks: AllowQuirks): Result<LengthOrPercentageOrAuto, ParseError> {
-            return parseInternal(context, input, ClampingMode.All(), allowQuirks)
+            return parseInternal(context, input, ClampingMode.All, allowQuirks)
         }
 
         fun parseNonNegative(context: ParserContext, input: Parser): Result<LengthOrPercentageOrAuto, ParseError> {
-            return parseNonNegativeQuirky(context, input, AllowQuirks.No())
+            return parseNonNegativeQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseNonNegativeQuirky(context: ParserContext,
                                    input: Parser,
                                    allowQuirks: AllowQuirks): Result<LengthOrPercentageOrAuto, ParseError> {
-            return parseInternal(context, input, ClampingMode.NonNegative(), allowQuirks)
+            return parseInternal(context, input, ClampingMode.NonNegative, allowQuirks)
         }
 
         private fun parseInternal(context: ParserContext,
@@ -704,23 +717,23 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentageOrNone, ParseError> {
-            return parseQuirky(context, input, AllowQuirks.No())
+            return parseQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseQuirky(context: ParserContext,
                         input: Parser,
                         allowQuirks: AllowQuirks): Result<LengthOrPercentageOrNone, ParseError> {
-            return parseInternal(context, input, ClampingMode.All(), allowQuirks)
+            return parseInternal(context, input, ClampingMode.All, allowQuirks)
         }
 
         fun parseNonNegative(context: ParserContext, input: Parser): Result<LengthOrPercentageOrNone, ParseError> {
-            return parseNonNegativeQuirky(context, input, AllowQuirks.No())
+            return parseNonNegativeQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseNonNegativeQuirky(context: ParserContext,
                                    input: Parser,
                                    allowQuirks: AllowQuirks): Result<LengthOrPercentageOrNone, ParseError> {
-            return parseInternal(context, input, ClampingMode.NonNegative(), allowQuirks)
+            return parseInternal(context, input, ClampingMode.NonNegative, allowQuirks)
         }
 
         private fun parseInternal(context: ParserContext,

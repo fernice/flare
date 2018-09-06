@@ -5,13 +5,15 @@ import de.krall.flare.style.value.computed.Au
 import de.krall.flare.style.value.generic.Size2D
 import de.krall.flare.dom.Device
 import de.krall.flare.font.FontMetricsProvider
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
 
-class Context(val rootElement: Boolean,
-              val builder: StyleBuilder,
-              val fontMetricsProvider: FontMetricsProvider) {
+class Context(
+        val rootElement: Boolean,
+        val builder: StyleBuilder,
+        val fontMetricsProvider: FontMetricsProvider
+) {
 
     fun isRootElement(): Boolean {
         return rootElement
@@ -32,32 +34,32 @@ class Context(val rootElement: Boolean,
 
 sealed class FontBaseSize {
 
-    abstract fun resolve(context: Context): Au
+    object CurrentStyle : FontBaseSize()
 
-    class CurrentStyle : FontBaseSize() {
-        override fun resolve(context: Context): Au {
-            return context.style()
-                    .getFont()
-                    .fontSize
-                    .size()
-        }
-    }
+    object InheritStyle : FontBaseSize()
 
-    class InheritStyle : FontBaseSize() {
-        override fun resolve(context: Context): Au {
-            return context.style()
-                    .getParentFont()
-                    .fontSize
-                    .size()
-        }
-    }
+    object InheritStyleButStripEmUnits : FontBaseSize()
 
-    class InheritStyleButStripEmUnits : FontBaseSize() {
-        override fun resolve(context: Context): Au {
-            return context.style()
-                    .getParentFont()
-                    .fontSize
-                    .size()
+    fun resolve(context: Context): Au {
+        return when (this) {
+            is FontBaseSize.CurrentStyle -> {
+                context.style()
+                        .getFont()
+                        .fontSize
+                        .size()
+            }
+            is FontBaseSize.InheritStyle -> {
+                context.style()
+                        .getParentFont()
+                        .fontSize
+                        .size()
+            }
+            is InheritStyleButStripEmUnits -> {
+                context.style()
+                        .getParentFont()
+                        .fontSize
+                        .size()
+            }
         }
     }
 }
@@ -88,6 +90,6 @@ fun <E : SpecifiedValue<C>, C> List<E>.toComputedValue(context: Context): List<C
 fun <E : SpecifiedValue<C>, C> Option<E>.toComputedValue(context: Context): Option<C> {
     return when (this) {
         is Some -> Some(this.value.toComputedValue(context))
-        is None -> None()
+        is None -> None
     }
 }

@@ -10,7 +10,7 @@ import de.krall.flare.style.value.specified.Color
 import de.krall.flare.style.value.computed.Color as ComputedColor
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Result
+import modern.std.Result
 
 @PropertyEntryPoint
 class BackgroundColorId : LonghandId() {

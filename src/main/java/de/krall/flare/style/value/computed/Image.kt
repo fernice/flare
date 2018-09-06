@@ -1,10 +1,10 @@
 package de.krall.flare.style.value.computed
 
-import de.krall.flare.std.Option
 import de.krall.flare.style.value.ComputedValue
 import de.krall.flare.style.value.specified.ShapeExtend
 import de.krall.flare.style.value.specified.X
 import de.krall.flare.style.value.specified.Y
+import modern.std.Option
 
 sealed class Image : ComputedValue {
 

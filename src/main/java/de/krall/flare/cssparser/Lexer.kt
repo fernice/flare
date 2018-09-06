@@ -1,25 +1,21 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
+import modern.std.Empty
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
+
 
 /**
  * Represents a one dimensional position in the source text defined by a [position] indexing the text as
  * a string.
  */
-class SourcePosition(val position: Int)
+data class SourcePosition(val position: Int)
 
 /**
  * Represents a two dimensional position in the source text defined by a [line] and a [column] position.
  */
-class SourceLocation(val line: Int, val column: Int) {
-
-    override fun toString(): String {
-        return "($line, $column)"
-    }
-}
+data class SourceLocation(val line: Int, val column: Int)
 
 /**
  * This is a implementation of the Css Level 3 syntax specification.

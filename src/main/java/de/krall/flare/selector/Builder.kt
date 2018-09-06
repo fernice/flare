@@ -1,11 +1,11 @@
 package de.krall.flare.selector
 
 import de.krall.flare.debugAssert
-import de.krall.flare.std.None
-import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
 import de.krall.flare.std.iter.iter
 import de.krall.flare.std.max
+import modern.std.None
+import modern.std.Some
 
 class SelectorBuilder {
 

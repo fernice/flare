@@ -4,10 +4,10 @@ import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
 import de.krall.flare.style.value.ComputedValue
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 
 data class BorderCornerRadius(
         val width: LengthOrPercentage,

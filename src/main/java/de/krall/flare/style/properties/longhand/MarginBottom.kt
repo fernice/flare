@@ -2,7 +2,6 @@ package de.krall.flare.style.properties.longhand
 
 import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
-import de.krall.flare.std.Result
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.CssWideKeyword
 import de.krall.flare.style.properties.LonghandId
@@ -10,6 +9,7 @@ import de.krall.flare.style.properties.PropertyDeclaration
 import de.krall.flare.style.properties.PropertyEntryPoint
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.specified.LengthOrPercentageOrAuto
+import modern.std.Result
 import de.krall.flare.style.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
 
 @PropertyEntryPoint

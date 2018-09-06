@@ -1,9 +1,9 @@
 package de.krall.flare.style.value.computed
 
-import de.krall.flare.std.Some
-import de.krall.flare.style.value.ComputedValue
 import de.krall.flare.std.max
-import de.krall.flare.std.unwrap
+import de.krall.flare.style.value.ComputedValue
+import modern.std.Some
+import modern.std.unwrap
 
 data class PixelLength(val value: Float) : ComputedValue {
 

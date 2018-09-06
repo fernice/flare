@@ -4,12 +4,12 @@ import de.krall.flare.ApplicableDeclarationBlock
 import de.krall.flare.dom.Element
 import de.krall.flare.selector.MatchingContext
 import de.krall.flare.selector.PseudoElement
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
 import de.krall.flare.style.context.StyleContext
 import de.krall.flare.style.parser.QuirksMode
 import de.krall.flare.style.ruletree.RuleNode
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
 
 class ResolvedStyle(val style: ComputedValues)
 
@@ -116,7 +116,7 @@ class ElementStyleResolver(val element: Element,
                         inputs,
                         parentStyle,
                         layoutStyle,
-                        None()
+                        None
                 )
         )
     }
@@ -130,7 +130,7 @@ class ElementStyleResolver(val element: Element,
 
         val style = when (matchedStyle) {
             is Some -> matchedStyle.value
-            is None -> return None()
+            is None -> return None
         }
 
         return Some(cascadeStyleAndVisited(
@@ -157,13 +157,13 @@ class ElementStyleResolver(val element: Element,
         stylist.pushApplicableDeclarations(
                 element,
                 Some(pseudo),
-                None(),
+                None,
                 declarations,
                 matchingContext
         )
 
         if (declarations.isEmpty()) {
-            return None()
+            return None
         }
 
         val ruleNode = stylist.ruleTree.computedRuleNode(declarations)

@@ -1,13 +1,13 @@
 package de.krall.flare.selector
 
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
 
 class SelectorParser : SelectorParserContext {
 
     override fun defaultNamespace(): Option<NamespaceUrl> {
-        return None()
+        return None
     }
 
     override fun namespacePrefix(prefix: String): NamespacePrefix {

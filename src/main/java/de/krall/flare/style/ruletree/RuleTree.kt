@@ -5,18 +5,18 @@ import de.krall.flare.RuleTreeValues
 import de.krall.flare.debugAssert
 import de.krall.flare.std.Either
 import de.krall.flare.std.First
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
 import de.krall.flare.std.Second
-import de.krall.flare.std.Some
-import de.krall.flare.std.ifLet
-import de.krall.flare.std.into
 import de.krall.flare.std.iter.Iter
 import de.krall.flare.std.iter.iter
-import de.krall.flare.std.unwrap
 import de.krall.flare.style.properties.Importance
 import de.krall.flare.style.properties.PropertyDeclarationBlock
 import de.krall.flare.style.stylesheet.StyleRule
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
+import modern.std.ifLet
+import modern.std.into
+import modern.std.unwrap
 import java.util.concurrent.atomic.AtomicReference
 
 enum class CascadeLevel {
@@ -176,9 +176,9 @@ class RuleNode(private val root: Option<RuleNode>,
 
         fun root(): RuleNode {
             return RuleNode(
-                    None(),
-                    None(),
-                    None(),
+                    None,
+                    None,
+                    None,
                     CascadeLevel.USER_AGENT_NORMAL,
                     AtomicReference(),
                     AtomicReference(),
@@ -190,7 +190,7 @@ class RuleNode(private val root: Option<RuleNode>,
     fun ensureChild(root: RuleNode,
                     source: StyleSource,
                     level: CascadeLevel): RuleNode {
-        var last: Option<RuleNode> = None()
+        var last: Option<RuleNode> = None
 
         for (child in iterChildren()) {
             if (child.level == level && child.source.unwrap() == source) {
@@ -266,7 +266,7 @@ class RuleNode(private val root: Option<RuleNode>,
                 if (firstChild != null) {
                     Some(firstChild)
                 } else {
-                    None()
+                    None
                 }
         )
     }

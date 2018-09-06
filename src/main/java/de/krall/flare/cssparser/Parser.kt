@@ -1,23 +1,34 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
-import de.krall.flare.std.let
-import de.krall.flare.std.unwrap
+import modern.std.Empty
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import modern.std.let
+import modern.std.unwrap
 
 /**
  * A CSS assistive, partial [Parser], that provides common parse functions and keeps track of nested blocks.
  */
-class Parser private constructor(private val tokenizer: Tokenizer,
-                                 private var blockType: Option<BlockType>,
-                                 private val delimiters: Int) {
+class Parser private constructor(
+        private val tokenizer: Tokenizer,
+        private var blockType: Option<BlockType>,
+        private val delimiters: Int
+) {
 
-    constructor(parserInput: ParserInput) : this(Tokenizer(parserInput.text), None(), 0)
+    companion object {
+
+        fun new(input: ParserInput): Parser {
+            return Parser(
+                    Tokenizer.new(input.text),
+                    None,
+                    0
+            )
+        }
+    }
 
     /**
      * Returns the current [ParserState] of this [Parser]. Besides the information that the state provides, the state can be
@@ -416,14 +427,14 @@ class Parser private constructor(private val tokenizer: Tokenizer,
     }
 
     /**
-     * Creates a new [ParseError] at the current [SourceLocation] with the specified [kind].
+     * Creates a next [ParseError] at the current [SourceLocation] with the specified [kind].
      */
     fun newError(kind: ParseErrorKind): ParseError {
         return ParseError(kind, sourceLocation())
     }
 
     /**
-     * Creates a new [ParseError] bearing [ParseErrorKind.UnexpectedToken] at the current [SourceLocation] with the specified
+     * Creates a next [ParseError] bearing [ParseErrorKind.UnexpectedToken] at the current [SourceLocation] with the specified
      * [token] as unexpected token.
      */
     fun newUnexpectedTokenError(token: Token): ParseError {
@@ -498,7 +509,7 @@ class Parser private constructor(private val tokenizer: Tokenizer,
     fun <T> parseUntilBefore(delimiters: Delimiters, parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
         val delimitedDelimiters = this.delimiters or delimiters.bits
 
-        val delimitedParser = Parser(tokenizer.copy(), takeBlockType(), delimitedDelimiters)
+        val delimitedParser = Parser(tokenizer.clone(), takeBlockType(), delimitedDelimiters)
 
         val result = delimitedParser.parseEntirely(parse)
 
@@ -543,7 +554,7 @@ class Parser private constructor(private val tokenizer: Tokenizer,
         val blockType = takeBlockType().expect("not a nested block")
 
         val nestedDelimiters = delimiters or Delimiters.from(blockType).bits
-        val nestedParser = Parser(tokenizer.copy(), None(), nestedDelimiters)
+        val nestedParser = Parser(tokenizer.clone(), None, nestedDelimiters)
 
         val result = nestedParser.parseEntirely(parse)
 
@@ -563,7 +574,7 @@ class Parser private constructor(private val tokenizer: Tokenizer,
         return when (blockType) {
             is Some -> {
                 val value = blockType
-                blockType = None()
+                blockType = None
                 value
             }
             is None -> {
@@ -571,17 +582,21 @@ class Parser private constructor(private val tokenizer: Tokenizer,
             }
         }
     }
+
+    override fun toString(): String {
+        return "Parser($tokenizer)"
+    }
 }
 
 /**
- * Creates a new [ParseError] at this [SourceLocation] with the specified [kind].
+ * Creates a next [ParseError] at this [SourceLocation] with the specified [kind].
  */
 fun SourceLocation.newError(kind: ParseErrorKind): ParseError {
     return ParseError(kind, this)
 }
 
 /**
- * Creates a new [ParseError] bearing [ParseErrorKind.UnexpectedToken] at this [SourceLocation] with the specified
+ * Creates a next [ParseError] bearing [ParseErrorKind.UnexpectedToken] at this [SourceLocation] with the specified
  * [token] as unexpected token.
  */
 fun SourceLocation.newUnexpectedTokenError(token: Token): ParseError {
@@ -591,13 +606,13 @@ fun SourceLocation.newUnexpectedTokenError(token: Token): ParseError {
 /**
  * The input for the [Parser] used both for parsing and slicing.
  */
-class ParserInput(internal val text: String)
+data class ParserInput(internal val text: String)
 
 /**
  * A single state of a [Parser], including all essential information of that very Parser's state. This should be used
  * for error reporting and state reverting.
  */
-class ParserState(internal val state: State, internal val blockType: Option<BlockType>) {
+data class ParserState(internal val state: State, internal val blockType: Option<BlockType>) {
 
     /**
      * Returns the current [SourcePosition] of this [ParserState]. The source position is the index in the char stream starting at 0.
@@ -620,7 +635,7 @@ class ParserState(internal val state: State, internal val blockType: Option<Bloc
  * Represents an error that occurred during parsing. The error is specified by a [ParseErrorKind] and a [SourceLocation]
  * at which the error occurred.
  */
-class ParseError(val kind: ParseErrorKind, val location: SourceLocation) {
+data class ParseError(val kind: ParseErrorKind, val location: SourceLocation) {
 
     override fun toString(): String {
         return "$kind @ $location"
@@ -644,5 +659,5 @@ abstract class ParseErrorKind {
 
     object UnsupportedFeature : ParseErrorKind()
 
-    object Unkown : ParseErrorKind()
+    object Unknown : ParseErrorKind()
 }

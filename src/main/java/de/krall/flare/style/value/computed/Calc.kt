@@ -2,9 +2,9 @@ package de.krall.flare.style.value.computed
 
 import de.krall.flare.style.parser.ClampingMode
 import de.krall.flare.style.value.ComputedValue
-import de.krall.flare.std.None
-import de.krall.flare.std.Option
-import de.krall.flare.std.Some
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
 
 data class CalcLengthOrPercentage(val clampingMode: ClampingMode,
                              val length: PixelLength,
@@ -38,14 +38,14 @@ data class CalcLengthOrPercentage(val clampingMode: ClampingMode,
         } else if (percentage.isNone()) {
             Some(length)
         } else {
-            None()
+            None
         }
     }
 
     companion object {
 
         fun new(length: Length, percentage: Option<Percentage>): CalcLengthOrPercentage {
-            return withClampingMode(length, percentage, ClampingMode.All())
+            return withClampingMode(length, percentage, ClampingMode.All)
         }
 
         fun withClampingMode(

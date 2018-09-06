@@ -6,131 +6,126 @@ import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.debugAssert
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
 import de.krall.flare.std.iter.Iter
 import de.krall.flare.std.iter.drain
 import de.krall.flare.std.iter.iter
 import de.krall.flare.style.parser.QuirksMode
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
 
-class NamespacePrefix(val prefix: String)
+data class NamespacePrefix(val prefix: String)
 
-class NamespaceUrl(val prefix: NamespacePrefix,
-                   val url: String)
+data class NamespaceUrl(val prefix: NamespacePrefix, val url: String)
 
 sealed class Component {
 
-    open fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
-        return None()
-    }
+    data class Combinator(val combinator: de.krall.flare.selector.Combinator) : Component()
 
-    class Combinator(val combinator: de.krall.flare.selector.Combinator) : Component()
+    data class DefaultNamespace(val namespace: NamespaceUrl) : Component()
 
-    class DefaultNamespace(val namespace: NamespaceUrl) : Component() {
-        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
-            return Some(hashString(namespace.url))
-        }
-    }
+    object ExplicitNoNamespace : Component()
+    object ExplicitAnyNamespace : Component()
+    data class Namespace(val prefix: NamespacePrefix, val namespace: NamespaceUrl) : Component()
 
-    class ExplicitNoNamespace : Component()
-    class ExplicitAnyNamespace : Component()
-    class Namespace(val prefix: NamespacePrefix, val namespace: NamespaceUrl) : Component() {
-        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
-            return Some(hashString(namespace.url))
-        }
-    }
+    data class LocalName(val localName: String, val localNameLower: String) : Component()
 
-    class LocalName(val localName: String, val localNameLower: String) : Component() {
-        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
-            return if (localName == localNameLower) {
-                Some(hashString(localName))
-            } else {
-                None()
-            }
-        }
-    }
+    object ExplicitUniversalType : Component()
 
-    class ExplicitUniversalType : Component()
+    data class ID(val id: String) : Component()
 
-    class ID(val id: String) : Component() {
-        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
-            return if (quirksMode != QuirksMode.QUIRKS) {
-                Some(hashString(id))
-            } else {
-                None()
-            }
-        }
-    }
+    data class Class(val styleClass: String) : Component()
 
-    class Class(val styleClass: String) : Component() {
-        override fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
-            return if (quirksMode != QuirksMode.QUIRKS) {
-                Some(hashString(styleClass))
-            } else {
-                None()
-            }
-        }
-    }
+    data class PseudoElement(val pseudoElement: de.krall.flare.selector.PseudoElement) : Component()
+    data class NonTSPseudoClass(val pseudoClass: de.krall.flare.selector.NonTSPseudoClass) : Component()
 
-    class PseudoElement(val pseudoElement: de.krall.flare.selector.PseudoElement) : Component()
-    class NonTSPseudoClass(val pseudoClass: de.krall.flare.selector.NonTSPseudoClass) : Component()
-
-    class Negation(val simpleSelector: List<Component>) : Component() {
+    data class Negation(val simpleSelector: List<Component>) : Component() {
 
         fun iter(): SelectorIter {
             return SelectorIter(simpleSelector.iter())
         }
     }
 
-    class FirstChild : Component()
-    class LastChild : Component()
-    class OnlyChild : Component()
-    class FirstOfType : Component()
-    class LastOfType : Component()
-    class OnlyType : Component()
+    object FirstChild : Component()
+    object LastChild : Component()
+    object OnlyChild : Component()
+    object FirstOfType : Component()
+    object LastOfType : Component()
+    object OnlyType : Component()
 
-    class Root : Component()
-    class Empty : Component()
-    class Scope : Component()
-    class Host : Component()
+    object Root : Component()
+    object Empty : Component()
+    object Scope : Component()
+    object Host : Component()
 
-    class NthChild(val nth: Nth) : Component()
-    class NthOfType(val nth: Nth) : Component()
-    class NthLastChild(val nth: Nth) : Component()
-    class NthLastOfType(val nth: Nth) : Component()
+    data class NthChild(val nth: Nth) : Component()
+    data class NthOfType(val nth: Nth) : Component()
+    data class NthLastChild(val nth: Nth) : Component()
+    data class NthLastOfType(val nth: Nth) : Component()
 
-    class AttributeOther(val namespace: NamespaceConstraint,
-                         val localName: String,
-                         val localNameLower: String,
-                         val opertation: AttributeSelectorOperation,
-                         val neverMatches: Boolean) : Component()
+    data class AttributeOther(
+            val namespace: NamespaceConstraint,
+            val localName: String,
+            val localNameLower: String,
+            val opertation: AttributeSelectorOperation,
+            val neverMatches: Boolean
+    ) : Component()
 
-    class AttributeInNoNamespaceExists(val localName: String,
-                                       val localNameLower: String) : Component()
+    data class AttributeInNoNamespaceExists(val localName: String, val localNameLower: String) : Component()
 
-    class AttributeInNoNamespace(val localName: String,
-                                 val localNameLower: String,
-                                 val operator: AttributeSelectorOperator,
-                                 val value: String,
-                                 val caseSensitive: Boolean,
-                                 val neverMatches: Boolean) : Component()
+    data class AttributeInNoNamespace(
+            val localName: String,
+            val localNameLower: String,
+            val operator: AttributeSelectorOperator,
+            val value: String,
+            val caseSensitive: Boolean,
+            val neverMatches: Boolean
+    ) : Component()
+
+    fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
+        return when (this) {
+            is Component.DefaultNamespace -> Some(hashString(namespace.url))
+            is Component.Namespace -> Some(hashString(namespace.url))
+            is Component.LocalName -> {
+                if (localName == localNameLower) {
+                    Some(hashString(localName))
+                } else {
+                    None
+                }
+            }
+            is Component.ID -> {
+                if (quirksMode != QuirksMode.QUIRKS) {
+                    Some(hashString(id))
+                } else {
+                    None
+                }
+            }
+            is Component.Class -> {
+                if (quirksMode != QuirksMode.QUIRKS) {
+                    Some(hashString(styleClass))
+                } else {
+                    None
+                }
+            }
+            else -> None
+        }
+    }
 }
 
 sealed class Combinator {
 
-    class Child : Combinator()
+    object Child : Combinator()
 
-    class NextSibling : Combinator()
+    object NextSibling : Combinator()
 
-    class LaterSibling : Combinator()
+    object LaterSibling : Combinator()
 
-    class Descendant : Combinator()
+    object Descendant : Combinator()
 
-    class PseudoElement : Combinator()
+    object PseudoElement : Combinator()
 }
 
 const val PSEUDO_COUNT = 8
@@ -139,49 +134,49 @@ sealed class PseudoElement {
 
     abstract fun ordinal(): Int
 
-    class Before : PseudoElement() {
+    object Before : PseudoElement() {
         override fun ordinal(): Int {
             return 0
         }
     }
 
-    class After : PseudoElement() {
+    object After : PseudoElement() {
         override fun ordinal(): Int {
             return 1
         }
     }
 
-    class Selection : PseudoElement() {
+    object Selection : PseudoElement() {
         override fun ordinal(): Int {
             return 2
         }
     }
 
-    class FirstLetter : PseudoElement() {
+    object FirstLetter : PseudoElement() {
         override fun ordinal(): Int {
             return 3
         }
     }
 
-    class FirstLine : PseudoElement() {
+    object FirstLine : PseudoElement() {
         override fun ordinal(): Int {
             return 4
         }
     }
 
-    class Placeholder : PseudoElement() {
+    object Placeholder : PseudoElement() {
         override fun ordinal(): Int {
             return 5
         }
     }
 
-    class FlareTabArea : PseudoElement() {
+    object FlareTabArea : PseudoElement() {
         override fun ordinal(): Int {
             return 6
         }
     }
 
-    class FlareTab : PseudoElement() {
+    object FlareTab : PseudoElement() {
         override fun ordinal(): Int {
             return 7
         }
@@ -201,15 +196,15 @@ sealed class PseudoElement {
 
         val values: Array<PseudoElement> by lazy {
             arrayOf(
-                    PseudoElement.Before(),
-                    PseudoElement.After(),
-                    PseudoElement.Selection(),
-                    PseudoElement.FirstLetter(),
-                    PseudoElement.FirstLine(),
-                    PseudoElement.Placeholder(),
+                    PseudoElement.Before,
+                    PseudoElement.After,
+                    PseudoElement.Selection,
+                    PseudoElement.FirstLetter,
+                    PseudoElement.FirstLine,
+                    PseudoElement.Placeholder,
 
-                    PseudoElement.FlareTabArea(),
-                    PseudoElement.FlareTab()
+                    PseudoElement.FlareTabArea,
+                    PseudoElement.FlareTab
             )
         }
     }
@@ -217,45 +212,45 @@ sealed class PseudoElement {
 
 sealed class NonTSPseudoClass {
 
-    class Active : NonTSPseudoClass()
-    class Checked : NonTSPseudoClass()
-    class Disabled : NonTSPseudoClass()
-    class Enabled : NonTSPseudoClass()
-    class Focus : NonTSPseudoClass()
-    class Fullscreen : NonTSPseudoClass()
-    class Hover : NonTSPseudoClass()
-    class Indeterminate : NonTSPseudoClass()
+    object Active : NonTSPseudoClass()
+    object Checked : NonTSPseudoClass()
+    object Disabled : NonTSPseudoClass()
+    object Enabled : NonTSPseudoClass()
+    object Focus : NonTSPseudoClass()
+    object Fullscreen : NonTSPseudoClass()
+    object Hover : NonTSPseudoClass()
+    object Indeterminate : NonTSPseudoClass()
     class Lang(val language: String) : NonTSPseudoClass()
-    class Link : NonTSPseudoClass()
-    class PlaceholderShown : NonTSPseudoClass()
-    class ReadWrite : NonTSPseudoClass()
-    class ReadOnly : NonTSPseudoClass()
-    class Target : NonTSPseudoClass()
-    class Visited : NonTSPseudoClass()
+    object Link : NonTSPseudoClass()
+    object PlaceholderShown : NonTSPseudoClass()
+    object ReadWrite : NonTSPseudoClass()
+    object ReadOnly : NonTSPseudoClass()
+    object Target : NonTSPseudoClass()
+    object Visited : NonTSPseudoClass()
 }
 
 sealed class NamespaceConstraint {
 
-    class Any : NamespaceConstraint()
+    object Any : NamespaceConstraint()
 
-    class Specific(val prefix: NamespacePrefix, val url: NamespaceUrl) : NamespaceConstraint()
+    data class Specific(val prefix: NamespacePrefix, val url: NamespaceUrl) : NamespaceConstraint()
 }
 
 sealed class AttributeSelectorOperation {
 
-    class Exists : AttributeSelectorOperation()
+    object Exists : AttributeSelectorOperation()
 
-    class WithValue(val operator: AttributeSelectorOperator, val caseSensitive: Boolean, val expectedValue: String) : AttributeSelectorOperation()
+    data class WithValue(val operator: AttributeSelectorOperator, val caseSensitive: Boolean, val expectedValue: String) : AttributeSelectorOperation()
 }
 
 sealed class AttributeSelectorOperator {
 
-    class Equal : AttributeSelectorOperator()
-    class Includes : AttributeSelectorOperator()
-    class DashMatch : AttributeSelectorOperator()
-    class Prefix : AttributeSelectorOperator()
-    class Substring : AttributeSelectorOperator()
-    class Suffix : AttributeSelectorOperator()
+    object Equal : AttributeSelectorOperator()
+    object Includes : AttributeSelectorOperator()
+    object DashMatch : AttributeSelectorOperator()
+    object Prefix : AttributeSelectorOperator()
+    object Substring : AttributeSelectorOperator()
+    object Suffix : AttributeSelectorOperator()
 }
 
 /**
@@ -276,7 +271,7 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
 
     fun pseudoElement(): Option<PseudoElement> {
         if (!header.hasPseudoElement()) {
-            return None()
+            return None
         }
 
         for (component in components) {
@@ -286,7 +281,7 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         }
 
         debugAssert(false, "something went terribly wrong")
-        return None()
+        return None
     }
 
     /**
@@ -376,7 +371,7 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
     }
 }
 
-class SelectorIter(private val iter: Iter<Component>, private var nextCombinator: Option<Combinator> = None()) : Iter<Component> {
+data class SelectorIter(private val iter: Iter<Component>, private var nextCombinator: Option<Combinator> = None) : Iter<Component> {
 
     override fun next(): Option<Component> {
         if (nextCombinator.isSome()) {
@@ -387,9 +382,11 @@ class SelectorIter(private val iter: Iter<Component>, private var nextCombinator
 
         return when (next) {
             is Some -> {
-                if (next.value is Component.Combinator) {
-                    nextCombinator = Some(next.value.combinator)
-                    None()
+                val component = next.value
+
+                if (component is Component.Combinator) {
+                    nextCombinator = Some(component.combinator)
+                    None
                 } else {
                     next
                 }
@@ -402,7 +399,7 @@ class SelectorIter(private val iter: Iter<Component>, private var nextCombinator
 
     fun nextSequence(): Option<Combinator> {
         val current = nextCombinator
-        nextCombinator = None()
+        nextCombinator = None
         return current
     }
 
@@ -411,7 +408,7 @@ class SelectorIter(private val iter: Iter<Component>, private var nextCombinator
     }
 }
 
-class SelectorList(private val selectors: List<Selector>) : Iterable<Selector> {
+data class SelectorList(private val selectors: List<Selector>) : Iterable<Selector> {
 
     override fun iterator(): Iterator<Selector> = selectors.iterator()
 
@@ -422,7 +419,7 @@ class SelectorList(private val selectors: List<Selector>) : Iterable<Selector> {
 
             loop@
             while (true) {
-                val selectorResult = input.parseUntilBefore(Delimiters.Comma, { input -> parseSelector(context, input) })
+                val selectorResult = input.parseUntilBefore(Delimiters.Comma) { i -> parseSelector(context, i) }
 
                 when (selectorResult) {
                     is Ok -> selectors.add(selectorResult.value)

@@ -4,15 +4,18 @@ import de.krall.flare.cssparser.ParseError
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
-import de.krall.flare.std.*
 import de.krall.flare.style.parser.AllowQuirks
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.SpecifiedValue
-import de.krall.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 import de.krall.flare.style.value.computed.PixelLength
 import de.krall.flare.style.value.computed.intoNonNegative
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
+import modern.std.unwrapOrElse
 import de.krall.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
+import de.krall.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 
 sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength> {
 
@@ -43,7 +46,7 @@ sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength> {
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<BorderSideWidth, ParseError> {
-            return parseQuirky(context, input, AllowQuirks.No())
+            return parseQuirky(context, input, AllowQuirks.No)
         }
 
         fun parseQuirky(context: ParserContext, input: Parser, allowQuirks: AllowQuirks): Result<BorderSideWidth, ParseError> {

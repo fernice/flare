@@ -7,23 +7,23 @@ import de.krall.flare.cssparser.ParseErrorKind
 import de.krall.flare.cssparser.Parser
 import de.krall.flare.cssparser.Token
 import de.krall.flare.cssparser.newUnexpectedTokenError
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.None
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Option
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
-import de.krall.flare.std.let
-import de.krall.flare.std.mapOr
-import de.krall.flare.std.unwrap
-import de.krall.flare.std.unwrapOr
 import de.krall.flare.style.parser.ClampingMode
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.value.Context
 import de.krall.flare.style.value.FontBaseSize
 import de.krall.flare.style.value.SpecifiedValue
 import de.krall.flare.style.value.computed.PixelLength
+import modern.std.Empty
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import modern.std.let
+import modern.std.mapOr
+import modern.std.unwrap
+import modern.std.unwrapOr
 import de.krall.flare.style.value.computed.CalcLengthOrPercentage as ComputedCalcLengthOrPercentage
 import de.krall.flare.style.value.computed.Percentage as ComputedPercentage
 
@@ -34,19 +34,19 @@ import de.krall.flare.style.value.computed.Percentage as ComputedPercentage
  */
 class CalcLengthOrPercentage(private val clampingMode: ClampingMode) : SpecifiedValue<ComputedCalcLengthOrPercentage> {
 
-    internal var absolute: Option<AbsoluteLength> = None()
+    internal var absolute: Option<AbsoluteLength> = None
 
-    internal var em: Option<Float> = None()
-    internal var ex: Option<Float> = None()
-    internal var ch: Option<Float> = None()
-    internal var rem: Option<Float> = None()
+    internal var em: Option<Float> = None
+    internal var ex: Option<Float> = None
+    internal var ch: Option<Float> = None
+    internal var rem: Option<Float> = None
 
-    internal var vw: Option<Float> = None()
-    internal var vh: Option<Float> = None()
-    internal var vmin: Option<Float> = None()
-    internal var vmax: Option<Float> = None()
+    internal var vw: Option<Float> = None
+    internal var vh: Option<Float> = None
+    internal var vmin: Option<Float> = None
+    internal var vmax: Option<Float> = None
 
-    internal var percentage: Option<ComputedPercentage> = None()
+    internal var percentage: Option<ComputedPercentage> = None
 
     fun toComputedValue(context: Context, baseSize: FontBaseSize): ComputedCalcLengthOrPercentage {
         var length = 0f
@@ -83,7 +83,7 @@ class CalcLengthOrPercentage(private val clampingMode: ClampingMode) : Specified
     }
 
     override fun toComputedValue(context: Context): ComputedCalcLengthOrPercentage {
-        return toComputedValue(context, FontBaseSize.CurrentStyle())
+        return toComputedValue(context, FontBaseSize.CurrentStyle)
     }
 }
 
@@ -583,7 +583,7 @@ sealed class CalcNode {
             }
 
             return calcNode.toNumber()
-                    .mapErr { input.newError(ParseErrorKind.Unkown) }
+                    .mapErr { input.newError(ParseErrorKind.Unknown) }
         }
 
         /**
@@ -602,7 +602,7 @@ sealed class CalcNode {
 
             return calcNode.toNumber()
                     .map { number -> number.toInt() }
-                    .mapErr { input.newError(ParseErrorKind.Unkown) }
+                    .mapErr { input.newError(ParseErrorKind.Unknown) }
         }
 
         /**
@@ -620,7 +620,7 @@ sealed class CalcNode {
             }
 
             return calcNode.toLengthOrPercentage(clampingMode)
-                    .mapErr { input.newError(ParseErrorKind.Unkown) }
+                    .mapErr { input.newError(ParseErrorKind.Unknown) }
         }
 
         /**
@@ -638,7 +638,7 @@ sealed class CalcNode {
             }
 
             return calcNode.toPercentage()
-                    .mapErr { input.newError(ParseErrorKind.Unkown) }
+                    .mapErr { input.newError(ParseErrorKind.Unknown) }
         }
 
         /**
@@ -667,7 +667,7 @@ sealed class CalcNode {
                 return Ok(NumberOrPercentage.Percentage(percentage.value))
             }
 
-            return Err(input.newError(ParseErrorKind.Unkown))
+            return Err(input.newError(ParseErrorKind.Unknown))
         }
 
         /**
@@ -685,7 +685,7 @@ sealed class CalcNode {
             }
 
             return calcNode.toLengthOrPercentage(clampingMode)
-                    .mapErr { input.newError(ParseErrorKind.Unkown) }
+                    .mapErr { input.newError(ParseErrorKind.Unknown) }
         }
 
         /**
@@ -703,7 +703,7 @@ sealed class CalcNode {
 
             return calcNode
                     .toAngle()
-                    .mapErr { input.newError(ParseErrorKind.Unkown) }
+                    .mapErr { input.newError(ParseErrorKind.Unknown) }
         }
 
         /**

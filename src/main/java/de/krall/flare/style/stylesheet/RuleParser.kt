@@ -1,14 +1,18 @@
 package de.krall.flare.style.stylesheet
 
+import de.krall.flare.cssparser.AtRuleParser
+import de.krall.flare.cssparser.ParseError
+import de.krall.flare.cssparser.Parser
+import de.krall.flare.cssparser.QualifiedRuleParser
+import de.krall.flare.cssparser.SourceLocation
+import de.krall.flare.selector.SelectorList
+import de.krall.flare.selector.SelectorParser
 import de.krall.flare.style.parser.ParserContext
 import de.krall.flare.style.properties.PropertyDeclarationBlock
 import de.krall.flare.style.properties.parsePropertyDeclarationList
-import de.krall.flare.selector.SelectorList
-import de.krall.flare.selector.SelectorParser
-import de.krall.flare.cssparser.*
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 
 class AtRulePrelude
 

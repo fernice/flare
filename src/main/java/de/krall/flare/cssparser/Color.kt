@@ -1,14 +1,14 @@
 package de.krall.flare.cssparser
 
 import de.krall.flare.cssparser.Color.RGBA
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
 import de.krall.flare.std.max
 import de.krall.flare.std.min
 import de.krall.flare.std.round
 import de.krall.flare.std.trunc
+import modern.std.Empty
+import modern.std.Err
+import modern.std.Ok
+import modern.std.Result
 
 /**
  * Represents a 8 bit, int based RGBA color.
@@ -22,7 +22,7 @@ sealed class Color {
 
     class RGBA(val rgba: de.krall.flare.cssparser.RGBA) : Color()
 
-    class CurrentColor : Color()
+    object CurrentColor : Color()
 
     companion object {
 
@@ -431,7 +431,7 @@ private fun parseColorKeyword(keyword: String): Result<Color, Empty> {
         "yellowgreen" -> rgb(154, 205, 50)
 
         "transparent" -> rgba(0, 0, 0, 0)
-        "currentcolor" -> Color.CurrentColor()
+        "currentcolor" -> Color.CurrentColor
 
         else -> return Err()
     }

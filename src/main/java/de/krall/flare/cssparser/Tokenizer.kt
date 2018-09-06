@@ -1,27 +1,49 @@
 package de.krall.flare.cssparser
 
-import de.krall.flare.std.Empty
-import de.krall.flare.std.Err
-import de.krall.flare.std.Ok
-import de.krall.flare.std.Result
-import de.krall.flare.std.Some
 import de.krall.flare.std.getBooleanProperty
-import de.krall.flare.std.unwrap
+import modern.std.Empty
+import modern.std.Err
+import modern.std.None
+import modern.std.Ok
+import modern.std.Option
+import modern.std.Result
+import modern.std.Some
+import modern.std.unwrap
 import java.util.Stack
 
+/**
+ * VM parameter flag for processing the input completely on tokenizer creation and printing all generated
+ * token to stdout.
+ */
 private val print_token: Boolean by lazy { getBooleanProperty("flare.print_token") }
 
-class Tokenizer {
+/**
+ * Represents a resettable stream of tokens, that also provides special methods for advanced stream advancing,
+ * such as nested block skipping.
+ */
+class Tokenizer private constructor(
+        private val text: String,
+        private val lexer: Lexer,
+        private var state: State
+) {
 
-    private val text: String
-    private val lexer: Lexer
-    private var state: State
+    companion object {
 
-    private constructor(text: String, lexer: Lexer, state: State) {
-        this.text = text
-        this.lexer = lexer
-        this.state = state
+        /**
+         * Create a new Tokenizer using the specified [text] as the input for the token stream.
+         */
+        fun new(text: String): Tokenizer {
+            val lexer = Lexer(CssReader(text))
 
+            return Tokenizer(
+                    text,
+                    lexer,
+                    State.next(lexer)
+            )
+        }
+    }
+
+    init {
         if (print_token) {
             var iter = state
 
@@ -30,21 +52,25 @@ class Tokenizer {
                     break
                 }
 
-                if (iter.next == null) {
-                    iter.next = State.new(lexer)
-                }
-
                 println("${iter.token} ${iter.sourceLocation}")
 
-                iter = iter.next!!
+                val next = state.next
+
+                iter = when (next) {
+                    is None -> {
+                        val nextState = State.next(lexer)
+                        state.next = Some(nextState)
+                        nextState
+                    }
+                    is Some -> next.value
+                }
             }
         }
     }
 
-    private constructor(text: String, lexer: Lexer) : this(text, lexer, State.new(lexer))
-
-    constructor(text: String) : this(text, Lexer(CssReader(text)))
-
+    /**
+     * Advances the token stream by one [Token] and returns it. Returns [Err], if the stream is exhausted or an error occurred.
+     */
     fun nextToken(): Result<Token, Empty> {
         val token = state.token
 
@@ -52,15 +78,24 @@ class Tokenizer {
             return token
         }
 
-        if (state.next == null) {
-            state.next = State.new(lexer)
-        }
+        val next = state.next
 
-        state = state.next!!
+        state = when (next) {
+            is None -> {
+                val nextState = State.next(lexer)
+                state.next = Some(nextState)
+                nextState
+            }
+            is Some -> next.value
+        }
 
         return token
     }
 
+    /**
+     * Retrieves the next [Token] without advancing the token stream and returns it. Returns [Err], if the stream is exhausted
+     * or an error occurred.
+     */
     fun peekToken(count: Int): Result<Token, Empty> {
         var state = state
 
@@ -69,44 +104,81 @@ class Tokenizer {
                 return state.token
             }
 
-            if (state.next == null) {
-                state.next = State.new(lexer)
-            }
 
-            state = state.next!!
+            val next = state.next
+
+            state = when (next) {
+                is None -> {
+                    val nextState = State.next(lexer)
+                    state.next = Some(nextState)
+                    nextState
+                }
+                is Some -> next.value
+            }
         }
 
         return state.token
     }
 
+    /**
+     * Returns the current [State] of the Tokenizer. The State may be used in combination with [reset] to restore a previous
+     * position in the token stream.
+     */
     fun state(): State {
-        return state;
+        return state
     }
 
+    /**
+     * Resets the [State] of the Tokenizer to a earlier one defined by the specified [state]. The State of the Tokenizer may
+     * be obtained by calling [state].
+     *
+     * Resetting the state of the Tokenizer performs in O(1).
+     */
     fun reset(state: State) {
         this.state = state
     }
 
+    /**
+     * Returns the current [SourcePosition] of this Tokenizer. The source position is the index in the char stream starting at 0.
+     * The position should be used for slicing the input in order to provide more information when reporting errors.
+     */
     fun position(): SourcePosition {
         return state.sourcePosition
     }
 
+    /**
+     * Returns the current [SourceLocation] of this Tokenizer. The source location is the line and the position within that line
+     * both starting at zero. The location should be used for error reporting, as it represents human readable position.
+     */
     fun location(): SourceLocation {
         return state.sourceLocation
     }
 
+    /**
+     * Slices the input onwards from the specified [position] to the current [SourcePosition].
+     */
     fun sliceFrom(start: SourcePosition): String {
         return text.substring(start.position, position().position)
     }
 
+    /**
+     * Slices the input from the specified [start] to the specified [end].
+     */
     fun slice(start: SourcePosition, end: SourcePosition): String {
         return text.substring(start.position, end.position)
     }
 
-    fun copy(): Tokenizer {
+    /**
+     * Clones the tokenizer returning a identical instance of such.
+     */
+    fun clone(): Tokenizer {
         return Tokenizer(text, lexer, state)
     }
 
+    /**
+     * Advances the token stream until a closing [Token] occurs, that matches the specified [BlockType]. Keeps track of any
+     * additional nested blocks, to prevent early returns on closing Tokens.
+     */
     fun consumeUntilEndOfBlock(type: BlockType) {
         val stack = Stack<BlockType>()
         stack.push(type)
@@ -138,6 +210,9 @@ class Tokenizer {
         }
     }
 
+    /**
+     * Advances the token stream until the next [Token] is one of specified [delimiters] or the end of file is reached.
+     */
     fun consumeUntilBefore(delimiters: Int) {
         loop@
         while (true) {
@@ -159,17 +234,33 @@ class Tokenizer {
             }
         }
     }
+
+    override fun toString(): String {
+        return "Tokenizer($state)"
+    }
 }
 
-class State(val token: Result<Token, Empty>,
-            val sourcePosition: SourcePosition,
-            val sourceLocation: SourceLocation) {
+/**
+ * Represents a concrete state of a [Tokenizer] bearing the [Token], [SourcePosition] and [SourceLocation] at that very state.
+ */
+data class State(
+        val token: Result<Token, Empty>,
+        val sourcePosition: SourcePosition,
+        val sourceLocation: SourceLocation
+) {
 
-    var next: State? = null
+    /**
+     * Actual implementation of the token stream as a linked list of States. Each State holds a lazy reference to next state
+     * but non to the previous. Such a reference must be held by any person of interest in order for him to be able to revert
+     * to a previous state. By not holding a reference to a previous State memory management becomes a trivial case, where
+     * tokens are automatically released after the have been passed by the tokenizer also long as no one else holds a reference
+     * to them.
+     */
+    internal var next: Option<State> = None
 
     companion object {
 
-        internal fun new(lexer: Lexer): State {
+        internal fun next(lexer: Lexer): State {
             val sourcePosition = lexer.position()
             val sourceLocation = lexer.location()
 

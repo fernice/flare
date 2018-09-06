@@ -2,10 +2,14 @@ package de.krall.flare.selector
 
 import de.krall.flare.ApplicableDeclarationBlock
 import de.krall.flare.dom.Element
-import de.krall.flare.std.*
 import de.krall.flare.style.Rule
 import de.krall.flare.style.parser.QuirksMode
 import de.krall.flare.style.ruletree.CascadeLevel
+import modern.std.None
+import modern.std.Option
+import modern.std.Some
+import modern.std.ifLet
+import modern.std.into
 
 /**
  * An optimized implementation of a Map that tries to accelerate the lookup of [Rule] for an [Element]
@@ -96,14 +100,16 @@ class SelectorMap {
 
         val list = when (bucket) {
             is Some -> {
-                when (bucket.value) {
-                    is Component.ID -> idHash.entry(bucket.value.id)
-                    is Component.Class -> classHash.entry(bucket.value.styleClass)
+                val component = bucket.value
+
+                when (component) {
+                    is Component.ID -> idHash.entry(component.id)
+                    is Component.Class -> classHash.entry(component.styleClass)
                     is Component.LocalName -> {
-                        if (bucket.value.localName != bucket.value.localNameLower) {
-                            localNameHash.entry(bucket.value.localNameLower)
+                        if (component.localName != component.localNameLower) {
+                            localNameHash.entry(component.localNameLower)
                         } else {
-                            localNameHash.entry(bucket.value.localName)
+                            localNameHash.entry(component.localName)
                         }
                     }
                     else -> throw IllegalStateException("unreachable")
@@ -119,7 +125,7 @@ class SelectorMap {
     }
 
     private fun findBucket(iter: SelectorIter): Option<Component> {
-        var bucket: Option<Component> = None()
+        var bucket: Option<Component> = None
         while (true) {
             for (component in iter) {
                 when (component) {
