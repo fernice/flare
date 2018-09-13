@@ -4,38 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>modern</groupId>
-    <artifactId>modern-flare</artifactId>
+    <parent>
+        <groupId>org.fernice</groupId>
+        <artifactId>fernice-maven</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>flare</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <properties>
-        <project.encoding>UTF-8</project.encoding>
-        <compile.source.version>1.8</compile.source.version>
-        <compile.target.version>1.8</compile.target.version>
-        <javadoc.additionalparam>-Xdoclint:none</javadoc.additionalparam>
-        <compile.verbose>false</compile.verbose>
-        <compile.show.warnings>true</compile.show.warnings>
-        <compile.show.deprecation>true</compile.show.deprecation>
-        <compile.optimize>true</compile.optimize>
-        <compile.debug>true</compile.debug>
-        <compile.debuglevel>lines,vars,source</compile.debuglevel>
-        <maven-compile-plugin.version>3.5.1</maven-compile-plugin.version>
-        <git-commit-id-plugin.version>2.1.11</git-commit-id-plugin.version>
-        <kotlin.version>1.2.60</kotlin.version>
-    </properties>
-
-    <distributionManagement>
-        <repository>
-            <id>bewotec.jackplus.releases</id>
-            <name>Bewotec JackPlus Releases</name>
-            <url>http://nexus.webtravel.de/repository/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>bewotec.jackplus.snapshots</id>
-            <name>Bewotec JackPlus Snapshots</name>
-            <url>http://nexus.webtravel.de/repository/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
+    <name>Flare</name>
+    <description>CSS 3 engine written in Kotlin</description>
 
     <dependencies>
         <dependency>
@@ -50,164 +28,12 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
             <version>0.9.11</version>
         </dependency>
-
-        <dependency>
-            <groupId>io.github.microutils</groupId>
-            <artifactId>kotlin-logging</artifactId>
-            <version>1.5.9</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jetbrains.kotlin</groupId>
-                    <artifactId>kotlin-stdlib</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-reflect</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test-junit</artifactId>
-            <version>${kotlin.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven-compile-plugin.version}</version>
-                    <configuration>
-                        <fork>true</fork>
-                        <encoding>${project.encoding}</encoding>
-                        <source>${compile.source.version}</source>
-                        <target>${compile.target.version}</target>
-                        <verbose>${compile.verbose}</verbose>
-                        <showWarnings>${compile.show.warnings}</showWarnings>
-                        <showDeprecation>${compile.show.deprecation}</showDeprecation>
-                        <optimize>${compile.optimize}</optimize>
-                        <debug>${compile.debug}</debug>
-                        <debuglevel>${compile.debuglevel}</debuglevel>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.19.1</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.version}</version>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>test-compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <jvmTarget>1.8</jvmTarget>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>testCompile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.0.0</version>
-
-                <executions>
-                    <execution>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/main/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>

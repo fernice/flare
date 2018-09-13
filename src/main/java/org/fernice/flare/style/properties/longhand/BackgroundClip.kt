@@ -1,0 +1,106 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+package org.fernice.flare.style.properties.longhand
+
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.Token
+import org.fernice.flare.cssparser.newUnexpectedTokenError
+import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.properties.CssWideKeyword
+import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyEntryPoint
+import org.fernice.flare.style.value.Context
+import fernice.std.Err
+import fernice.std.Ok
+import fernice.std.Result
+
+@PropertyEntryPoint
+class BackgroundClipId : LonghandId() {
+
+    override fun name(): String {
+        return "background-clip"
+    }
+
+    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
+        return Clip.parse(input).map(::BackgroundClipDeclaration)
+    }
+
+    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
+        when (declaration) {
+            is BackgroundClipDeclaration -> {
+                context.builder.setBackgroundClip(declaration.clip)
+            }
+            is PropertyDeclaration.CssWideKeyword -> {
+                when (declaration.keyword) {
+                    CssWideKeyword.UNSET,
+                    CssWideKeyword.INITIAL -> {
+                        context.builder.resetBackgroundClip()
+                    }
+                    CssWideKeyword.INHERIT -> {
+                        context.builder.inheritBackgroundClip()
+                    }
+                }
+            }
+            else -> throw IllegalStateException("wrong cascade")
+        }
+    }
+
+    override fun isEarlyProperty(): Boolean {
+        return false
+    }
+
+    override fun toString(): String {
+        return "LonghandId::BackgroundAttachment"
+    }
+
+    companion object {
+
+        val instance: BackgroundClipId by lazy { BackgroundClipId() }
+    }
+}
+
+class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration() {
+
+    override fun id(): LonghandId {
+        return BackgroundClipId.instance
+    }
+
+    companion object {
+
+        val initialValue: Clip by lazy { Clip.BORDER_BOX }
+    }
+}
+
+enum class Clip {
+
+    BORDER_BOX,
+
+    PADDING_BOX,
+
+    CONTENT_BOX;
+
+    companion object {
+
+        fun parse(input: Parser): Result<Clip, ParseError> {
+            val location = input.sourceLocation()
+            val identifierResult = input.expectIdentifier()
+
+            val identifier = when (identifierResult) {
+                is Ok -> identifierResult.value
+                is Err -> return identifierResult
+            }
+
+            return when (identifier.toLowerCase()) {
+                "border-box" -> Ok(BORDER_BOX)
+                "padding-box" -> Ok(PADDING_BOX)
+                "content-box" -> Ok(CONTENT_BOX)
+                else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
+            }
+        }
+    }
+}

@@ -13,7 +13,7 @@ third-party libraries.
 
 # Exceptions
 
-modern-flare does also make only very limited used of exception throughout the whole project, as they are meant to for truly
+modern-flare does also make only very limited use of exception throughout the whole project, as they are meant to for truly
 exceptional cases only, in which error recovery is not feasible, as the cause of the error is a substantial bug in the overall
 system. In all other case, in which error recovery is needed, the Rust like monad *modern.std.Result* is used instead. The
 Result is used as the return type of such a method, conveying either a success via *modern.std.Ok* or a failure via 
@@ -32,8 +32,8 @@ line with opening and closing parenthesis preceding and succeeding in also a sep
 ## Parser
 
 Parsing happens across the projects in the very objects that should be parsed into. Every parse method relies on the Parser
-defined under *de.krall.flare.cssparser*. It provide common methods for advancing the token stream, keeping track of nested
-blocks and expecting certain kind of tokens. It might be accommodated by *de.krall.flare.style.parser.ParserContext* for
+defined under *org.fernice.flare.cssparser*. It provide common methods for advancing the token stream, keeping track of nested
+blocks and expecting certain kind of tokens. It might be accommodated by *org.fernice.flare.style.parser.ParserContext* for
 higher lever parse methods such as those related to lengths.
 
 The parsing code is spread across the project purposely as Flare does not use any Parse Generators nor does it use an
@@ -50,5 +50,5 @@ have both a computed and used value form which should at best correlate.
 ## DOM
 
 The DOM (**D**ocument **O**bject **M**odel) is completely abstract and therefor open to the implementor. Flare does only define
-basic interface that ensure the availability of required functions. The two main interfaces are *de.krall.flare.dom.Element* and
-*de.krall.flare.dom.Device*, where Element represent a node in the DOM and Device the owner of the tree as well as the display.
+basic interface that ensure the availability of required functions. The two main interfaces are *org.fernice.flare.dom.Element* and
+*org.fernice.flare.dom.Device*, where Element represent a node in the DOM and Device the owner of the tree as well as the display.
