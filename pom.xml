@@ -9,7 +9,7 @@
         <artifactId>fernice-maven</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>flare</artifactId>
+    <artifactId>fernice-flare</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <name>Flare</name>
@@ -17,17 +17,16 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.fernice</groupId>
+            <artifactId>fernice-stdlib</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>3.0.1</version>
         </dependency>
-
-        <dependency>
-            <groupId>modern</groupId>
-            <artifactId>modern-std</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
 
         <dependency>
             <groupId>org.reflections</groupId>
