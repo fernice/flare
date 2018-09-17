@@ -13,6 +13,13 @@
     <name>Flare</name>
     <description>CSS 3 engine written in Kotlin</description>
 
+    <scm>
+        <connection>scm:git:ssh://git@github.com:fernice/flare.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:fernice/flare.git</developerConnection>
+        <url>https://github.com/fernice/flare</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <dependencies>
         <dependency>
             <groupId>org.fernice</groupId>
