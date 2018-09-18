@@ -5,13 +5,14 @@
     <parent>
         <groupId>org.fernice</groupId>
         <artifactId>fernice-maven</artifactId>
-        <version>1.0</version>
+        <version>1.0.3</version>
     </parent>
     <artifactId>fernice-flare</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.0.3-SNAPSHOT</version>
 
     <name>Flare</name>
     <description>CSS 3 engine written in Kotlin</description>
+    <url>https://github.com/fernice/flare</url>
 
     <scm>
         <connection>scm:git:ssh://git@github.com:fernice/flare.git</connection>
@@ -24,7 +25,7 @@
         <dependency>
             <groupId>org.fernice</groupId>
             <artifactId>fernice-stdlib</artifactId>
-            <version>1.0</version>
+            <version>1.0.3</version>
         </dependency>
 
         <dependency>
