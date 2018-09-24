@@ -20,9 +20,10 @@ import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import fernice.std.Result
 import fernice.std.Some
+import java.io.Writer
 
-@PropertyEntryPoint
-class FontSizeId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object FontSizeId : LonghandId() {
     override fun name(): String {
         return "font-size"
     }
@@ -40,11 +41,11 @@ class FontSizeId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Initial -> {
                         context.builder.resetFontSize()
                     }
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritFontSize()
                     }
                 }
@@ -56,28 +57,27 @@ class FontSizeId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return true
     }
-
-    companion object {
-
-        val instance: FontSizeId by lazy { FontSizeId() }
-    }
 }
 
 class FontSizeDeclaration(val fontSize: FontSize) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return FontSizeId.instance
+        return FontSizeId
     }
+
+    override fun toCssInternally(writer: Writer) = fontSize.toCss(writer)
 
     companion object {
 
         val initialValue: ComputedFontSize by lazy {
             ComputedFontSize(
-                    NonNegativeLength.new(16f),
-                    Some(KeywordInfo(
-                            KeywordSize.Medium,
-                            1f,
-                            NonNegativeLength.new(0f)
-                    ))
+                NonNegativeLength.new(16f),
+                Some(
+                    KeywordInfo(
+                        KeywordSize.Medium,
+                        1f,
+                        NonNegativeLength.new(0f)
+                    )
+                )
             )
         }
     }

@@ -16,9 +16,10 @@ import org.fernice.flare.style.value.computed.Color as ComputedColor
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import fernice.std.Result
+import java.io.Writer
 
-@PropertyEntryPoint
-class BackgroundColorId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundColorId : LonghandId() {
 
     override fun name(): String {
         return "background-color"
@@ -37,11 +38,11 @@ class BackgroundColorId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundColor()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundColor()
                     }
                 }
@@ -53,20 +54,17 @@ class BackgroundColorId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BackgroundColorId by lazy { BackgroundColorId() }
-    }
 }
 
 class BackgroundColorDeclaration(val color: Color) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BackgroundColorId.instance
+        return BackgroundColorId
     }
 
     companion object {
 
         val initialValue: ComputedColor by lazy { ComputedColor.transparent() }
     }
+
+    override fun toCssInternally(writer: Writer) = color.toCss(writer)
 }

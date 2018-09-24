@@ -33,7 +33,9 @@ import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
+import org.fernice.flare.cssparser.ToCss
 import org.reflections.Reflections
+import java.io.Writer
 import kotlin.reflect.full.companionObjectInstance
 
 /**
@@ -44,26 +46,39 @@ import kotlin.reflect.full.companionObjectInstance
 @Retention(AnnotationRetention.RUNTIME)
 annotation class PropertyEntryPoint(val legacy: Boolean = true)
 
-abstract class PropertyDeclaration {
-
-    /**
-     * Returns the name of the property
-     */
-    abstract fun id(): LonghandId
+abstract class PropertyDeclaration : ToCss {
 
     class CssWideKeyword(val id: LonghandId, val keyword: org.fernice.flare.style.properties.CssWideKeyword) : PropertyDeclaration() {
 
         override fun id(): LonghandId {
             return id
         }
+
+        override fun toCssInternally(writer: Writer) = keyword.toCss(writer)
+    }
+
+    /**
+     * Returns the name of the property
+     */
+    abstract fun id(): LonghandId
+
+    protected abstract fun toCssInternally(writer: Writer)
+
+    final override fun toCss(writer: Writer) {
+        writer.append(id().name())
+        writer.append(": ")
+        toCssInternally(writer)
+        writer.append(';')
     }
 
     companion object {
 
-        fun parseInto(declarations: MutableList<PropertyDeclaration>,
-                      id: PropertyId,
-                      context: ParserContext,
-                      input: Parser): Result<Empty, ParseError> {
+        fun parseInto(
+            declarations: MutableList<PropertyDeclaration>,
+            id: PropertyId,
+            context: ParserContext,
+            input: Parser
+        ): Result<Empty, ParseError> {
             return id.parseInto(declarations, context, input)
         }
     }
@@ -229,13 +244,23 @@ sealed class PropertyId {
     }
 }
 
-enum class CssWideKeyword {
+sealed class CssWideKeyword : ToCss {
 
-    UNSET,
+    object Unset : CssWideKeyword()
 
-    INITIAL,
+    object Initial : CssWideKeyword()
 
-    INHERIT;
+    object Inherit : CssWideKeyword()
+
+    override fun toCss(writer: Writer) {
+        writer.write(
+            when (this) {
+                CssWideKeyword.Unset -> "unset"
+                CssWideKeyword.Initial -> "initial"
+                CssWideKeyword.Inherit -> "inherit"
+            }
+        )
+    }
 
     companion object {
 
@@ -249,9 +274,9 @@ enum class CssWideKeyword {
             }
 
             return when (identifier.toLowerCase()) {
-                "unset" -> Ok(UNSET)
-                "initial" -> Ok(INITIAL)
-                "inherit" -> Ok(INHERIT)
+                "unset" -> Ok(CssWideKeyword.Unset)
+                "initial" -> Ok(CssWideKeyword.Initial)
+                "inherit" -> Ok(CssWideKeyword.Inherit)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }
@@ -261,14 +286,14 @@ enum class CssWideKeyword {
 data class DeclarationAndCascadeLevel(val declaration: PropertyDeclaration, val cascadeLevel: CascadeLevel)
 
 fun cascade(
-        device: Device,
-        element: Option<Element>,
-        pseudoElement: Option<PseudoElement>,
-        ruleNode: RuleNode,
-        parentStyle: Option<ComputedValues>,
-        parentStyleIgnoringFirstLine: Option<ComputedValues>,
-        layoutStyle: Option<ComputedValues>,
-        fontMetricsProvider: FontMetricsProvider
+    device: Device,
+    element: Option<Element>,
+    pseudoElement: Option<PseudoElement>,
+    ruleNode: RuleNode,
+    parentStyle: Option<ComputedValues>,
+    parentStyleIgnoringFirstLine: Option<ComputedValues>,
+    layoutStyle: Option<ComputedValues>,
+    fontMetricsProvider: FontMetricsProvider
 ): ComputedValues {
 
     val iter = {
@@ -284,7 +309,7 @@ fun cascade(
 
             val nodeImportance = node.importance()
 
-            declarations.filterMap<DeclarationAndCascadeLevel> { (declaration, importance) ->
+            declarations.filterMap { (declaration, importance) ->
                 if (importance == nodeImportance) {
                     Some(DeclarationAndCascadeLevel(declaration, level))
                 } else {
@@ -295,35 +320,37 @@ fun cascade(
     }
 
     return applyDeclarations(
-            device,
-            element,
-            pseudoElement,
-            iter,
-            parentStyle,
-            parentStyleIgnoringFirstLine,
-            layoutStyle,
-            fontMetricsProvider
+        device,
+        element,
+        pseudoElement,
+        iter,
+        parentStyle,
+        parentStyleIgnoringFirstLine,
+        layoutStyle,
+        fontMetricsProvider
     )
 }
 
-fun applyDeclarations(device: Device,
-                      element: Option<Element>,
-                      pseudoElement: Option<PseudoElement>,
-                      declarations: () -> Iter<DeclarationAndCascadeLevel>,
-                      parentStyle: Option<ComputedValues>,
-                      parentStyleIgnoringFirstLine: Option<ComputedValues>,
-                      layoutStyle: Option<ComputedValues>,
-                      fontMetricsProvider: FontMetricsProvider): ComputedValues {
+fun applyDeclarations(
+    device: Device,
+    element: Option<Element>,
+    pseudoElement: Option<PseudoElement>,
+    declarations: () -> Iter<DeclarationAndCascadeLevel>,
+    parentStyle: Option<ComputedValues>,
+    parentStyleIgnoringFirstLine: Option<ComputedValues>,
+    layoutStyle: Option<ComputedValues>,
+    fontMetricsProvider: FontMetricsProvider
+): ComputedValues {
     val context = Context(
-            false,
+        false,
 
-            StyleBuilder.new(
-                    device,
-                    WritingMode(0),
-                    parentStyle,
-                    parentStyleIgnoringFirstLine
-            ),
-            fontMetricsProvider
+        StyleBuilder.new(
+            device,
+            WritingMode(0),
+            parentStyle,
+            parentStyleIgnoringFirstLine
+        ),
+        fontMetricsProvider
     )
 
     val seen = mutableSetOf<LonghandId>()
@@ -356,13 +383,13 @@ fun applyDeclarations(device: Device,
     }
 
     if (fontFamily is Some) {
-        val longhandId = FontFamilyId.instance
+        val longhandId = FontFamilyId
 
         longhandId.cascadeProperty(fontFamily.value, context)
     }
 
     if (fontSize is Some) {
-        val longhandId = FontSizeId.instance
+        val longhandId = FontSizeId
 
         longhandId.cascadeProperty(fontSize.value, context)
     }

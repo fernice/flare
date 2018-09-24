@@ -36,18 +36,26 @@ class PaddingId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(PaddingTopDeclaration(
+        declarations.add(
+            PaddingTopDeclaration(
                 sides.top
-        ))
-        declarations.add(PaddingRightDeclaration(
+            )
+        )
+        declarations.add(
+            PaddingRightDeclaration(
                 sides.right
-        ))
-        declarations.add(PaddingBottomDeclaration(
+            )
+        )
+        declarations.add(
+            PaddingBottomDeclaration(
                 sides.bottom
-        ))
-        declarations.add(PaddingLeftDeclaration(
+            )
+        )
+        declarations.add(
+            PaddingLeftDeclaration(
                 sides.left
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -60,10 +68,10 @@ class PaddingId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    PaddingTopId.instance,
-                    PaddingRightId.instance,
-                    PaddingBottomId.instance,
-                    PaddingLeftId.instance
+                PaddingTopId,
+                PaddingRightId,
+                PaddingBottomId,
+                PaddingLeftId
             )
         }
 

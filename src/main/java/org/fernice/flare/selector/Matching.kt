@@ -286,7 +286,7 @@ private fun matchesSimpleSelector(selector: Component, element: Element, context
         is Component.LastOfType -> {
             matchesGenericNthChild(element, 1, 0, true, true)
         }
-        is Component.OnlyType -> {
+        is Component.OnlyOfType -> {
             matchesGenericNthChild(element, 0, 1, true, false) &&
                     matchesGenericNthChild(element, 0, 1, true, true)
         }

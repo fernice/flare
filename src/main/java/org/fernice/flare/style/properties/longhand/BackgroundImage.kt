@@ -16,10 +16,12 @@ import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.Image
 import org.fernice.flare.style.value.toComputedValue
 import fernice.std.Result
+import org.fernice.flare.cssparser.toCssJoining
+import java.io.Writer
 import org.fernice.flare.style.value.computed.Image as ComputedImage
 
-@PropertyEntryPoint
-class BackgroundImageId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundImageId : LonghandId() {
 
     override fun name(): String {
         return "background-image"
@@ -38,11 +40,11 @@ class BackgroundImageId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundImage()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundImage()
                     }
                 }
@@ -58,18 +60,15 @@ class BackgroundImageId : LonghandId() {
     override fun toString(): String {
         return "LonghandId::BackgroundImage"
     }
-
-    companion object {
-
-        val instance: BackgroundImageId by lazy { BackgroundImageId() }
-    }
 }
 
 class BackgroundImageDeclaration(val image: List<Image>) : PropertyDeclaration() {
 
     override fun id(): LonghandId {
-        return BackgroundImageId.instance
+        return BackgroundImageId
     }
+
+    override fun toCssInternally(writer: Writer) = image.toCssJoining(writer, ", ")
 
     companion object {
 

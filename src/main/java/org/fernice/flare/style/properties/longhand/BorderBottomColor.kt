@@ -15,10 +15,11 @@ import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.Color
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 
-@PropertyEntryPoint
-class BorderBottomColorId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BorderBottomColorId : LonghandId() {
 
     override fun name(): String {
         return "border-bottom-color"
@@ -37,11 +38,11 @@ class BorderBottomColorId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBorderBottomColor()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBorderBottomColor()
                     }
                 }
@@ -53,16 +54,15 @@ class BorderBottomColorId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BorderBottomColorId by lazy { BorderBottomColorId() }
-    }
 }
 
 class BorderBottomColorDeclaration(val color: Color) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BorderBottomColorId.instance
+        return BorderBottomColorId
+    }
+
+    override fun toCssInternally(writer: Writer) {
+        color.toCss(writer)
     }
 
     companion object {

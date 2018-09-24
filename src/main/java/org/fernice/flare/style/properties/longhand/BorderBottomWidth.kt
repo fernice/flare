@@ -15,10 +15,11 @@ import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.BorderSideWidth
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 
-@PropertyEntryPoint
-class BorderBottomWidthId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BorderBottomWidthId : LonghandId() {
 
     override fun name(): String {
         return "border-bottom-width"
@@ -37,11 +38,11 @@ class BorderBottomWidthId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBorderBottomWidth()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBorderBottomWidth()
                     }
                 }
@@ -53,17 +54,14 @@ class BorderBottomWidthId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BorderBottomWidthId by lazy { BorderBottomWidthId() }
-    }
 }
 
 class BorderBottomWidthDeclaration(val width: BorderSideWidth) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BorderBottomWidthId.instance
+        return BorderBottomWidthId
     }
+
+    override fun toCssInternally(writer: Writer) = width.toCss(writer)
 
     companion object {
 

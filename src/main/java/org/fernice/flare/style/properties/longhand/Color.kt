@@ -15,10 +15,11 @@ import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.ColorPropertyValue
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.specified.Color as ComputedColor
 
-@PropertyEntryPoint
-class ColorId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object ColorId : LonghandId() {
 
     override fun name(): String {
         return "color"
@@ -37,11 +38,11 @@ class ColorId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Initial -> {
                         context.builder.resetColor()
                     }
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritColor()
                     }
                 }
@@ -53,17 +54,14 @@ class ColorId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: ColorId by lazy { ColorId() }
-    }
 }
 
 class ColorDeclaration(val color: ColorPropertyValue) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return ColorId.instance
+        return ColorId
     }
+
+    override fun toCssInternally(writer: Writer) = color.toCss(writer)
 
     companion object {
 

@@ -60,9 +60,11 @@ import fernice.std.Result
 import fernice.std.Some
 import fernice.std.unwrapOr
 
-private data class Longhands(val width: BorderSideWidth,
-                             val color: Color,
-                             val style: Style)
+private data class Longhands(
+    val width: BorderSideWidth,
+    val color: Color,
+    val style: Style
+)
 
 private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands, ParseError> {
     var color: Option<Color> = None
@@ -105,11 +107,13 @@ private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands
     }
 
     return if (any) {
-        Ok(Longhands(
+        Ok(
+            Longhands(
                 width.unwrapOr(BorderSideWidth.Medium),
                 color.unwrapOr(Color.transparent()),
-                style.unwrapOr(Style.NONE)
-        ))
+                style.unwrapOr(Style.None)
+            )
+        )
     } else {
         Err(input.newError(ParseErrorKind.Unknown))
     }
@@ -130,45 +134,69 @@ class BorderId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(BorderTopColorDeclaration(
+        declarations.add(
+            BorderTopColorDeclaration(
                 color
-        ))
-        declarations.add(BorderTopStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderTopStyleDeclaration(
                 style
-        ))
-        declarations.add(BorderTopWidthDeclaration(
+            )
+        )
+        declarations.add(
+            BorderTopWidthDeclaration(
                 width
-        ))
+            )
+        )
 
-        declarations.add(BorderRightColorDeclaration(
+        declarations.add(
+            BorderRightColorDeclaration(
                 color
-        ))
-        declarations.add(BorderRightStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderRightStyleDeclaration(
                 style
-        ))
-        declarations.add(BorderRightWidthDeclaration(
+            )
+        )
+        declarations.add(
+            BorderRightWidthDeclaration(
                 width
-        ))
+            )
+        )
 
-        declarations.add(BorderBottomColorDeclaration(
+        declarations.add(
+            BorderBottomColorDeclaration(
                 color
-        ))
-        declarations.add(BorderBottomStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomStyleDeclaration(
                 style
-        ))
-        declarations.add(BorderBottomWidthDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomWidthDeclaration(
                 width
-        ))
+            )
+        )
 
-        declarations.add(BorderLeftColorDeclaration(
+        declarations.add(
+            BorderLeftColorDeclaration(
                 color
-        ))
-        declarations.add(BorderLeftStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderLeftStyleDeclaration(
                 style
-        ))
-        declarations.add(BorderLeftWidthDeclaration(
+            )
+        )
+        declarations.add(
+            BorderLeftWidthDeclaration(
                 width
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -181,21 +209,21 @@ class BorderId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderTopColorId.instance,
-                    BorderTopStyleId.instance,
-                    BorderTopWidthId.instance,
+                BorderTopColorId,
+                BorderTopStyleId,
+                BorderTopWidthId,
 
-                    BorderRightColorId.instance,
-                    BorderRightStyleId.instance,
-                    BorderRightWidthId.instance,
+                BorderRightColorId,
+                BorderRightStyleId,
+                BorderRightWidthId,
 
-                    BorderBottomColorId.instance,
-                    BorderBottomStyleId.instance,
-                    BorderBottomWidthId.instance,
+                BorderBottomColorId,
+                BorderBottomStyleId,
+                BorderBottomWidthId,
 
-                    BorderLeftColorId.instance,
-                    BorderLeftStyleId.instance,
-                    BorderLeftWidthId.instance
+                BorderLeftColorId,
+                BorderLeftStyleId,
+                BorderLeftWidthId
             )
         }
 
@@ -218,18 +246,26 @@ class BorderColorId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(BorderTopColorDeclaration(
+        declarations.add(
+            BorderTopColorDeclaration(
                 sides.top
-        ))
-        declarations.add(BorderRightColorDeclaration(
+            )
+        )
+        declarations.add(
+            BorderRightColorDeclaration(
                 sides.right
-        ))
-        declarations.add(BorderBottomColorDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomColorDeclaration(
                 sides.bottom
-        ))
-        declarations.add(BorderLeftColorDeclaration(
+            )
+        )
+        declarations.add(
+            BorderLeftColorDeclaration(
                 sides.left
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -242,10 +278,10 @@ class BorderColorId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderTopColorId.instance,
-                    BorderRightColorId.instance,
-                    BorderBottomColorId.instance,
-                    BorderLeftColorId.instance
+                BorderTopColorId,
+                BorderRightColorId,
+                BorderBottomColorId,
+                BorderLeftColorId
             )
         }
 
@@ -268,18 +304,26 @@ class BorderStyleId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(BorderTopStyleDeclaration(
+        declarations.add(
+            BorderTopStyleDeclaration(
                 sides.top
-        ))
-        declarations.add(BorderRightStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderRightStyleDeclaration(
                 sides.right
-        ))
-        declarations.add(BorderBottomStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomStyleDeclaration(
                 sides.bottom
-        ))
-        declarations.add(BorderLeftStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderLeftStyleDeclaration(
                 sides.left
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -292,10 +336,10 @@ class BorderStyleId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderTopStyleId.instance,
-                    BorderRightStyleId.instance,
-                    BorderBottomStyleId.instance,
-                    BorderLeftStyleId.instance
+                BorderTopStyleId,
+                BorderRightStyleId,
+                BorderBottomStyleId,
+                BorderLeftStyleId
             )
         }
 
@@ -318,18 +362,26 @@ class BorderWidthId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(BorderTopWidthDeclaration(
+        declarations.add(
+            BorderTopWidthDeclaration(
                 sides.top
-        ))
-        declarations.add(BorderRightWidthDeclaration(
+            )
+        )
+        declarations.add(
+            BorderRightWidthDeclaration(
                 sides.right
-        ))
-        declarations.add(BorderBottomWidthDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomWidthDeclaration(
                 sides.bottom
-        ))
-        declarations.add(BorderLeftWidthDeclaration(
+            )
+        )
+        declarations.add(
+            BorderLeftWidthDeclaration(
                 sides.left
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -342,10 +394,10 @@ class BorderWidthId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderTopWidthId.instance,
-                    BorderRightWidthId.instance,
-                    BorderBottomWidthId.instance,
-                    BorderLeftWidthId.instance
+                BorderTopWidthId,
+                BorderRightWidthId,
+                BorderBottomWidthId,
+                BorderLeftWidthId
             )
         }
 
@@ -379,18 +431,26 @@ class BorderRadiusId : ShorthandId() {
             widths
         }
 
-        declarations.add(BorderTopLeftRadiusDeclaration(
+        declarations.add(
+            BorderTopLeftRadiusDeclaration(
                 BorderCornerRadius(widths.top, heights.top)
-        ))
-        declarations.add(BorderTopRightRadiusDeclaration(
+            )
+        )
+        declarations.add(
+            BorderTopRightRadiusDeclaration(
                 BorderCornerRadius(widths.right, heights.right)
-        ))
-        declarations.add(BorderBottomLeftRadiusDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomLeftRadiusDeclaration(
                 BorderCornerRadius(widths.bottom, heights.bottom)
-        ))
-        declarations.add(BorderBottomRightRadiusDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomRightRadiusDeclaration(
                 BorderCornerRadius(widths.left, heights.left)
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -403,10 +463,10 @@ class BorderRadiusId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderTopLeftRadiusId.instance,
-                    BorderTopRightRadiusId.instance,
-                    BorderBottomLeftRadiusId.instance,
-                    BorderBottomRightRadiusId.instance
+                BorderTopLeftRadiusId,
+                BorderTopRightRadiusId,
+                BorderBottomLeftRadiusId,
+                BorderBottomRightRadiusId
             )
         }
 
@@ -429,15 +489,21 @@ class BorderTopId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(BorderTopWidthDeclaration(
+        declarations.add(
+            BorderTopWidthDeclaration(
                 width
-        ))
-        declarations.add(BorderTopColorDeclaration(
+            )
+        )
+        declarations.add(
+            BorderTopColorDeclaration(
                 color
-        ))
-        declarations.add(BorderTopStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderTopStyleDeclaration(
                 style
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -450,9 +516,9 @@ class BorderTopId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderTopWidthId.instance,
-                    BorderTopColorId.instance,
-                    BorderTopStyleId.instance
+                BorderTopWidthId,
+                BorderTopColorId,
+                BorderTopStyleId
             )
         }
 
@@ -475,15 +541,21 @@ class BorderRightId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(BorderRightWidthDeclaration(
+        declarations.add(
+            BorderRightWidthDeclaration(
                 width
-        ))
-        declarations.add(BorderRightColorDeclaration(
+            )
+        )
+        declarations.add(
+            BorderRightColorDeclaration(
                 color
-        ))
-        declarations.add(BorderRightStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderRightStyleDeclaration(
                 style
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -496,9 +568,9 @@ class BorderRightId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderRightWidthId.instance,
-                    BorderRightColorId.instance,
-                    BorderRightStyleId.instance
+                BorderRightWidthId,
+                BorderRightColorId,
+                BorderRightStyleId
             )
         }
 
@@ -521,15 +593,21 @@ class BorderBottomId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(BorderBottomWidthDeclaration(
+        declarations.add(
+            BorderBottomWidthDeclaration(
                 width
-        ))
-        declarations.add(BorderBottomColorDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomColorDeclaration(
                 color
-        ))
-        declarations.add(BorderBottomStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderBottomStyleDeclaration(
                 style
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -542,9 +620,9 @@ class BorderBottomId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderBottomWidthId.instance,
-                    BorderBottomColorId.instance,
-                    BorderBottomStyleId.instance
+                BorderBottomWidthId,
+                BorderBottomColorId,
+                BorderBottomStyleId
             )
         }
 
@@ -567,15 +645,21 @@ class BorderLeftId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(BorderLeftWidthDeclaration(
+        declarations.add(
+            BorderLeftWidthDeclaration(
                 width
-        ))
-        declarations.add(BorderLeftColorDeclaration(
+            )
+        )
+        declarations.add(
+            BorderLeftColorDeclaration(
                 color
-        ))
-        declarations.add(BorderLeftStyleDeclaration(
+            )
+        )
+        declarations.add(
+            BorderLeftStyleDeclaration(
                 style
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -588,9 +672,9 @@ class BorderLeftId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    BorderLeftWidthId.instance,
-                    BorderLeftColorId.instance,
-                    BorderLeftStyleId.instance
+                BorderLeftWidthId,
+                BorderLeftColorId,
+                BorderLeftStyleId
             )
         }
 

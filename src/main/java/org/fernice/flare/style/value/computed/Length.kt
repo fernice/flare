@@ -5,10 +5,12 @@
  */
 package org.fernice.flare.style.value.computed
 
-import org.fernice.flare.std.max
 import org.fernice.flare.style.value.ComputedValue
 import fernice.std.Some
 import fernice.std.unwrap
+import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.std.min
+import java.io.Writer
 
 data class PixelLength(val value: Float) : ComputedValue {
 
@@ -59,7 +61,7 @@ fun Au.into(): PixelLength {
 data class NonNegativeLength(val length: PixelLength) : ComputedValue {
 
     fun scaleBy(factor: Float): NonNegativeLength {
-        return new(length.px() * factor.max(0f))
+        return new(length.px() * factor.min(0f))
     }
 
     operator fun plus(other: NonNegativeLength): NonNegativeLength {
@@ -69,7 +71,7 @@ data class NonNegativeLength(val length: PixelLength) : ComputedValue {
     companion object {
 
         fun new(px: Float): NonNegativeLength {
-            return NonNegativeLength(PixelLength(px.max(0f)))
+            return NonNegativeLength(PixelLength(px.min(0f)))
         }
 
         private val zero: NonNegativeLength by lazy { NonNegativeLength(PixelLength.zero()) }
@@ -176,7 +178,11 @@ data class Au(val value: Int) {
     }
 }
 
-data class Percentage(val value: Float) : ComputedValue {
+data class Percentage(val value: Float) : ComputedValue, ToCss {
+
+    override fun toCss(writer: Writer) {
+        writer.append("$value%")
+    }
 
     companion object {
 

@@ -36,18 +36,26 @@ class MarginId : ShorthandId() {
             is Err -> return result
         }
 
-        declarations.add(MarginTopDeclaration(
+        declarations.add(
+            MarginTopDeclaration(
                 sides.top
-        ))
-        declarations.add(MarginRightDeclaration(
+            )
+        )
+        declarations.add(
+            MarginRightDeclaration(
                 sides.right
-        ))
-        declarations.add(MarginBottomDeclaration(
+            )
+        )
+        declarations.add(
+            MarginBottomDeclaration(
                 sides.bottom
-        ))
-        declarations.add(MarginLeftDeclaration(
+            )
+        )
+        declarations.add(
+            MarginLeftDeclaration(
                 sides.left
-        ))
+            )
+        )
 
         return Ok()
     }
@@ -60,10 +68,10 @@ class MarginId : ShorthandId() {
 
         private val longhands: List<LonghandId> by lazy {
             listOf(
-                    MarginTopId.instance,
-                    MarginRightId.instance,
-                    MarginBottomId.instance,
-                    MarginLeftId.instance
+                MarginTopId,
+                MarginRightId,
+                MarginBottomId,
+                MarginLeftId
             )
         }
 

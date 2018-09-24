@@ -9,40 +9,59 @@ import org.fernice.flare.dom.Device
 import org.fernice.flare.dom.Element
 import org.fernice.flare.font.FontMetricsProvider
 import org.fernice.flare.style.ElementStyleResolver
+import org.fernice.flare.style.MatchingResult
 import org.fernice.flare.style.Stylist
 import org.fernice.flare.style.context.StyleContext
 import org.fernice.flare.style.parser.QuirksMode
 
 class Engine(
-        val device: Device,
-        val shared: SharedEngine
+    val device: Device,
+    val shared: SharedEngine
+) {
+    fun style(element: Element) {
+        shared.style(device, element)
+    }
+
+    fun matchStyles(element: Element): MatchingResult {
+        return shared.matchStyle(device, element)
+    }
+}
+
+class SharedEngine(
+    val stylist: Stylist,
+    val fontMetricsProvider: FontMetricsProvider
 ) {
 
-    private fun createEngineContext(): EngineContext {
-        return EngineContext(
-                StyleContext.new(
-                        device,
-                        shared.stylist,
-                        shared.fontMetricsProvider
-                )
-        )
-    }
-
-    fun applyStyles(element: Element) {
-        val context = createEngineContext()
-
-        applyStyles(element, context)
-    }
-
-    private fun applyStyles(element: Element, context: EngineContext) {
-        applyStyle(element, context)
-
-        for (child in element.children()) {
-            applyStyles(child, context)
+    companion object {
+        fun new(fontMetricsProvider: FontMetricsProvider): SharedEngine {
+            return SharedEngine(
+                Stylist.new(QuirksMode.NO_QUIRKS),
+                fontMetricsProvider
+            )
         }
     }
 
-    private fun applyStyle(element: Element, context: EngineContext) {
+    fun style(device: Device, element: Element) {
+        val context = EngineContext(
+            StyleContext.new(
+                device,
+                stylist,
+                fontMetricsProvider
+            )
+        )
+
+        style(element, context)
+    }
+
+    private fun style(element: Element, context: EngineContext) {
+        styleInternal(element, context)
+
+        for (child in element.children()) {
+            style(child, context)
+        }
+    }
+
+    private fun styleInternal(element: Element, context: EngineContext) {
         context.styleContext.bloomFilter.insertParent(element)
 
         val styleResolver = ElementStyleResolver(element, context.styleContext)
@@ -53,24 +72,24 @@ class Engine(
 
         element.finishRestyle(context.styleContext, data, styles)
     }
-}
 
-class SharedEngine(
-        val stylist: Stylist,
-        val fontMetricsProvider: FontMetricsProvider
-) {
-
-    companion object {
-        fun new(fontMetricsProvider: FontMetricsProvider): SharedEngine {
-            return SharedEngine(
-                    Stylist.new(QuirksMode.NO_QUIRKS),
-                    fontMetricsProvider
+    fun matchStyle(device: Device, element: Element): MatchingResult {
+        val context = EngineContext(
+            StyleContext.new(
+                device,
+                stylist,
+                fontMetricsProvider
             )
-        }
+        )
+
+        context.styleContext.bloomFilter.insertParent(element)
+
+        val styleResolver = ElementStyleResolver(element, context.styleContext)
+
+        return styleResolver.matchPrimary()
     }
 }
 
-
 class EngineContext(
-        val styleContext: StyleContext
+    val styleContext: StyleContext
 )

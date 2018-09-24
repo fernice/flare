@@ -7,12 +7,18 @@ package org.fernice.flare.url
 
 import fernice.std.Ok
 import fernice.std.Result
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 
 
-data class Url(val value: String) {
+data class Url(val value: String) : ToCss {
 
     fun join(suffix: String): Result<Url, ParseError> {
         return Ok(Url(value + suffix))
+    }
+
+    override fun toCss(writer: Writer) {
+        writer.append(value)
     }
 }
 

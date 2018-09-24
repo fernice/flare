@@ -127,7 +127,7 @@ private fun specificity(iter: Iter<Component>): Int {
             is Component.NthLastOfType,
             is Component.FirstOfType,
             is Component.LastOfType,
-            is Component.OnlyType,
+            is Component.OnlyOfType,
             is Component.NonTSPseudoClass -> {
                 specificity.classSelectors += 1
             }

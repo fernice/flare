@@ -15,13 +15,14 @@ import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.computed.Style
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 
-@PropertyEntryPoint
-class BorderBottomStyleId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BorderBottomStyleId : LonghandId() {
 
     override fun name(): String {
-        return "border-Bottom-style"
+        return "border-bottom-style"
     }
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
@@ -35,11 +36,11 @@ class BorderBottomStyleId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBorderBottomStyle()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBorderBottomStyle()
                     }
                 }
@@ -51,20 +52,17 @@ class BorderBottomStyleId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BorderBottomStyleId by lazy { BorderBottomStyleId() }
-    }
 }
 
 class BorderBottomStyleDeclaration(val style: Style) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BorderBottomStyleId.instance
+        return BorderBottomStyleId
     }
+
+    override fun toCssInternally(writer: Writer) = style.toCss(writer)
 
     companion object {
 
-        val initialValue: Style by lazy { Style.NONE }
+        val initialValue: Style by lazy { Style.None }
     }
 }

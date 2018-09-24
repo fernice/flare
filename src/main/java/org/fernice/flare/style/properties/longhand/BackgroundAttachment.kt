@@ -5,22 +5,25 @@
  */
 package org.fernice.flare.style.properties.longhand
 
+import fernice.std.Err
+import fernice.std.Ok
+import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
+import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
+import java.io.Writer
 
-@PropertyEntryPoint
-class BackgroundAttachmentId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundAttachmentId : LonghandId() {
 
     override fun name(): String {
         return "background-attachment"
@@ -37,11 +40,11 @@ class BackgroundAttachmentId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundAttachment()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundAttachment()
                     }
                 }
@@ -57,18 +60,15 @@ class BackgroundAttachmentId : LonghandId() {
     override fun toString(): String {
         return "LonghandId::BackgroundAttachment"
     }
-
-    companion object {
-
-        val instance: BackgroundAttachmentId by lazy { BackgroundAttachmentId() }
-    }
 }
 
 class BackgroundAttachmentDeclaration(val attachment: List<Attachment>) : PropertyDeclaration() {
 
     override fun id(): LonghandId {
-        return BackgroundAttachmentId.instance
+        return BackgroundAttachmentId
     }
+
+    override fun toCssInternally(writer: Writer) = attachment.toCssJoining(writer, ", ")
 
     companion object {
 
@@ -76,13 +76,23 @@ class BackgroundAttachmentDeclaration(val attachment: List<Attachment>) : Proper
     }
 }
 
-sealed class Attachment {
+sealed class Attachment : ToCss {
 
     object Scroll : Attachment()
 
     object Fixed : Attachment()
 
     object Local : Attachment()
+
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is Attachment.Scroll -> "scroll"
+                is Attachment.Fixed -> "fixed"
+                is Attachment.Local -> "local"
+            }
+        )
+    }
 
     companion object {
 

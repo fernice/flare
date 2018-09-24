@@ -18,9 +18,11 @@ import org.fernice.flare.style.value.Context
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 
-@PropertyEntryPoint
-class BackgroundClipId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundClipId : LonghandId() {
 
     override fun name(): String {
         return "background-clip"
@@ -37,11 +39,11 @@ class BackgroundClipId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundClip()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundClip()
                     }
                 }
@@ -57,17 +59,16 @@ class BackgroundClipId : LonghandId() {
     override fun toString(): String {
         return "LonghandId::BackgroundAttachment"
     }
-
-    companion object {
-
-        val instance: BackgroundClipId by lazy { BackgroundClipId() }
-    }
 }
 
 class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration() {
 
     override fun id(): LonghandId {
-        return BackgroundClipId.instance
+        return BackgroundClipId
+    }
+
+    override fun toCssInternally(writer: Writer) {
+        clip.toCss(writer)
     }
 
     companion object {
@@ -76,13 +77,23 @@ class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration() {
     }
 }
 
-enum class Clip {
+enum class Clip : ToCss {
 
     BORDER_BOX,
 
     PADDING_BOX,
 
     CONTENT_BOX;
+
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                BORDER_BOX -> "border-box"
+                PADDING_BOX -> "padding-box"
+                CONTENT_BOX -> "content-box"
+            }
+        )
+    }
 
     companion object {
 

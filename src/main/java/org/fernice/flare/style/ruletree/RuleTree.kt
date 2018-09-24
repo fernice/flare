@@ -54,26 +54,26 @@ enum class CascadeLevel {
     }
 }
 
-data class StyleSource(private val either: Either<StyleRule, PropertyDeclarationBlock>) {
+data class StyleSource(val source: Either<StyleRule, PropertyDeclarationBlock>) {
 
     companion object {
         fun fromDeclarations(declarations: PropertyDeclarationBlock): StyleSource {
             return StyleSource(
-                    Second(declarations)
+                Second(declarations)
             )
         }
 
         fun fromRule(rule: StyleRule): StyleSource {
             return StyleSource(
-                    First(rule)
+                First(rule)
             )
         }
     }
 
     fun declarations(): PropertyDeclarationBlock {
-        return when (either) {
-            is First -> either.value.declarations
-            is Second -> either.value
+        return when (source) {
+            is First -> source.value.declarations
+            is Second -> source.value
         }
     }
 }
@@ -83,14 +83,14 @@ class RuleTree(private val root: RuleNode) {
     companion object {
         fun new(): RuleTree {
             return RuleTree(
-                    RuleNode.root()
+                RuleNode.root()
             )
         }
     }
 
     fun computedRuleNode(applicableDeclarations: List<ApplicableDeclarationBlock>): RuleNode {
         return insertsRuleNodeWithImportant(
-                applicableDeclarations.iter().map(ApplicableDeclarationBlock::forRuleTree)
+            applicableDeclarations.iter().map(ApplicableDeclarationBlock::forRuleTree)
         )
     }
 
@@ -156,46 +156,52 @@ class RuleTree(private val root: RuleNode) {
     }
 }
 
-class RuleNode(private val root: Option<RuleNode>,
-               private val parent: Option<RuleNode>,
-               val source: Option<StyleSource>,
-               val level: CascadeLevel,
-               private val firstChild: AtomicReference<RuleNode?>,
-               private val nextSibling: AtomicReference<RuleNode?>,
-               private val previous: AtomicReference<RuleNode?>) {
+class RuleNode(
+    private val root: Option<RuleNode>,
+    private val parent: Option<RuleNode>,
+    val source: Option<StyleSource>,
+    val level: CascadeLevel,
+    private val firstChild: AtomicReference<RuleNode?>,
+    private val nextSibling: AtomicReference<RuleNode?>,
+    private val previous: AtomicReference<RuleNode?>
+) {
 
     companion object {
-        fun new(root: RuleNode,
-                parent: RuleNode,
-                source: StyleSource,
-                cascadeLevel: CascadeLevel): RuleNode {
+        fun new(
+            root: RuleNode,
+            parent: RuleNode,
+            source: StyleSource,
+            cascadeLevel: CascadeLevel
+        ): RuleNode {
             return RuleNode(
-                    Some(root),
-                    Some(parent),
-                    Some(source),
-                    cascadeLevel,
-                    AtomicReference(),
-                    AtomicReference(),
-                    AtomicReference()
+                Some(root),
+                Some(parent),
+                Some(source),
+                cascadeLevel,
+                AtomicReference(),
+                AtomicReference(),
+                AtomicReference()
             )
         }
 
         fun root(): RuleNode {
             return RuleNode(
-                    None,
-                    None,
-                    None,
-                    CascadeLevel.USER_AGENT_NORMAL,
-                    AtomicReference(),
-                    AtomicReference(),
-                    AtomicReference()
+                None,
+                None,
+                None,
+                CascadeLevel.USER_AGENT_NORMAL,
+                AtomicReference(),
+                AtomicReference(),
+                AtomicReference()
             )
         }
     }
 
-    fun ensureChild(root: RuleNode,
-                    source: StyleSource,
-                    level: CascadeLevel): RuleNode {
+    fun ensureChild(
+        root: RuleNode,
+        source: StyleSource,
+        level: CascadeLevel
+    ): RuleNode {
         var last: Option<RuleNode> = None
 
         for (child in iterChildren()) {
@@ -269,11 +275,11 @@ class RuleNode(private val root: Option<RuleNode>,
     fun iterChildren(): Iter<RuleNode> {
         val firstChild = firstChild.get()
         return RuleNodeChildrenIter(
-                if (firstChild != null) {
-                    Some(firstChild)
-                } else {
-                    None
-                }
+            if (firstChild != null) {
+                Some(firstChild)
+            } else {
+                None
+            }
         )
     }
 }

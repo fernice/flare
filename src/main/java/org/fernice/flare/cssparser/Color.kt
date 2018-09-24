@@ -14,11 +14,39 @@ import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
+import java.io.Writer
 
 /**
  * Represents a 8 bit, int based RGBA color.
  */
-data class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int)
+data class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int) : ToCss {
+
+    override fun toCss(writer: Writer) {
+        val hasAlpha = alpha != 255
+
+        writer.append(if (hasAlpha) "rgba" else "rgb")
+
+        writer.append('(')
+        writer.append("$red")
+        writer.append(", ")
+        writer.append("$green")
+        writer.append(", ")
+        writer.append("$blue")
+
+        if (hasAlpha) {
+            writer.append(", ")
+
+            var roundedAlpha = (alpha.toFloat() * 100f).round() / 100f
+            if (clampUnit(roundedAlpha) != alpha) {
+                roundedAlpha = (alpha.toFloat() * 1000f).round() / 1000f
+            }
+
+            writer.append("$roundedAlpha")
+        }
+
+        writer.append(')')
+    }
+}
 
 /**
  * Represents either a [RGBA] color or the keyword 'currentcolor'.
@@ -53,15 +81,15 @@ sealed class Color {
             return when (token) {
                 is Token.IdHash -> {
                     parseHash(token.value)
-                            .mapErr { location.newUnexpectedTokenError(token) }
+                        .mapErr { location.newUnexpectedTokenError(token) }
                 }
                 is Token.Hash -> {
                     parseHash(token.value)
-                            .mapErr { location.newUnexpectedTokenError(token) }
+                        .mapErr { location.newUnexpectedTokenError(token) }
                 }
                 is Token.Identifier -> {
                     parseColorKeyword(token.name)
-                            .mapErr { location.newUnexpectedTokenError(token) }
+                        .mapErr { location.newUnexpectedTokenError(token) }
                 }
                 is Token.Function -> {
                     input.parseNestedBlock {
@@ -210,28 +238,36 @@ private fun parseHash(hash: String): Result<Color, Empty> {
 
     try {
         return when (chars.size) {
-            8 -> Ok(rgba(
+            8 -> Ok(
+                rgba(
                     fromHex(chars[0]) * 16 + fromHex(chars[1]),
                     fromHex(chars[2]) * 16 + fromHex(chars[3]),
                     fromHex(chars[4]) * 16 + fromHex(chars[5]),
                     fromHex(chars[6]) * 16 + fromHex(chars[7])
-            ))
-            6 -> Ok(rgb(
+                )
+            )
+            6 -> Ok(
+                rgb(
                     fromHex(chars[0]) * 16 + fromHex(chars[1]),
                     fromHex(chars[2]) * 16 + fromHex(chars[3]),
                     fromHex(chars[4]) * 16 + fromHex(chars[5])
-            ))
-            4 -> Ok(rgba(
+                )
+            )
+            4 -> Ok(
+                rgba(
                     fromHex(chars[0]) * 17,
                     fromHex(chars[1]) * 17,
                     fromHex(chars[2]) * 17,
                     fromHex(chars[3]) * 17
-            ))
-            3 -> Ok(rgb(
+                )
+            )
+            3 -> Ok(
+                rgb(
                     fromHex(chars[0]) * 17,
                     fromHex(chars[1]) * 17,
                     fromHex(chars[2]) * 17
-            ))
+                )
+            )
             else -> Err()
         }
     } catch (e: NumberFormatException) {

@@ -16,21 +16,35 @@ import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 import org.fernice.flare.cssparser.Color as ParserColor
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 import org.fernice.flare.style.value.computed.RGBAColor as ComputedColorPropertyValue
 
-sealed class Color : SpecifiedValue<ComputedColor> {
+sealed class Color : SpecifiedValue<ComputedColor>, ToCss {
 
-    data class RGBA(val rgba: org.fernice.flare.cssparser.RGBA, val keyword: Option<String>) : Color() {
-        override fun toComputedValue(context: Context): ComputedColor {
-            return ComputedColor.RGBA(rgba)
+    data class RGBA(val rgba: org.fernice.flare.cssparser.RGBA, val keyword: Option<String>) : Color()
+
+    object CurrentColor : Color()
+
+    final override fun toComputedValue(context: Context): ComputedColor {
+        return when (this) {
+            is Color.RGBA -> ComputedColor.RGBA(rgba)
+            is Color.CurrentColor -> ComputedColor.CurrentColor
         }
     }
 
-    object CurrentColor : Color() {
-        override fun toComputedValue(context: Context): ComputedColor {
-            return ComputedColor.CurrentColor
+    override fun toCss(writer: Writer) {
+        when (this) {
+            is Color.RGBA -> {
+                if (keyword is Some) {
+                    writer.append(keyword.value)
+                } else {
+                    rgba.toCss(writer)
+                }
+            }
+            is Color.CurrentColor -> writer.append("currentcolor")
         }
     }
 
@@ -56,8 +70,8 @@ sealed class Color : SpecifiedValue<ComputedColor> {
 
         private val transparent: Color by lazy {
             Color.RGBA(
-                    org.fernice.flare.cssparser.RGBA(0, 0, 0, 0),
-                    Some("transparent")
+                org.fernice.flare.cssparser.RGBA(0, 0, 0, 0),
+                Some("transparent")
             )
         }
 
@@ -67,7 +81,7 @@ sealed class Color : SpecifiedValue<ComputedColor> {
     }
 }
 
-data class RGBAColor(val color: Color) : SpecifiedValue<RGBA> {
+data class RGBAColor(val color: Color) : SpecifiedValue<RGBA>, ToCss {
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<RGBAColor, ParseError> {
             return Color.parse(context, input).map(::RGBAColor)
@@ -76,11 +90,15 @@ data class RGBAColor(val color: Color) : SpecifiedValue<RGBA> {
 
     override fun toComputedValue(context: Context): RGBA {
         return color.toComputedValue(context)
-                .toRGBA(context.style().getColor().color)
+            .toRGBA(context.style().getColor().color)
+    }
+
+    override fun toCss(writer: Writer) {
+        color.toCss(writer)
     }
 }
 
-data class ColorPropertyValue(val color: Color) : SpecifiedValue<ComputedColorPropertyValue> {
+data class ColorPropertyValue(val color: Color) : SpecifiedValue<ComputedColorPropertyValue>, ToCss {
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<ColorPropertyValue, ParseError> {
@@ -90,6 +108,10 @@ data class ColorPropertyValue(val color: Color) : SpecifiedValue<ComputedColorPr
 
     override fun toComputedValue(context: Context): RGBA {
         return color.toComputedValue(context)
-                .toRGBA(context.style().getParentColor().color)
+            .toRGBA(context.style().getParentColor().color)
+    }
+
+    override fun toCss(writer: Writer) {
+        color.toCss(writer)
     }
 }

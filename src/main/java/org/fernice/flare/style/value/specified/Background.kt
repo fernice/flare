@@ -19,10 +19,12 @@ import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
 import fernice.std.unwrapOr
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 import org.fernice.flare.style.value.computed.BackgroundRepeat as ComputedBackgroundRepeat
 import org.fernice.flare.style.value.computed.BackgroundSize as ComputedBackgroundSize
 
-sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize> {
+sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize>, ToCss {
 
     class Explicit(val width: NonNegativeLengthOrPercentageOrAuto, val height: NonNegativeLengthOrPercentageOrAuto) : BackgroundSize()
 
@@ -33,12 +35,16 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize> {
     override fun toComputedValue(context: Context): ComputedBackgroundSize {
         return when (this) {
             is BackgroundSize.Explicit -> ComputedBackgroundSize.Explicit(
-                    width.toComputedValue(context),
-                    height.toComputedValue(context)
+                width.toComputedValue(context),
+                height.toComputedValue(context)
             )
             is BackgroundSize.Cover -> ComputedBackgroundSize.Cover
             is BackgroundSize.Contain -> ComputedBackgroundSize.Contain
         }
+    }
+
+    override fun toCss(writer: Writer) {
+        TODO()
     }
 
     companion object : Parse<BackgroundSize> {
@@ -48,7 +54,7 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize> {
             if (widthResult is Ok) {
                 val width = widthResult.value
                 val height = input.tryParse { parser -> NonNegativeLengthOrPercentageOrAuto.parse(context, parser) }
-                        .unwrapOr(width)
+                    .unwrapOr(width)
 
                 return Ok(Explicit(width, height))
             }
@@ -61,23 +67,25 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize> {
                 is Err -> return identResult
             }
 
-            return Ok(when (ident.toLowerCase()) {
-                "cover" -> Cover
-                "contain" -> Contain
-                else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
-            })
+            return Ok(
+                when (ident.toLowerCase()) {
+                    "cover" -> Cover
+                    "contain" -> Contain
+                    else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
+                }
+            )
         }
 
         fun auto(): BackgroundSize {
             return BackgroundSize.Explicit(
-                    NonNegativeLengthOrPercentageOrAuto.auto(),
-                    NonNegativeLengthOrPercentageOrAuto.auto()
+                NonNegativeLengthOrPercentageOrAuto.auto(),
+                NonNegativeLengthOrPercentageOrAuto.auto()
             )
         }
     }
 }
 
-sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat> {
+sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss {
 
     object RepeatX : BackgroundRepeat()
 
@@ -89,23 +97,27 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat> {
         return when (this) {
             is BackgroundRepeat.RepeatX -> {
                 ComputedBackgroundRepeat(
-                        BackgroundRepeatKeyword.Repeat,
-                        BackgroundRepeatKeyword.NoRepeat
+                    BackgroundRepeatKeyword.Repeat,
+                    BackgroundRepeatKeyword.NoRepeat
                 )
             }
             is BackgroundRepeat.RepeatY -> {
                 ComputedBackgroundRepeat(
-                        BackgroundRepeatKeyword.NoRepeat,
-                        BackgroundRepeatKeyword.Repeat
+                    BackgroundRepeatKeyword.NoRepeat,
+                    BackgroundRepeatKeyword.Repeat
                 )
             }
             is BackgroundRepeat.Keywords -> {
                 ComputedBackgroundRepeat(
-                        horizontal,
-                        vertical.unwrapOr(horizontal)
+                    horizontal,
+                    vertical.unwrapOr(horizontal)
                 )
             }
         }
+    }
+
+    override fun toCss(writer: Writer) {
+        TODO()
     }
 
     companion object {

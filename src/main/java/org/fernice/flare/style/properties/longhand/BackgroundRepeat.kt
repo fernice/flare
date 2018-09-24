@@ -19,10 +19,12 @@ import org.fernice.flare.style.value.specified.HorizontalPosition
 import org.fernice.flare.style.value.specified.X
 import org.fernice.flare.style.value.toComputedValue
 import fernice.std.Result
+import org.fernice.flare.cssparser.toCssJoining
+import java.io.Writer
 import org.fernice.flare.style.value.computed.BackgroundRepeat as ComputedBackgroundRepeat
 
-@PropertyEntryPoint
-class BackgroundRepeatId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundRepeatId : LonghandId() {
 
     override fun name(): String {
         return "background-repeat"
@@ -30,7 +32,7 @@ class BackgroundRepeatId : LonghandId() {
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return input.parseCommaSeparated { HorizontalPosition.parseQuirky(context, it, AllowQuirks.Yes, X.Companion) }
-                .map(::BackgroundPositionXDeclaration)
+            .map(::BackgroundPositionXDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -42,11 +44,11 @@ class BackgroundRepeatId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundRepeat()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundRepeat()
                     }
                 }
@@ -58,17 +60,16 @@ class BackgroundRepeatId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BackgroundRepeatId by lazy { BackgroundRepeatId() }
-    }
 }
 
 class BackgroundRepeatDeclaration(val repeat: List<BackgroundRepeat>) : PropertyDeclaration() {
 
     override fun id(): LonghandId {
-        return BackgroundRepeatId.instance
+        return BackgroundRepeatId
+    }
+
+    override fun toCssInternally(writer: Writer) {
+        repeat.toCssJoining(writer, ", ")
     }
 
     companion object {

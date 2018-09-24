@@ -23,10 +23,11 @@ import fernice.std.map
 import fernice.std.mapOr
 import fernice.std.unwrap
 import fernice.std.unwrapOr
+import java.io.Writer
 import org.fernice.flare.style.value.computed.FontFamily as ComputedFontFamily
 import org.fernice.flare.style.value.computed.FontSize as ComputedFontSize
 
-sealed class FontFamily : SpecifiedValue<ComputedFontFamily> {
+sealed class FontFamily : SpecifiedValue<ComputedFontFamily>, ToCss {
 
     data class Values(val values: FontFamilyList) : FontFamily()
 
@@ -36,16 +37,20 @@ sealed class FontFamily : SpecifiedValue<ComputedFontFamily> {
         }
     }
 
+    override fun toCss(writer: Writer) {
+        writer.append("<font-family>")
+    }
+
     companion object {
 
         fun parse(input: Parser): Result<FontFamily, ParseError> {
             return input.parseCommaSeparated(SingleFontFamily.Contract::parse)
-                    .map { values -> FontFamily.Values(FontFamilyList(values)) }
+                .map { values -> FontFamily.Values(FontFamilyList(values)) }
         }
     }
 }
 
-sealed class FontSize : SpecifiedValue<ComputedFontSize> {
+sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
 
     data class Length(val lop: LengthOrPercentage) : FontSize()
 
@@ -77,8 +82,8 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize> {
                     is LengthOrPercentage.Percentage -> {
                         info = composeKeyword(context, lop.percentage.value)
                         baseSize.resolve(context)
-                                .scaleBy(lop.percentage.value)
-                                .intoNonNegative()
+                            .scaleBy(lop.percentage.value)
+                            .intoNonNegative()
                     }
                     is LengthOrPercentage.Calc -> {
                         val calc = lop.calc
@@ -88,58 +93,62 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize> {
                             val ratio = calc.em.unwrapOr(0f) + calc.percentage.mapOr({ p -> p.value }, 0f)
 
                             val abs = calc.toComputedValue(context, FontBaseSize.InheritStyleButStripEmUnits)
-                                    .lengthComponent()
-                                    .intoNonNegative()
+                                .lengthComponent()
+                                .intoNonNegative()
 
                             info = parent.keywordInfo.map { i -> i.compose(ratio, abs) }
                         }
 
                         val computed = calc.toComputedValue(context, baseSize)
                         computed.toUsedValue(Some(baseSize.resolve(context)))
-                                .unwrap()
-                                .intoNonNegative()
+                            .unwrap()
+                            .intoNonNegative()
                     }
                 }
 
                 ComputedFontSize(
-                        size,
-                        info
+                    size,
+                    info
                 )
             }
             is FontSize.Keyword -> {
                 ComputedFontSize(
-                        keyword.toComputedValue(context),
-                        Some(keyword)
+                    keyword.toComputedValue(context),
+                    Some(keyword)
                 )
             }
             is FontSize.Smaller -> {
                 ComputedFontSize(
-                        FontRelativeLength.Em(1f / LARGE_FONT_SIZE_RATION)
-                                .toComputedValue(context, baseSize)
-                                .intoNonNegative(),
-                        composeKeyword(context, 1f / LARGE_FONT_SIZE_RATION)
+                    FontRelativeLength.Em(1f / LARGE_FONT_SIZE_RATION)
+                        .toComputedValue(context, baseSize)
+                        .intoNonNegative(),
+                    composeKeyword(context, 1f / LARGE_FONT_SIZE_RATION)
                 )
             }
             is FontSize.Larger -> ComputedFontSize(
-                    FontRelativeLength.Em(LARGE_FONT_SIZE_RATION)
-                            .toComputedValue(context, baseSize)
-                            .intoNonNegative(),
-                    composeKeyword(context, LARGE_FONT_SIZE_RATION)
+                FontRelativeLength.Em(LARGE_FONT_SIZE_RATION)
+                    .toComputedValue(context, baseSize)
+                    .intoNonNegative(),
+                composeKeyword(context, LARGE_FONT_SIZE_RATION)
             )
         }
     }
 
     internal fun composeKeyword(context: Context, factor: Float): Option<KeywordInfo> {
         return context
-                .style()
-                .getParentFont()
-                .fontSize
-                .keywordInfo
-                .map { info -> info.compose(factor, Au(0).intoNonNegative()) }
+            .style()
+            .getParentFont()
+            .fontSize
+            .keywordInfo
+            .map { info -> info.compose(factor, Au(0).intoNonNegative()) }
     }
 
     override fun toComputedValue(context: Context): ComputedFontSize {
         return toComputedValueAgainst(context, FontBaseSize.CurrentStyle)
+    }
+
+    override fun toCss(writer: Writer) {
+        writer.append("<font-size>")
     }
 
     companion object {
@@ -182,27 +191,27 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize> {
 }
 
 data class KeywordInfo(
-        val keyword: KeywordSize,
-        val factor: Float,
-        val offset: NonNegativeLength
+    val keyword: KeywordSize,
+    val factor: Float,
+    val offset: NonNegativeLength
 ) : SpecifiedValue<NonNegativeLength> {
 
     companion object {
 
         fun from(keyword: KeywordSize): KeywordInfo {
             return KeywordInfo(
-                    keyword,
-                    1f,
-                    NonNegativeLength(PixelLength(0f))
+                keyword,
+                1f,
+                NonNegativeLength(PixelLength(0f))
             )
         }
     }
 
     fun compose(factor: Float, offset: NonNegativeLength): KeywordInfo {
         return KeywordInfo(
-                keyword,
-                this.factor * factor,
-                this.offset + offset
+            keyword,
+            this.factor * factor,
+            this.offset + offset
         )
     }
 

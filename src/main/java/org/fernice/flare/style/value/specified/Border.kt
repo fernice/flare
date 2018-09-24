@@ -19,10 +19,12 @@ import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
 import fernice.std.unwrapOrElse
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 import org.fernice.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
 import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 
-sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength> {
+sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength>, ToCss {
 
     object Thin : BorderSideWidth()
 
@@ -34,18 +36,21 @@ sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength> {
 
     final override fun toComputedValue(context: Context): org.fernice.flare.style.value.computed.NonNegativeLength {
         return when (this) {
-            is BorderSideWidth.Thin -> {
-                PixelLength(1f).intoNonNegative()
-            }
-            is BorderSideWidth.Medium -> {
-                PixelLength(3f).intoNonNegative()
-            }
-            is BorderSideWidth.Thick -> {
-                PixelLength(5f).intoNonNegative()
-            }
-            is BorderSideWidth.Length -> {
-                length.toComputedValue(context)
-            }
+            is BorderSideWidth.Thin -> PixelLength(1f).intoNonNegative()
+            is BorderSideWidth.Medium -> PixelLength(3f).intoNonNegative()
+            is BorderSideWidth.Thick -> PixelLength(5f).intoNonNegative()
+
+            is BorderSideWidth.Length -> length.toComputedValue(context)
+        }
+    }
+
+    override fun toCss(writer: Writer) {
+        when (this) {
+            is BorderSideWidth.Thin -> writer.append("thin")
+            is BorderSideWidth.Medium -> writer.append("medium")
+            is BorderSideWidth.Thick -> writer.append("thick")
+
+            is BorderSideWidth.Length -> length.toCss(writer)
         }
     }
 
@@ -80,15 +85,24 @@ sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength> {
 }
 
 data class BorderCornerRadius(
-        val width: LengthOrPercentage,
-        val height: LengthOrPercentage
-) : SpecifiedValue<ComputedBorderCornerRadius> {
+    val width: LengthOrPercentage,
+    val height: LengthOrPercentage
+) : SpecifiedValue<ComputedBorderCornerRadius>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedBorderCornerRadius {
         return ComputedBorderCornerRadius(
-                width.toComputedValue(context),
-                height.toComputedValue(context)
+            width.toComputedValue(context),
+            height.toComputedValue(context)
         )
+    }
+
+    override fun toCss(writer: Writer) {
+        width.toCss(writer)
+
+        if (width != height) {
+            writer.append(' ')
+            height.toCss(writer)
+        }
     }
 
     companion object {
@@ -101,7 +115,7 @@ data class BorderCornerRadius(
             }
 
             val height = input.tryParse { input -> LengthOrPercentage.parse(context, input) }
-                    .unwrapOrElse { _ -> width }
+                .unwrapOrElse { _ -> width }
 
             return Ok(BorderCornerRadius(width, height))
         }

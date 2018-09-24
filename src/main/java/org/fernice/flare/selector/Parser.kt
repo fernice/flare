@@ -685,7 +685,7 @@ private fun parsePseudoClass(location: SourceLocation, name: String): Result<Com
         "only-child" -> Ok(Component.OnlyChild)
         "first-of-type" -> Ok(Component.FirstOfType)
         "last-of-type" -> Ok(Component.LastOfType)
-        "only-type" -> Ok(Component.OnlyType)
+        "only-of-type" -> Ok(Component.OnlyOfType)
         "root" -> Ok(Component.Root)
         "empty" -> Ok(Component.Empty)
         "scope" -> Ok(Component.Scope)

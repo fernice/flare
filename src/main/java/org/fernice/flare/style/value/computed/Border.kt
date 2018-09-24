@@ -13,18 +13,20 @@ import org.fernice.flare.style.value.ComputedValue
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 
 data class BorderCornerRadius(
-        val width: LengthOrPercentage,
-        val height: LengthOrPercentage
+    val width: LengthOrPercentage,
+    val height: LengthOrPercentage
 ) : ComputedValue {
 
     companion object {
 
         private val zero: BorderCornerRadius by lazy {
             BorderCornerRadius(
-                    LengthOrPercentage.zero(),
-                    LengthOrPercentage.zero()
+                LengthOrPercentage.zero(),
+                LengthOrPercentage.zero()
             )
         }
 
@@ -34,9 +36,44 @@ data class BorderCornerRadius(
     }
 }
 
-enum class Style {
+sealed class Style : ToCss {
 
-    NONE, HIDDEN, DOTTED, DASHED, SOLID, DOUBLE, GROOVE, RIDGE, INSET, OUTSET;
+    object None : Style()
+
+    object Hidden : Style()
+
+    object Dotted : Style()
+
+    object Dashed : Style()
+
+    object Solid : Style()
+
+    object Double : Style()
+
+    object Groove : Style()
+
+    object Ride : Style()
+
+    object Inset : Style()
+
+    object Outset : Style()
+
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is Style.None -> "none"
+                is Style.Hidden -> "hidden"
+                is Style.Dotted -> "dotted"
+                is Style.Dashed -> "dashed"
+                is Style.Solid -> "solid"
+                is Style.Double -> "double"
+                is Style.Groove -> "groove"
+                is Style.Ride -> "ride"
+                is Style.Inset -> "inset"
+                is Style.Outset -> "outset"
+            }
+        )
+    }
 
     companion object {
 
@@ -50,16 +87,16 @@ enum class Style {
             }
 
             return when (identifier.toLowerCase()) {
-                "none" -> Ok(NONE)
-                "hidden" -> Ok(HIDDEN)
-                "dotted" -> Ok(DOTTED)
-                "dashed" -> Ok(DASHED)
-                "solid" -> Ok(SOLID)
-                "double" -> Ok(DOUBLE)
-                "groove" -> Ok(GROOVE)
-                "ridge" -> Ok(RIDGE)
-                "inset" -> Ok(INSET)
-                "outset" -> Ok(OUTSET)
+                "none" -> Ok(Style.None)
+                "hidden" -> Ok(Style.Hidden)
+                "dotted" -> Ok(Style.Dotted)
+                "dashed" -> Ok(Style.Dashed)
+                "solid" -> Ok(Style.Solid)
+                "double" -> Ok(Style.Double)
+                "groove" -> Ok(Style.Groove)
+                "ridge" -> Ok(Style.Ride)
+                "inset" -> Ok(Style.Inset)
+                "outset" -> Ok(Style.Outset)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }

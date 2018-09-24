@@ -33,10 +33,10 @@ enum class Importance {
     IMPORTANT
 }
 
-class PropertyDeclarationBlock {
-
-    private val declarations = mutableListOf<PropertyDeclaration>()
-    private val importance = BitSet()
+data class PropertyDeclarationBlock(
+    private val declarations: MutableList<PropertyDeclaration> = mutableListOf(),
+    private val importance: BitSet = BitSet()
+) {
 
     fun expand(declarations: List<PropertyDeclaration>, importance: Importance) {
         val index = this.declarations.size
@@ -61,11 +61,36 @@ class PropertyDeclarationBlock {
     fun reversedDeclarationImportanceIter(): DeclarationImportanceIter {
         return DeclarationImportanceIter.reversed(declarations, importance)
     }
+
+    fun declarationImportanceIter(): DeclarationImportanceIter {
+        return DeclarationImportanceIter.new(declarations, importance)
+    }
 }
 
 class DeclarationImportanceIter(val iter: Iter<DeclarationAndImportance>) : Iter<DeclarationAndImportance> {
 
     companion object {
+        fun new(declarations: List<PropertyDeclaration>, importances: BitSet): DeclarationImportanceIter {
+            val items = mutableListOf<DeclarationAndImportance>()
+
+            for (i in 0 until declarations.size) {
+                val importance = if (importances.get(i)) {
+                    Importance.IMPORTANT
+                } else {
+                    Importance.NORMAL
+                }
+
+                items.add(
+                    DeclarationAndImportance(
+                        declarations[i],
+                        importance
+                    )
+                )
+            }
+
+            return DeclarationImportanceIter(items.iter())
+        }
+
         fun reversed(declarations: List<PropertyDeclaration>, importances: BitSet): DeclarationImportanceIter {
             val reversed = mutableListOf<DeclarationAndImportance>()
 
@@ -76,10 +101,12 @@ class DeclarationImportanceIter(val iter: Iter<DeclarationAndImportance>) : Iter
                     Importance.NORMAL
                 }
 
-                reversed.add(DeclarationAndImportance(
+                reversed.add(
+                    DeclarationAndImportance(
                         declarations[i],
                         importance
-                ))
+                    )
+                )
             }
 
             return DeclarationImportanceIter(reversed.iter())
@@ -131,17 +158,18 @@ fun parsePropertyDeclarationList(context: ParserContext, input: Parser): Propert
 
 sealed class PropertyParseErrorKind : ParseErrorKind() {
 
-    class UnknownProperty : PropertyParseErrorKind()
+    object UnknownProperty : PropertyParseErrorKind()
 }
 
-class PropertyDeclarationParser(private val context: ParserContext, private val declarations: MutableList<PropertyDeclaration>) : AtRuleParser<AtRulePrelude, Importance>, DeclarationParser<Importance> {
+class PropertyDeclarationParser(private val context: ParserContext, private val declarations: MutableList<PropertyDeclaration>) :
+    AtRuleParser<AtRulePrelude, Importance>, DeclarationParser<Importance> {
 
     override fun parseValue(input: Parser, name: String): Result<Importance, ParseError> {
         val idResult = PropertyId.parse(name)
 
         val id = when (idResult) {
             is Ok -> idResult.value
-            is Err -> return Err(input.newError(PropertyParseErrorKind.UnknownProperty()))
+            is Err -> return Err(input.newError(PropertyParseErrorKind.UnknownProperty))
         }
 
         val parseResult = input.parseUntilBefore(Delimiters.Bang) { input ->

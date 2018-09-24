@@ -29,6 +29,8 @@ import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 import org.fernice.flare.style.value.computed.LengthOrPercentage as ComputedLengthOrPercentage
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrNone as ComputedLengthOrPercentageOrNone
@@ -52,7 +54,7 @@ private const val AU_PER_Q = AU_PER_MM / 4
 private const val AU_PER_PT = AU_PER_IN / 72
 private const val AU_PER_PC = AU_PER_PT * 12
 
-sealed class AbsoluteLength : SpecifiedValue<PixelLength> {
+sealed class AbsoluteLength : SpecifiedValue<PixelLength>, ToCss {
 
     data class Px(val value: Float) : AbsoluteLength()
 
@@ -84,6 +86,20 @@ sealed class AbsoluteLength : SpecifiedValue<PixelLength> {
         return PixelLength(toPx())
     }
 
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is AbsoluteLength.Px -> "${value}px"
+                is AbsoluteLength.In -> "${value}in"
+                is AbsoluteLength.Cm -> "${value}cm"
+                is AbsoluteLength.Mm -> "${value}mm"
+                is AbsoluteLength.Q -> "${value}q"
+                is AbsoluteLength.Pt -> "${value}pt"
+                is AbsoluteLength.Pc -> "${value}pc"
+            }
+        )
+    }
+
     operator fun plus(length: AbsoluteLength): AbsoluteLength {
         return AbsoluteLength.Px(toPx() + length.toPx())
     }
@@ -93,7 +109,7 @@ sealed class AbsoluteLength : SpecifiedValue<PixelLength> {
     }
 }
 
-sealed class FontRelativeLength {
+sealed class FontRelativeLength : ToCss {
 
     data class Em(val value: Float) : FontRelativeLength()
 
@@ -103,15 +119,32 @@ sealed class FontRelativeLength {
 
     data class Rem(val value: Float) : FontRelativeLength()
 
+    fun sign(): Float {
+        return when (this) {
+            is FontRelativeLength.Em -> value
+            is FontRelativeLength.Ex -> value
+            is FontRelativeLength.Ch -> value
+            is FontRelativeLength.Rem -> value
+        }
+    }
+
     fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
         val (referencedSize, factor) = referencedSizeAndFactor(context, baseSize)
         val pixel = (referencedSize.toFloat() * factor)
-                .min(Float.MIN_VALUE)
-                .max(Float.MAX_VALUE)
+            .min(Float.MIN_VALUE)
+            .max(Float.MAX_VALUE)
         return PixelLength(pixel)
     }
 
     internal fun referencedSizeAndFactor(context: Context, baseSize: FontBaseSize): Pair<Au, Float> {
+        fun queryFontMetrics(context: Context, fontSize: Au): FontMetricsQueryResult {
+            return context.fontMetricsProvider.query(
+                context.style().getFont(),
+                fontSize,
+                context.device()
+            )
+        }
+
         return when (this) {
             is FontRelativeLength.Em -> {
                 if (baseSize is FontBaseSize.InheritStyleButStripEmUnits) {
@@ -162,16 +195,19 @@ sealed class FontRelativeLength {
         }
     }
 
-    internal fun queryFontMetrics(context: Context, fontSize: Au): FontMetricsQueryResult {
-        return context.fontMetricsProvider.query(
-                context.style().getFont(),
-                fontSize,
-                context.device()
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is FontRelativeLength.Em -> "${value}em"
+                is FontRelativeLength.Ex -> "${value}ex"
+                is FontRelativeLength.Ch -> "${value}ch"
+                is FontRelativeLength.Rem -> "${value}rem"
+            }
         )
     }
 }
 
-sealed class ViewportPercentageLength {
+sealed class ViewportPercentageLength : ToCss {
 
     data class Vw(val value: Float) : ViewportPercentageLength()
 
@@ -180,6 +216,15 @@ sealed class ViewportPercentageLength {
     data class Vmin(val value: Float) : ViewportPercentageLength()
 
     data class Vmax(val value: Float) : ViewportPercentageLength()
+
+    fun sign(): Float {
+        return when (this) {
+            is ViewportPercentageLength.Vw -> value
+            is ViewportPercentageLength.Vh -> value
+            is ViewportPercentageLength.Vmin -> value
+            is ViewportPercentageLength.Vmax -> value
+        }
+    }
 
     fun toComputedValue(context: Context, viewportSize: Size2D<Au>): PixelLength {
         return when (this) {
@@ -205,9 +250,20 @@ sealed class ViewportPercentageLength {
             }
         }
     }
+
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is ViewportPercentageLength.Vw -> "${value}vw"
+                is ViewportPercentageLength.Vh -> "${value}vh"
+                is ViewportPercentageLength.Vmin -> "${value}vmin"
+                is ViewportPercentageLength.Vmax -> "${value}vmax"
+            }
+        )
+    }
 }
 
-sealed class NoCalcLength : SpecifiedValue<PixelLength> {
+sealed class NoCalcLength : SpecifiedValue<PixelLength>, ToCss {
 
     data class Absolute(val length: AbsoluteLength) : NoCalcLength()
 
@@ -228,6 +284,14 @@ sealed class NoCalcLength : SpecifiedValue<PixelLength> {
 
                 length.toComputedValue(context, viewportSize)
             }
+        }
+    }
+
+    override fun toCss(writer: Writer) {
+        when (this) {
+            is NoCalcLength.Absolute -> length.toCss(writer)
+            is NoCalcLength.FontRelative -> length.toCss(writer)
+            is ViewportPercentage -> length.toCss(writer)
         }
     }
 
@@ -259,7 +323,7 @@ sealed class NoCalcLength : SpecifiedValue<PixelLength> {
     }
 }
 
-sealed class Length : SpecifiedValue<PixelLength> {
+sealed class Length : SpecifiedValue<PixelLength>, ToCss {
 
     data class NoCalc(val length: NoCalcLength) : Length()
 
@@ -276,15 +340,24 @@ sealed class Length : SpecifiedValue<PixelLength> {
         }
     }
 
+    override fun toCss(writer: Writer) {
+        when (this) {
+            is Length.NoCalc -> length.toCss(writer)
+            is Length.Calc -> calc.toCss(writer)
+        }
+    }
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<Length, ParseError> {
             return parseQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseQuirky(context: ParserContext,
-                        input: Parser,
-                        allowQuirks: AllowQuirks): Result<Length, ParseError> {
+        fun parseQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<Length, ParseError> {
             return parseInternal(context, input, ClampingMode.All, allowQuirks)
         }
 
@@ -292,16 +365,20 @@ sealed class Length : SpecifiedValue<PixelLength> {
             return parseNonNegativeQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseNonNegativeQuirky(context: ParserContext,
-                                   input: Parser,
-                                   allowQuirks: AllowQuirks): Result<Length, ParseError> {
+        fun parseNonNegativeQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<Length, ParseError> {
             return parseInternal(context, input, ClampingMode.NonNegative, allowQuirks)
         }
 
-        private fun parseInternal(context: ParserContext,
-                                  input: Parser,
-                                  clampingMode: ClampingMode,
-                                  allowQuirks: AllowQuirks): Result<Length, ParseError> {
+        private fun parseInternal(
+            context: ParserContext,
+            input: Parser,
+            clampingMode: ClampingMode,
+            allowQuirks: AllowQuirks
+        ): Result<Length, ParseError> {
             val location = input.sourceLocation()
             val tokenResult = input.next()
 
@@ -317,8 +394,8 @@ sealed class Length : SpecifiedValue<PixelLength> {
                     }
 
                     return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
-                            .map(Length::NoCalc)
-                            .mapErr { location.newUnexpectedTokenError(token) }
+                        .map(Length::NoCalc)
+                        .mapErr { location.newUnexpectedTokenError(token) }
                 }
                 is Token.Number -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
@@ -326,8 +403,9 @@ sealed class Length : SpecifiedValue<PixelLength> {
                     }
 
                     if (token.number.float() != 0f
-                            && !context.parseMode.allowsUnitlessNumbers()
-                            && !allowQuirks.allowed(context.quirksMode)) {
+                        && !context.parseMode.allowsUnitlessNumbers()
+                        && !allowQuirks.allowed(context.quirksMode)
+                    ) {
                         return Err(location.newError(LengthParseErrorKind.UnitlessNumber))
                     }
 
@@ -340,7 +418,7 @@ sealed class Length : SpecifiedValue<PixelLength> {
 
                     return input.parseNestedBlock { input ->
                         CalcNode.parseLength(context, input, clampingMode)
-                                .map(Length::Calc)
+                            .map(Length::Calc)
                     }
                 }
                 else -> {
@@ -351,32 +429,40 @@ sealed class Length : SpecifiedValue<PixelLength> {
     }
 }
 
-data class NonNegativeLength(val length: Length) : SpecifiedValue<ComputedNonNegativeLength> {
+data class NonNegativeLength(val length: Length) : SpecifiedValue<ComputedNonNegativeLength>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedNonNegativeLength {
         return ComputedNonNegativeLength(length.toComputedValue(context))
     }
 
+    override fun toCss(writer: Writer) = length.toCss(writer)
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<NonNegativeLength, ParseError> {
             return Length.parseNonNegative(context, input)
-                    .map(::NonNegativeLength)
+                .map(::NonNegativeLength)
         }
 
-        fun parseQuirky(context: ParserContext,
-                        input: Parser,
-                        allowQuirks: AllowQuirks): Result<NonNegativeLength, ParseError> {
+        fun parseQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<NonNegativeLength, ParseError> {
             return Length.parseQuirky(context, input, allowQuirks)
-                    .map(::NonNegativeLength)
+                .map(::NonNegativeLength)
         }
     }
 }
 
-data class Percentage(val value: Float) : SpecifiedValue<ComputedPercentage> {
+data class Percentage(val value: Float) : SpecifiedValue<ComputedPercentage>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedPercentage {
         return ComputedPercentage(value)
+    }
+
+    override fun toCss(writer: Writer) {
+        writer.append("$value%")
     }
 
     companion object {
@@ -418,7 +504,7 @@ fun Percentage.intoLengthOrPercentage(): LengthOrPercentage {
     return LengthOrPercentage.Percentage(this)
 }
 
-sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
+sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage>, ToCss {
 
     data class Length(val length: NoCalcLength) : LengthOrPercentage()
 
@@ -440,15 +526,25 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
         }
     }
 
+    override fun toCss(writer: Writer) {
+        when (this) {
+            is LengthOrPercentage.Length -> length.toCss(writer)
+            is LengthOrPercentage.Percentage -> percentage.toCss(writer)
+            is LengthOrPercentage.Calc -> calc.toCss(writer)
+        }
+    }
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentage, ParseError> {
             return parseQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseQuirky(context: ParserContext,
-                        input: Parser,
-                        allowQuirks: AllowQuirks): Result<LengthOrPercentage, ParseError> {
+        fun parseQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentage, ParseError> {
             return parseInternal(context, input, ClampingMode.All, allowQuirks)
         }
 
@@ -456,16 +552,20 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
             return parseNonNegativeQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseNonNegativeQuirky(context: ParserContext,
-                                   input: Parser,
-                                   allowQuirks: AllowQuirks): Result<LengthOrPercentage, ParseError> {
+        fun parseNonNegativeQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentage, ParseError> {
             return parseInternal(context, input, ClampingMode.NonNegative, allowQuirks)
         }
 
-        private fun parseInternal(context: ParserContext,
-                                  input: Parser,
-                                  clampingMode: ClampingMode,
-                                  allowQuirks: AllowQuirks): Result<LengthOrPercentage, ParseError> {
+        private fun parseInternal(
+            context: ParserContext,
+            input: Parser,
+            clampingMode: ClampingMode,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentage, ParseError> {
             val location = input.sourceLocation()
             val tokenResult = input.next()
 
@@ -481,8 +581,8 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
                     }
 
                     return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
-                            .map(LengthOrPercentage::Length)
-                            .mapErr { location.newUnexpectedTokenError(token) }
+                        .map(LengthOrPercentage::Length)
+                        .mapErr { location.newUnexpectedTokenError(token) }
                 }
                 is Token.Percentage -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
@@ -497,8 +597,9 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
                     }
 
                     if (token.number.float() != 0f
-                            && !context.parseMode.allowsUnitlessNumbers()
-                            && !allowQuirks.allowed(context.quirksMode)) {
+                        && !context.parseMode.allowsUnitlessNumbers()
+                        && !allowQuirks.allowed(context.quirksMode)
+                    ) {
                         return Err(location.newError(LengthParseErrorKind.UnitlessNumber))
                     }
 
@@ -511,7 +612,7 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
 
                     return input.parseNestedBlock { input ->
                         CalcNode.parseLength(context, input, clampingMode)
-                                .map(LengthOrPercentage::Calc)
+                            .map(LengthOrPercentage::Calc)
                     }
                 }
                 else -> {
@@ -522,29 +623,33 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage> {
     }
 }
 
-data class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : SpecifiedValue<ComputedNonNegativeLengthOrPercentage> {
+data class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : SpecifiedValue<ComputedNonNegativeLengthOrPercentage>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentage {
         return ComputedNonNegativeLengthOrPercentage(value.toComputedValue(context))
     }
 
+    override fun toCss(writer: Writer) = value.toCss(writer)
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<NonNegativeLengthOrPercentage, ParseError> {
             return LengthOrPercentage.parseNonNegative(context, input)
-                    .map(::NonNegativeLengthOrPercentage)
+                .map(::NonNegativeLengthOrPercentage)
         }
 
-        fun parseQuirky(context: ParserContext,
-                        input: Parser,
-                        allowQuirks: AllowQuirks): Result<NonNegativeLengthOrPercentage, ParseError> {
+        fun parseQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<NonNegativeLengthOrPercentage, ParseError> {
             return LengthOrPercentage.parseQuirky(context, input, allowQuirks)
-                    .map(::NonNegativeLengthOrPercentage)
+                .map(::NonNegativeLengthOrPercentage)
         }
     }
 }
 
-sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentageOrAuto> {
+sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentageOrAuto>, ToCss {
 
     data class Length(val length: NoCalcLength) : LengthOrPercentageOrAuto()
 
@@ -571,15 +676,26 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
         }
     }
 
+    override fun toCss(writer: Writer) {
+        when (this) {
+            is LengthOrPercentageOrAuto.Length -> length.toCss(writer)
+            is LengthOrPercentageOrAuto.Percentage -> percentage.toCss(writer)
+            is LengthOrPercentageOrAuto.Calc -> calc.toCss(writer)
+            is LengthOrPercentageOrAuto.Auto -> writer.append("auto")
+        }
+    }
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentageOrAuto, ParseError> {
             return parseQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseQuirky(context: ParserContext,
-                        input: Parser,
-                        allowQuirks: AllowQuirks): Result<LengthOrPercentageOrAuto, ParseError> {
+        fun parseQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentageOrAuto, ParseError> {
             return parseInternal(context, input, ClampingMode.All, allowQuirks)
         }
 
@@ -587,16 +703,20 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
             return parseNonNegativeQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseNonNegativeQuirky(context: ParserContext,
-                                   input: Parser,
-                                   allowQuirks: AllowQuirks): Result<LengthOrPercentageOrAuto, ParseError> {
+        fun parseNonNegativeQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentageOrAuto, ParseError> {
             return parseInternal(context, input, ClampingMode.NonNegative, allowQuirks)
         }
 
-        private fun parseInternal(context: ParserContext,
-                                  input: Parser,
-                                  clampingMode: ClampingMode,
-                                  allowQuirks: AllowQuirks): Result<LengthOrPercentageOrAuto, ParseError> {
+        private fun parseInternal(
+            context: ParserContext,
+            input: Parser,
+            clampingMode: ClampingMode,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentageOrAuto, ParseError> {
             val location = input.sourceLocation()
             val tokenResult = input.next()
 
@@ -612,8 +732,8 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
                     }
 
                     return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
-                            .map(LengthOrPercentageOrAuto::Length)
-                            .mapErr { location.newUnexpectedTokenError(token) }
+                        .map(LengthOrPercentageOrAuto::Length)
+                        .mapErr { location.newUnexpectedTokenError(token) }
                 }
                 is Token.Percentage -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
@@ -628,8 +748,9 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
                     }
 
                     if (token.number.float() != 0f
-                            && !context.parseMode.allowsUnitlessNumbers()
-                            && !allowQuirks.allowed(context.quirksMode)) {
+                        && !context.parseMode.allowsUnitlessNumbers()
+                        && !allowQuirks.allowed(context.quirksMode)
+                    ) {
                         return Err(location.newError(LengthParseErrorKind.UnitlessNumber))
                     }
 
@@ -642,7 +763,7 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
 
                     return input.parseNestedBlock { input ->
                         CalcNode.parseLength(context, input, clampingMode)
-                                .map(LengthOrPercentageOrAuto::Calc)
+                            .map(LengthOrPercentageOrAuto::Calc)
                     }
                 }
                 is Token.Identifier -> {
@@ -660,29 +781,34 @@ sealed class LengthOrPercentageOrAuto : SpecifiedValue<ComputedLengthOrPercentag
     }
 }
 
-data class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrAuto> {
+data class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAuto) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrAuto>,
+    ToCss {
 
     override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrAuto {
         return ComputedNonNegativeLengthOrPercentageOrAuto(value.toComputedValue(context))
     }
 
+    override fun toCss(writer: Writer) = value.toCss(writer)
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<NonNegativeLengthOrPercentageOrAuto, ParseError> {
             return LengthOrPercentageOrAuto.parseNonNegative(context, input)
-                    .map(::NonNegativeLengthOrPercentageOrAuto)
+                .map(::NonNegativeLengthOrPercentageOrAuto)
         }
 
-        fun parseQuirky(context: ParserContext,
-                        input: Parser,
-                        allowQuirks: AllowQuirks): Result<NonNegativeLengthOrPercentageOrAuto, ParseError> {
+        fun parseQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<NonNegativeLengthOrPercentageOrAuto, ParseError> {
             return LengthOrPercentageOrAuto.parseQuirky(context, input, allowQuirks)
-                    .map(::NonNegativeLengthOrPercentageOrAuto)
+                .map(::NonNegativeLengthOrPercentageOrAuto)
         }
 
         private val auto: NonNegativeLengthOrPercentageOrAuto by lazy {
             NonNegativeLengthOrPercentageOrAuto(
-                    LengthOrPercentageOrAuto.Auto
+                LengthOrPercentageOrAuto.Auto
             )
         }
 
@@ -692,7 +818,7 @@ data class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAu
     }
 }
 
-sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentageOrNone> {
+sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentageOrNone>, ToCss {
 
     data class Length(val length: NoCalcLength) : LengthOrPercentageOrNone()
 
@@ -719,15 +845,26 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
         }
     }
 
+    override fun toCss(writer: Writer) {
+        when (this) {
+            is LengthOrPercentageOrNone.Length -> length.toCss(writer)
+            is LengthOrPercentageOrNone.Percentage -> percentage.toCss(writer)
+            is LengthOrPercentageOrNone.Calc -> calc.toCss(writer)
+            is LengthOrPercentageOrNone.None -> writer.append("none")
+        }
+    }
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<LengthOrPercentageOrNone, ParseError> {
             return parseQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseQuirky(context: ParserContext,
-                        input: Parser,
-                        allowQuirks: AllowQuirks): Result<LengthOrPercentageOrNone, ParseError> {
+        fun parseQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentageOrNone, ParseError> {
             return parseInternal(context, input, ClampingMode.All, allowQuirks)
         }
 
@@ -735,16 +872,20 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
             return parseNonNegativeQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseNonNegativeQuirky(context: ParserContext,
-                                   input: Parser,
-                                   allowQuirks: AllowQuirks): Result<LengthOrPercentageOrNone, ParseError> {
+        fun parseNonNegativeQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentageOrNone, ParseError> {
             return parseInternal(context, input, ClampingMode.NonNegative, allowQuirks)
         }
 
-        private fun parseInternal(context: ParserContext,
-                                  input: Parser,
-                                  clampingMode: ClampingMode,
-                                  allowQuirks: AllowQuirks): Result<LengthOrPercentageOrNone, ParseError> {
+        private fun parseInternal(
+            context: ParserContext,
+            input: Parser,
+            clampingMode: ClampingMode,
+            allowQuirks: AllowQuirks
+        ): Result<LengthOrPercentageOrNone, ParseError> {
             val location = input.sourceLocation()
             val tokenResult = input.next()
 
@@ -760,8 +901,8 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
                     }
 
                     return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
-                            .map(LengthOrPercentageOrNone::Length)
-                            .mapErr { location.newUnexpectedTokenError(token) }
+                        .map(LengthOrPercentageOrNone::Length)
+                        .mapErr { location.newUnexpectedTokenError(token) }
                 }
                 is Token.Percentage -> {
                     if (!clampingMode.isAllowed(context.parseMode, token.number.float())) {
@@ -776,8 +917,9 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
                     }
 
                     if (token.number.float() != 0f
-                            && !context.parseMode.allowsUnitlessNumbers()
-                            && !allowQuirks.allowed(context.quirksMode)) {
+                        && !context.parseMode.allowsUnitlessNumbers()
+                        && !allowQuirks.allowed(context.quirksMode)
+                    ) {
                         return Err(location.newError(LengthParseErrorKind.UnitlessNumber))
                     }
 
@@ -790,7 +932,7 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
 
                     return input.parseNestedBlock { input ->
                         CalcNode.parseLength(context, input, clampingMode)
-                                .map(LengthOrPercentageOrNone::Calc)
+                            .map(LengthOrPercentageOrNone::Calc)
                     }
                 }
                 is Token.Identifier -> {
@@ -808,24 +950,29 @@ sealed class LengthOrPercentageOrNone : SpecifiedValue<ComputedLengthOrPercentag
     }
 }
 
-data class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrNone> {
+data class NonNegativeLengthOrPercentageOrNone(val value: LengthOrPercentageOrNone) : SpecifiedValue<ComputedNonNegativeLengthOrPercentageOrNone>,
+    ToCss {
 
     override fun toComputedValue(context: Context): ComputedNonNegativeLengthOrPercentageOrNone {
         return ComputedNonNegativeLengthOrPercentageOrNone(value.toComputedValue(context))
     }
 
+    override fun toCss(writer: Writer) = value.toCss(writer)
+
     companion object {
 
         fun parse(context: ParserContext, input: Parser): Result<NonNegativeLengthOrPercentageOrNone, ParseError> {
             return LengthOrPercentageOrNone.parseNonNegative(context, input)
-                    .map(::NonNegativeLengthOrPercentageOrNone)
+                .map(::NonNegativeLengthOrPercentageOrNone)
         }
 
-        fun parseQuirky(context: ParserContext,
-                        input: Parser,
-                        allowQuirks: AllowQuirks): Result<NonNegativeLengthOrPercentageOrNone, ParseError> {
+        fun parseQuirky(
+            context: ParserContext,
+            input: Parser,
+            allowQuirks: AllowQuirks
+        ): Result<NonNegativeLengthOrPercentageOrNone, ParseError> {
             return LengthOrPercentageOrNone.parseQuirky(context, input, allowQuirks)
-                    .map(::NonNegativeLengthOrPercentageOrNone)
+                .map(::NonNegativeLengthOrPercentageOrNone)
         }
     }
 }

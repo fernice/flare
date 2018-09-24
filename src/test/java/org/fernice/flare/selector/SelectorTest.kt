@@ -137,8 +137,8 @@ class SelectorParseTest {
 
     @Test
     fun pseudoClassOnlyType() {
-        parse(":only-type",
-                expectComponent(Component.OnlyType::class))
+        parse(":only-of-type",
+                expectComponent(Component.OnlyOfType::class))
     }
 
     @Test

@@ -19,6 +19,9 @@ import org.fernice.flare.style.value.Context
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
+import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.cssparser.toCssJoining
+import java.io.Writer
 
 @PropertyEntryPoint(legacy = false)
 object BackgroundOriginId : LonghandId() {
@@ -38,11 +41,11 @@ object BackgroundOriginId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundOrigin()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundOrigin()
                     }
                 }
@@ -66,19 +69,31 @@ class BackgroundOriginDeclaration(val origin: List<Origin>) : PropertyDeclaratio
         return BackgroundOriginId
     }
 
+    override fun toCssInternally(writer: Writer) = origin.toCssJoining(writer, ", ")
+
     companion object {
 
         val initialValue: List<Origin> by lazy { listOf(Origin.Scroll) }
     }
 }
 
-sealed class Origin {
+sealed class Origin : ToCss {
 
     object Scroll : Origin()
 
     object Fixed : Origin()
 
     object Local : Origin()
+
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is Origin.Scroll -> "scroll"
+                is Origin.Fixed -> "fixed"
+                is Origin.Local -> "local"
+            }
+        )
+    }
 
     companion object : Parse<Origin> {
 

@@ -15,10 +15,11 @@ import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentage
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.computed.NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage
 
-@PropertyEntryPoint
-class PaddingTopId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object PaddingTopId : LonghandId() {
 
     override fun name(): String {
         return "padding-top"
@@ -37,11 +38,11 @@ class PaddingTopId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetPaddingTop()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritPaddingTop()
                     }
                 }
@@ -53,17 +54,14 @@ class PaddingTopId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: PaddingTopId by lazy { PaddingTopId() }
-    }
 }
 
 class PaddingTopDeclaration(val length: NonNegativeLengthOrPercentage) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return PaddingTopId.instance
+        return PaddingTopId
     }
+
+    override fun toCssInternally(writer: Writer) = length.toCss(writer)
 
     companion object {
 

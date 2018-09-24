@@ -22,6 +22,9 @@ import fernice.std.Result
 import fernice.std.Some
 import fernice.std.unwrapOr
 import fernice.std.unwrapOrElse
+import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.cssparser.toCss
+import java.io.Writer
 import org.fernice.flare.style.value.computed.Image as ComputedImage
 import org.fernice.flare.style.value.computed.Gradient as ComputedGradient
 import org.fernice.flare.style.value.computed.GradientItem as ComputedGradientItem
@@ -32,7 +35,7 @@ import org.fernice.flare.style.value.computed.EndingShape as ComputedEndingShape
 import org.fernice.flare.style.value.computed.Circle as ComputedCircle
 import org.fernice.flare.style.value.computed.Ellipse as ComputedEllipse
 
-sealed class Image : SpecifiedValue<ComputedImage> {
+sealed class Image : SpecifiedValue<ComputedImage>, ToCss {
 
     data class Url(val url: ImageUrl) : Image()
 
@@ -42,6 +45,13 @@ sealed class Image : SpecifiedValue<ComputedImage> {
         return when (this) {
             is Image.Url -> ComputedImage.Url(url.toComputedValue(context))
             is Image.Gradient -> ComputedImage.Gradient(gradient.toComputedValue(context))
+        }
+    }
+
+    override fun toCss(writer: Writer) {
+        when (this) {
+            is Image.Url -> url.toCss(writer)
+            is Image.Gradient -> gradient.toCss(writer)
         }
     }
 
@@ -68,17 +78,62 @@ typealias Repeating = Boolean
 private typealias SpecifiedGradient = Gradient
 
 data class Gradient(
-        val items: List<GradientItem>,
-        val repeating: Repeating,
-        val kind: GradientKind
-) : SpecifiedValue<ComputedGradient> {
+    val items: List<GradientItem>,
+    val repeating: Repeating,
+    val kind: GradientKind
+) : SpecifiedValue<ComputedGradient>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedGradient {
         return ComputedGradient(
-                items.toComputedValue(context),
-                repeating,
-                kind.toComputedValue(context)
+            items.toComputedValue(context),
+            repeating,
+            kind.toComputedValue(context)
         )
+    }
+
+    override fun toCss(writer: Writer) {
+        if (repeating) {
+            writer.append("repeating-")
+        }
+
+        writer.append(kind.label())
+        writer.append("-gradient")
+
+        var skipComma = when (kind) {
+            is GradientKind.Linear -> {
+                if (kind.direction.pointsDownwards()) {
+                    true
+                } else {
+                    kind.direction.toCss(writer)
+                    false
+                }
+            }
+            is GradientKind.Radial -> {
+                val omitShape = kind.shape is EndingShape.Ellipse
+                        && kind.shape.ellipse is Ellipse.Extend
+                        && kind.shape.ellipse.shapeExtend is ShapeExtend.FarthestCorner
+
+                kind.position.toCss(writer)
+                //fixme(kralli) there should be an angle
+                if (!omitShape) {
+                    writer.append(", ")
+                    kind.shape.toCss(writer)
+                }
+
+                false
+            }
+        }
+
+        for (item in items) {
+            if (!skipComma) {
+                writer.append(", ")
+            }
+            skipComma = false
+
+            item.toCss(writer)
+        }
+
+        writer.append(')')
     }
 
     companion object {
@@ -139,25 +194,34 @@ data class Gradient(
                 return Err(input.newError(ParseErrorKind.Unknown))
             }
 
-            return Ok(Gradient(
+            return Ok(
+                Gradient(
                     items,
                     repeating,
                     kind
-            ))
+                )
+            )
         }
     }
 }
 
-sealed class GradientItem : SpecifiedValue<ComputedGradientItem> {
-
-    data class InterpolationHint(val hint: LengthOrPercentage) : GradientItem()
+sealed class GradientItem : SpecifiedValue<ComputedGradientItem>, ToCss {
 
     data class ColorStop(val colorStop: SpecifiedColorStop) : GradientItem()
 
+    data class InterpolationHint(val hint: LengthOrPercentage) : GradientItem()
+
     override fun toComputedValue(context: Context): ComputedGradientItem {
         return when (this) {
-            is GradientItem.InterpolationHint -> ComputedGradientItem.InterpolationHint(hint.toComputedValue(context))
             is GradientItem.ColorStop -> ComputedGradientItem.ColorStop(colorStop.toComputedValue(context))
+            is GradientItem.InterpolationHint -> ComputedGradientItem.InterpolationHint(hint.toComputedValue(context))
+        }
+    }
+
+    override fun toCss(writer: Writer) {
+        return when (this) {
+            is GradientItem.ColorStop -> colorStop.toCss(writer)
+            is GradientItem.InterpolationHint -> hint.toCss(writer)
         }
     }
 
@@ -195,15 +259,20 @@ sealed class GradientItem : SpecifiedValue<ComputedGradientItem> {
 private typealias SpecifiedColorStop = ColorStop
 
 data class ColorStop(
-        val color: RGBAColor,
-        val position: Option<LengthOrPercentage>
-) : SpecifiedValue<ComputedColorStop> {
+    val color: RGBAColor,
+    val position: Option<LengthOrPercentage>
+) : SpecifiedValue<ComputedColorStop>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedColorStop {
         return ComputedColorStop(
-                color.toComputedValue(context),
-                position.toComputedValue(context)
+            color.toComputedValue(context),
+            position.toComputedValue(context)
         )
+    }
+
+    override fun toCss(writer: Writer) {
+        color.toCss(writer)
+        position.toCss(writer)
     }
 
     companion object {
@@ -217,24 +286,33 @@ data class ColorStop(
 
             val position = input.tryParse { nestedParser -> LengthOrPercentage.parse(context, nestedParser) }.ok()
 
-            return Ok(ColorStop(
+            return Ok(
+                ColorStop(
                     color,
                     position
-            ))
+                )
+            )
         }
     }
 }
 
 sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
-    data class Linear(val lineDirection: LineDirection) : GradientKind()
+    data class Linear(val direction: LineDirection) : GradientKind()
 
-    data class Radial(val endingShape: EndingShape, val position: Position) : GradientKind()
+    data class Radial(val shape: EndingShape, val position: Position) : GradientKind()
 
     override fun toComputedValue(context: Context): ComputedGradientKind {
         return when (this) {
-            is GradientKind.Linear -> ComputedGradientKind.Linear(lineDirection.toComputedValue(context))
-            is GradientKind.Radial -> ComputedGradientKind.Radial(endingShape.toComputedValue(context), position.toComputedValue(context))
+            is GradientKind.Linear -> ComputedGradientKind.Linear(direction.toComputedValue(context))
+            is GradientKind.Radial -> ComputedGradientKind.Radial(shape.toComputedValue(context), position.toComputedValue(context))
+        }
+    }
+
+    fun label(): String {
+        return when (this) {
+            is GradientKind.Linear -> "linear"
+            is GradientKind.Radial -> "radial"
         }
     }
 
@@ -289,7 +367,7 @@ sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
 private typealias ImageAngle = Angle
 
-sealed class LineDirection : SpecifiedValue<ComputedLineDirection> {
+sealed class LineDirection : SpecifiedValue<ComputedLineDirection>, ToCss {
 
     data class Angle(val angle: ImageAngle) : LineDirection()
 
@@ -306,6 +384,14 @@ sealed class LineDirection : SpecifiedValue<ComputedLineDirection> {
             is LineDirection.Vertical -> ComputedLineDirection.Vertical(y)
             is LineDirection.Corner -> ComputedLineDirection.Corner(x, y)
         }
+    }
+
+    fun pointsDownwards(): Boolean {
+        return false
+    }
+
+    override fun toCss(writer: Writer) {
+        TODO("implement toCss(Writer) for LineDirection")
     }
 
     companion object {
@@ -354,7 +440,7 @@ sealed class LineDirection : SpecifiedValue<ComputedLineDirection> {
     }
 }
 
-sealed class EndingShape : SpecifiedValue<ComputedEndingShape> {
+sealed class EndingShape : SpecifiedValue<ComputedEndingShape>, ToCss {
 
     data class Circle(val circle: SpecifiedCircle) : EndingShape()
 
@@ -365,6 +451,10 @@ sealed class EndingShape : SpecifiedValue<ComputedEndingShape> {
             is EndingShape.Circle -> ComputedEndingShape.Circle(circle.toComputedValue(context))
             is EndingShape.Ellipse -> ComputedEndingShape.Ellipse(ellipse.toComputedValue(context))
         }
+    }
+
+    override fun toCss(writer: Writer) {
+        writer.append()
     }
 
     companion object {

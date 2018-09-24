@@ -15,10 +15,11 @@ import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.computed.Style
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 
-@PropertyEntryPoint
-class BorderRightStyleId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BorderRightStyleId : LonghandId() {
 
     override fun name(): String {
         return "border-right-style"
@@ -35,11 +36,11 @@ class BorderRightStyleId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBorderRightStyle()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBorderRightStyle()
                     }
                 }
@@ -51,20 +52,17 @@ class BorderRightStyleId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BorderRightStyleId by lazy { BorderRightStyleId() }
-    }
 }
 
 class BorderRightStyleDeclaration(val style: Style) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BorderRightStyleId.instance
+        return BorderRightStyleId
     }
+
+    override fun toCssInternally(writer: Writer) = style.toCss(writer)
 
     companion object {
 
-        val initialValue: Style by lazy { Style.NONE }
+        val initialValue: Style by lazy { Style.None }
     }
 }

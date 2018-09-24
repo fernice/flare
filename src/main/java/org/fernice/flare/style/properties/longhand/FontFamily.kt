@@ -17,10 +17,11 @@ import org.fernice.flare.style.value.computed.FontFamilyList
 import org.fernice.flare.style.value.computed.SingleFontFamily
 import org.fernice.flare.style.value.specified.FontFamily
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.computed.FontFamily as ComputedFontFamily
 
-@PropertyEntryPoint
-class FontFamilyId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object FontFamilyId : LonghandId() {
     override fun name(): String {
         return "font-family"
     }
@@ -38,11 +39,11 @@ class FontFamilyId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Initial -> {
                         context.builder.resetFontFamily()
                     }
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritFontFamily()
                     }
                 }
@@ -54,25 +55,26 @@ class FontFamilyId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return true
     }
-
-    companion object {
-
-        val instance: FontFamilyId by lazy { FontFamilyId() }
-    }
 }
 
 class FontFamilyDeclaration(val fontFamily: FontFamily) : PropertyDeclaration() {
 
     override fun id(): LonghandId {
-        return FontFamilyId.instance
+        return FontFamilyId
     }
+
+    override fun toCssInternally(writer: Writer) = fontFamily.toCss(writer)
 
     companion object {
 
         val initialValue: ComputedFontFamily by lazy {
-            ComputedFontFamily(FontFamilyList(listOf(
-                    SingleFontFamily.Generic("serif")
-            )))
+            ComputedFontFamily(
+                FontFamilyList(
+                    listOf(
+                        SingleFontFamily.Generic("serif")
+                    )
+                )
+            )
         }
     }
 }

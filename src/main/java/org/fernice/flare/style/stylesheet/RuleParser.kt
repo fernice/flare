@@ -30,9 +30,11 @@ sealed class CssRule {
     class Style(val styleRule: StyleRule) : CssRule()
 }
 
-class StyleRule(val selectors: SelectorList,
-                val declarations: PropertyDeclarationBlock,
-                val location: SourceLocation)
+class StyleRule(
+    val selectors: SelectorList,
+    val declarations: PropertyDeclarationBlock,
+    val location: SourceLocation
+)
 
 class TopLevelRuleParser(private val context: ParserContext) : AtRuleParser<AtRulePrelude, CssRule>, QualifiedRuleParser<QualifiedRulePrelude, CssRule> {
 
@@ -68,10 +70,14 @@ class NestedRuleParser(private val context: ParserContext) : AtRuleParser<AtRule
     override fun parseQualifiedRule(input: Parser, prelude: QualifiedRulePrelude): Result<CssRule, ParseError> {
         val declarations = parsePropertyDeclarationList(context, input)
 
-        return Ok(CssRule.Style(StyleRule(
-                prelude.selectors,
-                declarations,
-                prelude.location
-        )))
+        return Ok(
+            CssRule.Style(
+                StyleRule(
+                    prelude.selectors,
+                    declarations,
+                    prelude.location
+                )
+            )
+        )
     }
 }

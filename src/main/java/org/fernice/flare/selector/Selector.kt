@@ -5,28 +5,31 @@
  */
 package org.fernice.flare.selector
 
-import org.fernice.flare.cssparser.Delimiters
-import org.fernice.flare.cssparser.Nth
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.debugAssert
-import org.fernice.flare.std.iter.Iter
-import org.fernice.flare.std.iter.drain
-import org.fernice.flare.std.iter.iter
-import org.fernice.flare.style.parser.QuirksMode
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
+import org.fernice.flare.cssparser.Delimiters
+import org.fernice.flare.cssparser.Nth
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.Token
+import org.fernice.flare.cssparser.toCssJoining
+import org.fernice.flare.debugAssert
+import org.fernice.flare.std.iter.Iter
+import org.fernice.flare.std.iter.drain
+import org.fernice.flare.std.iter.iter
+import org.fernice.flare.style.parser.QuirksMode
+import java.io.Writer
 
 data class NamespacePrefix(val prefix: String)
 
 data class NamespaceUrl(val prefix: NamespacePrefix, val url: String)
 
-sealed class Component {
+sealed class Component : ToCss {
 
     data class Combinator(val combinator: org.fernice.flare.selector.Combinator) : Component()
 
@@ -59,7 +62,7 @@ sealed class Component {
     object OnlyChild : Component()
     object FirstOfType : Component()
     object LastOfType : Component()
-    object OnlyType : Component()
+    object OnlyOfType : Component()
 
     object Root : Component()
     object Empty : Component()
@@ -72,22 +75,22 @@ sealed class Component {
     data class NthLastOfType(val nth: Nth) : Component()
 
     data class AttributeOther(
-            val namespace: NamespaceConstraint,
-            val localName: String,
-            val localNameLower: String,
-            val opertation: AttributeSelectorOperation,
-            val neverMatches: Boolean
+        val namespace: NamespaceConstraint,
+        val localName: String,
+        val localNameLower: String,
+        val operation: AttributeSelectorOperation,
+        val neverMatches: Boolean
     ) : Component()
 
     data class AttributeInNoNamespaceExists(val localName: String, val localNameLower: String) : Component()
 
     data class AttributeInNoNamespace(
-            val localName: String,
-            val localNameLower: String,
-            val operator: AttributeSelectorOperator,
-            val value: String,
-            val caseSensitive: Boolean,
-            val neverMatches: Boolean
+        val localName: String,
+        val localNameLower: String,
+        val operator: AttributeSelectorOperator,
+        val value: String,
+        val caseSensitive: Boolean,
+        val neverMatches: Boolean
     ) : Component()
 
     fun ancestorHash(quirksMode: QuirksMode): Option<Int> {
@@ -118,73 +121,176 @@ sealed class Component {
             else -> None
         }
     }
+
+    override fun toCss(writer: Writer) {
+        fun Int.toStringWithSign(): String {
+            return if (this >= 0) "+$this" else this.toString()
+        }
+
+        fun writeNth(prefix: String, nth: Nth, writer: Writer) {
+            writer.append(prefix)
+            writer.append('(')
+
+            with(nth) {
+                writer.append(
+                    when {
+                        a == 0 && b == 0 -> "0"
+
+                        a == 1 && b == 0 -> "n"
+                        a == -1 && b == 0 -> "-n"
+                        b == 0 -> "${a}n"
+
+                        a == 0 -> b.toString()
+                        a == 1 -> "n${b.toStringWithSign()}"
+                        a == -1 -> "-n${b.toStringWithSign()}"
+                        else -> "${a}n${b.toStringWithSign()}"
+                    }
+                )
+            }
+
+            writer.append(')')
+        }
+
+        when (this) {
+            is Component.Combinator -> this.combinator.toCss(writer)
+            is Component.PseudoElement -> this.pseudoElement.toCss(writer)
+            is Component.ID -> {
+                writer.append('#')
+                writer.append(this.id)
+            }
+            is Component.Class -> {
+                writer.append(".")
+                writer.append(this.styleClass)
+            }
+            is Component.LocalName -> writer.append(localName)
+            is Component.ExplicitUniversalType -> writer.append('*')
+
+            is Component.DefaultNamespace -> Unit
+            is Component.ExplicitNoNamespace -> writer.append('|')
+            is Component.ExplicitAnyNamespace -> writer.append("*|")
+            is Component.Namespace -> {
+                writer.append(this.prefix.prefix)
+                writer.append('|')
+            }
+
+            is Component.AttributeInNoNamespaceExists -> {
+                writer.append('[')
+                writer.append(this.localName)
+                writer.append(']')
+            }
+            is Component.AttributeInNoNamespace -> {
+                writer.append('[')
+                writer.append(this.localName)
+                this.operator.toCss(writer)
+                writer.append('"')
+                writer.append(this.value)
+                writer.append('"')
+                if (this.caseSensitive) {
+                    writer.append(" i")
+                }
+                writer.append(']')
+            }
+            is Component.AttributeOther -> TODO("Implement toCss(Writer)")
+
+            is Component.Negation -> {
+                writer.append(":not(")
+                for (component in this.simpleSelector) {
+                    component.toCss(writer)
+                }
+                writer.append(")")
+            }
+
+            is Component.FirstChild -> writer.append(":first-child")
+            is Component.LastChild -> writer.append(":last-child")
+            is Component.OnlyChild -> writer.append(":only-child")
+            is Component.Root -> writer.append(":root")
+            is Component.Empty -> writer.append(":empty")
+            is Component.Scope -> writer.append(":scope")
+            is Component.Host -> TODO("Implement host selector")
+            is Component.FirstOfType -> writer.append(":first-of-type")
+            is Component.LastOfType -> writer.append(":last-of-type")
+            is Component.OnlyOfType -> writer.append(":only-of-type")
+            is Component.NthChild -> writeNth("nth-child", this.nth, writer)
+            is Component.NthLastChild -> writeNth("nth-last-child", this.nth, writer)
+            is Component.NthOfType -> writeNth("nth-of-type", this.nth, writer)
+            is Component.NthLastOfType -> writeNth("nth-last-child", this.nth, writer)
+
+            is Component.NonTSPseudoClass -> this.pseudoClass.toCss(writer)
+        }
+    }
 }
 
-sealed class Combinator {
+sealed class Combinator : ToCss {
 
     object Child : Combinator()
+
+    object Descendant : Combinator()
 
     object NextSibling : Combinator()
 
     object LaterSibling : Combinator()
 
-    object Descendant : Combinator()
-
     object PseudoElement : Combinator()
+
+    override fun toCss(writer: Writer) {
+        return when (this) {
+            is Combinator.Child -> writer.write(" > ")
+            is Combinator.Descendant -> writer.write(" ")
+            is Combinator.NextSibling -> writer.write(" + ")
+            is Combinator.LaterSibling -> writer.write(" ~ ")
+            is Combinator.PseudoElement -> Unit
+        }
+    }
 }
 
 const val PSEUDO_COUNT = 8
 
-sealed class PseudoElement {
+sealed class PseudoElement : ToCss {
 
-    abstract fun ordinal(): Int
+    object Before : PseudoElement()
 
-    object Before : PseudoElement() {
-        override fun ordinal(): Int {
-            return 0
+    object After : PseudoElement()
+
+    object Selection : PseudoElement()
+
+    object FirstLetter : PseudoElement()
+
+    object FirstLine : PseudoElement()
+
+    object Placeholder : PseudoElement()
+
+    object FlareTabArea : PseudoElement()
+
+    object FlareTab : PseudoElement()
+
+    fun ordinal(): Int {
+        return when (this) {
+            is PseudoElement.Before -> 0
+            is PseudoElement.After -> 1
+            is PseudoElement.Selection -> 2
+            is PseudoElement.FirstLetter -> 3
+            is PseudoElement.FirstLine -> 4
+            is PseudoElement.Placeholder -> 5
+
+            is PseudoElement.FlareTabArea -> 6
+            is PseudoElement.FlareTab -> 7
         }
     }
 
-    object After : PseudoElement() {
-        override fun ordinal(): Int {
-            return 1
-        }
-    }
+    override fun toCss(writer: Writer) {
+        val css = when (this) {
+            is PseudoElement.Before -> "::before"
+            is PseudoElement.After -> "::after"
+            is PseudoElement.Selection -> "::selection"
+            is PseudoElement.FirstLetter -> "::first-letter"
+            is PseudoElement.FirstLine -> "::first-line"
+            is PseudoElement.Placeholder -> "::placeholder"
 
-    object Selection : PseudoElement() {
-        override fun ordinal(): Int {
-            return 2
+            is PseudoElement.FlareTabArea -> "::flr-tab-area"
+            is PseudoElement.FlareTab -> "::flr-tab"
         }
-    }
 
-    object FirstLetter : PseudoElement() {
-        override fun ordinal(): Int {
-            return 3
-        }
-    }
-
-    object FirstLine : PseudoElement() {
-        override fun ordinal(): Int {
-            return 4
-        }
-    }
-
-    object Placeholder : PseudoElement() {
-        override fun ordinal(): Int {
-            return 5
-        }
-    }
-
-    object FlareTabArea : PseudoElement() {
-        override fun ordinal(): Int {
-            return 6
-        }
-    }
-
-    object FlareTab : PseudoElement() {
-        override fun ordinal(): Int {
-            return 7
-        }
+        writer.write(css)
     }
 
     companion object {
@@ -196,26 +302,37 @@ sealed class PseudoElement {
         }
 
         fun fromEagerOrdinal(ordinal: Int): PseudoElement {
-            return values[ordinal]
+            return when (ordinal) {
+                0 -> PseudoElement.Before
+                1 -> PseudoElement.After
+                2 -> PseudoElement.Selection
+                3 -> PseudoElement.FirstLetter
+                4 -> PseudoElement.FirstLine
+                5 -> PseudoElement.Placeholder
+
+                6 -> PseudoElement.FlareTabArea
+                7 -> PseudoElement.FlareTab
+                else -> throw IndexOutOfBoundsException()
+            }
         }
 
         val values: Array<PseudoElement> by lazy {
             arrayOf(
-                    PseudoElement.Before,
-                    PseudoElement.After,
-                    PseudoElement.Selection,
-                    PseudoElement.FirstLetter,
-                    PseudoElement.FirstLine,
-                    PseudoElement.Placeholder,
+                PseudoElement.Before,
+                PseudoElement.After,
+                PseudoElement.Selection,
+                PseudoElement.FirstLetter,
+                PseudoElement.FirstLine,
+                PseudoElement.Placeholder,
 
-                    PseudoElement.FlareTabArea,
-                    PseudoElement.FlareTab
+                PseudoElement.FlareTabArea,
+                PseudoElement.FlareTab
             )
         }
     }
 }
 
-sealed class NonTSPseudoClass {
+sealed class NonTSPseudoClass : ToCss {
 
     object Active : NonTSPseudoClass()
     object Checked : NonTSPseudoClass()
@@ -232,6 +349,28 @@ sealed class NonTSPseudoClass {
     object ReadOnly : NonTSPseudoClass()
     object Target : NonTSPseudoClass()
     object Visited : NonTSPseudoClass()
+
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is NonTSPseudoClass.Active -> ":active"
+                is NonTSPseudoClass.Checked -> ":checked"
+                is NonTSPseudoClass.Disabled -> ":disabled"
+                is NonTSPseudoClass.Enabled -> ":enabled"
+                is NonTSPseudoClass.Focus -> ":focus"
+                is NonTSPseudoClass.Fullscreen -> ":fullscreen"
+                is NonTSPseudoClass.Hover -> ":hover"
+                is NonTSPseudoClass.Indeterminate -> ":indeterminate"
+                is NonTSPseudoClass.Lang -> ":lang($language)"
+                is NonTSPseudoClass.Link -> ":link"
+                is NonTSPseudoClass.PlaceholderShown -> ":placeholder-shown"
+                is NonTSPseudoClass.ReadWrite -> ":read-write"
+                is NonTSPseudoClass.ReadOnly -> ":read-only"
+                is NonTSPseudoClass.Target -> ":target"
+                is NonTSPseudoClass.Visited -> ":visited"
+            }
+        )
+    }
 }
 
 sealed class NamespaceConstraint {
@@ -248,7 +387,7 @@ sealed class AttributeSelectorOperation {
     data class WithValue(val operator: AttributeSelectorOperator, val caseSensitive: Boolean, val expectedValue: String) : AttributeSelectorOperation()
 }
 
-sealed class AttributeSelectorOperator {
+sealed class AttributeSelectorOperator : ToCss {
 
     object Equal : AttributeSelectorOperator()
     object Includes : AttributeSelectorOperator()
@@ -256,6 +395,19 @@ sealed class AttributeSelectorOperator {
     object Prefix : AttributeSelectorOperator()
     object Substring : AttributeSelectorOperator()
     object Suffix : AttributeSelectorOperator()
+
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is Equal -> "="
+                is Includes -> "~="
+                is DashMatch -> "|="
+                is Prefix -> "^="
+                is Substring -> "*="
+                is Suffix -> "$="
+            }
+        )
+    }
 }
 
 /**
@@ -264,7 +416,7 @@ sealed class AttributeSelectorOperator {
  * stored in matching order (right-to-left) for the combinators whereas for the compound selectors in parse order
  * (left-to-right).
  */
-class Selector(private val header: SpecificityAndFlags, private val components: List<Component>) {
+class Selector(private val header: SpecificityAndFlags, private val components: List<Component>) : ToCss {
 
     /**
      * Returns the specificity of this selector in a 4 Byte compressed format. For further information of the format
@@ -371,8 +523,12 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         return selector.iter()
     }
 
+    override fun toCss(writer: Writer) {
+        rawIterTrueParseOrder().toCssJoining(writer)
+    }
+
     override fun toString(): String {
-        return "Selector[components=${components.size}, specificity=${specificity()}]"
+        return "Selector[sr=${toCssString()}, spec=${specificity()}]"
     }
 }
 
@@ -413,9 +569,17 @@ data class SelectorIter(private val iter: Iter<Component>, private var nextCombi
     }
 }
 
-data class SelectorList(private val selectors: List<Selector>) : Iterable<Selector> {
+data class SelectorList(private val selectors: List<Selector>) : Iterable<Selector>, ToCss {
 
     override fun iterator(): Iterator<Selector> = selectors.iterator()
+
+    override fun toCss(writer: Writer) {
+        selectors.toCssJoining(writer, separator = ", ")
+    }
+
+    override fun toString(): String {
+        return "SelectorList[sr=${toCssString()}]"
+    }
 
     companion object {
 

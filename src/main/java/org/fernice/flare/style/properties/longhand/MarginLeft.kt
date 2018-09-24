@@ -15,10 +15,11 @@ import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.LengthOrPercentageOrAuto
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
 
-@PropertyEntryPoint
-class MarginLeftId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object MarginLeftId : LonghandId() {
 
     override fun name(): String {
         return "margin-left"
@@ -37,11 +38,11 @@ class MarginLeftId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetMarginLeft()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritMarginLeft()
                     }
                 }
@@ -53,17 +54,14 @@ class MarginLeftId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: MarginLeftId by lazy { MarginLeftId() }
-    }
 }
 
 class MarginLeftDeclaration(val length: LengthOrPercentageOrAuto) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return MarginLeftId.instance
+        return MarginLeftId
     }
+
+    override fun toCssInternally(writer: Writer) = length.toCss(writer)
 
     companion object {
 

@@ -18,10 +18,12 @@ import org.fernice.flare.style.value.specified.VerticalPosition
 import org.fernice.flare.style.value.specified.Y
 import org.fernice.flare.style.value.toComputedValue
 import fernice.std.Result
+import org.fernice.flare.cssparser.toCssJoining
+import java.io.Writer
 import org.fernice.flare.style.value.computed.VerticalPosition as ComputedVerticalPosition
 
-@PropertyEntryPoint
-class BackgroundPositionYId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundPositionYId : LonghandId() {
 
     override fun name(): String {
         return "background-position-y"
@@ -29,7 +31,7 @@ class BackgroundPositionYId : LonghandId() {
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return input.parseCommaSeparated { VerticalPosition.parseQuirky(context, it, AllowQuirks.Yes, Y.Companion) }
-                .map(::BackgroundPositionYDeclaration)
+            .map(::BackgroundPositionYDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -41,11 +43,11 @@ class BackgroundPositionYId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundPositionY()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundPositionY()
                     }
                 }
@@ -57,16 +59,15 @@ class BackgroundPositionYId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BackgroundPositionYId by lazy { BackgroundPositionYId() }
-    }
 }
 
 class BackgroundPositionYDeclaration(val position: List<VerticalPosition>) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BackgroundPositionYId.instance
+        return BackgroundPositionYId
+    }
+
+    override fun toCssInternally(writer: Writer) {
+        position.toCssJoining(writer, ", ")
     }
 
     companion object {

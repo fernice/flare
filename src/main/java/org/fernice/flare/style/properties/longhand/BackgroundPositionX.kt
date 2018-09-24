@@ -18,10 +18,12 @@ import org.fernice.flare.style.value.specified.HorizontalPosition
 import org.fernice.flare.style.value.specified.X
 import org.fernice.flare.style.value.toComputedValue
 import fernice.std.Result
+import org.fernice.flare.cssparser.toCssJoining
+import java.io.Writer
 import org.fernice.flare.style.value.computed.HorizontalPosition as ComputedHorizontalPosition
 
-@PropertyEntryPoint
-class BackgroundPositionXId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundPositionXId : LonghandId() {
 
     override fun name(): String {
         return "background-position-x"
@@ -29,7 +31,7 @@ class BackgroundPositionXId : LonghandId() {
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return input.parseCommaSeparated { HorizontalPosition.parseQuirky(context, it, AllowQuirks.Yes, X.Companion) }
-                .map(::BackgroundPositionXDeclaration)
+            .map(::BackgroundPositionXDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -41,11 +43,11 @@ class BackgroundPositionXId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundPositionX()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundPositionX()
                     }
                 }
@@ -57,17 +59,14 @@ class BackgroundPositionXId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BackgroundPositionXId by lazy { BackgroundPositionXId() }
-    }
 }
 
 class BackgroundPositionXDeclaration(val position: List<HorizontalPosition>) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BackgroundPositionXId.instance
+        return BackgroundPositionXId
     }
+
+    override fun toCssInternally(writer: Writer) = position.toCssJoining(writer, ", ")
 
     companion object {
 

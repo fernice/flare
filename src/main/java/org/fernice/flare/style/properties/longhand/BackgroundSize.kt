@@ -17,9 +17,11 @@ import org.fernice.flare.style.value.specified.BackgroundSize
 import org.fernice.flare.style.value.computed.BackgroundSize as ComputedBackgroundSize
 import org.fernice.flare.style.value.toComputedValue
 import fernice.std.Result
+import org.fernice.flare.cssparser.toCssJoining
+import java.io.Writer
 
-@PropertyEntryPoint
-class BackgroundSizeId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BackgroundSizeId : LonghandId() {
 
     override fun name(): String {
         return "background-size"
@@ -27,7 +29,7 @@ class BackgroundSizeId : LonghandId() {
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return input.parseCommaSeparated { BackgroundSize.parse(context, it) }
-                .map(::BackgroundSizeDeclaration)
+            .map(::BackgroundSizeDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -39,11 +41,11 @@ class BackgroundSizeId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBackgroundSize()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBackgroundSize()
                     }
                 }
@@ -55,17 +57,16 @@ class BackgroundSizeId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BackgroundSizeId by lazy { BackgroundSizeId() }
-    }
 }
 
 class BackgroundSizeDeclaration(val size: List<BackgroundSize>) : PropertyDeclaration() {
 
     override fun id(): LonghandId {
-        return BackgroundSizeId.instance
+        return BackgroundSizeId
+    }
+
+    override fun toCssInternally(writer: Writer) {
+        size.toCssJoining(writer, ", ")
     }
 
     companion object {

@@ -15,10 +15,11 @@ import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.BorderCornerRadius
 import fernice.std.Result
+import java.io.Writer
 import org.fernice.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
 
-@PropertyEntryPoint
-class BorderTopRightRadiusId : LonghandId() {
+@PropertyEntryPoint(legacy = false)
+object BorderTopRightRadiusId : LonghandId() {
 
     override fun name(): String {
         return "border-top-right-radius"
@@ -37,11 +38,11 @@ class BorderTopRightRadiusId : LonghandId() {
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.UNSET,
-                    CssWideKeyword.INITIAL -> {
+                    CssWideKeyword.Unset,
+                    CssWideKeyword.Initial -> {
                         context.builder.resetBorderTopRightRadius()
                     }
-                    CssWideKeyword.INHERIT -> {
+                    CssWideKeyword.Inherit -> {
                         context.builder.inheritBorderTopRightRadius()
                     }
                 }
@@ -53,17 +54,14 @@ class BorderTopRightRadiusId : LonghandId() {
     override fun isEarlyProperty(): Boolean {
         return false
     }
-
-    companion object {
-
-        val instance: BorderTopRightRadiusId by lazy { BorderTopRightRadiusId() }
-    }
 }
 
 class BorderTopRightRadiusDeclaration(val radius: BorderCornerRadius) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BorderTopRightRadiusId.instance
+        return BorderTopRightRadiusId
     }
+
+    override fun toCssInternally(writer: Writer) = radius.toCss(writer)
 
     companion object {
 

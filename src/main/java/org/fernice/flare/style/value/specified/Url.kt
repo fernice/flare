@@ -19,11 +19,13 @@ import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 
 class CssUrl(
-        val original: Option<String>,
-        val resolved: Option<Url>
-) : SpecifiedValue<ComputedUrl> {
+    val original: Option<String>,
+    val resolved: Option<Url>
+) : SpecifiedValue<ComputedUrl>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedUrl {
         return when (resolved) {
@@ -37,14 +39,22 @@ class CssUrl(
         }
     }
 
+    override fun toCss(writer: Writer) {
+        when {
+            original is Some -> writer.append(original.value)
+            resolved is Some -> resolved.value.toCss(writer)
+            else -> writer.append("<missing-url>")
+        }
+    }
+
     companion object {
 
         fun parseFromString(string: String, context: ParserContext): CssUrl {
             val resolved = context.baseUrl.join(string).ok()
 
             return CssUrl(
-                    Some(string),
-                    resolved
+                Some(string),
+                resolved
             )
         }
 
