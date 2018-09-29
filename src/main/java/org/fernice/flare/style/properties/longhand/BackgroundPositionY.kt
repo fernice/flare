@@ -12,7 +12,6 @@ import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.VerticalPosition
 import org.fernice.flare.style.value.specified.Y
@@ -22,12 +21,9 @@ import org.fernice.flare.cssparser.toCssJoining
 import java.io.Writer
 import org.fernice.flare.style.value.computed.VerticalPosition as ComputedVerticalPosition
 
-@PropertyEntryPoint(legacy = false)
 object BackgroundPositionYId : LonghandId() {
 
-    override fun name(): String {
-        return "background-position-y"
-    }
+    override val name: String = "background-position-y"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return input.parseCommaSeparated { VerticalPosition.parseQuirky(context, it, AllowQuirks.Yes, Y.Companion) }

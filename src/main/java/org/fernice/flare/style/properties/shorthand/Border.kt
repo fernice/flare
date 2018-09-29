@@ -5,13 +5,20 @@
  */
 package org.fernice.flare.style.properties.shorthand
 
+import fernice.std.Empty
+import fernice.std.Err
+import fernice.std.None
+import fernice.std.Ok
+import fernice.std.Option
+import fernice.std.Result
+import fernice.std.Some
+import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.properties.ShorthandId
 import org.fernice.flare.style.properties.longhand.BorderBottomColorDeclaration
 import org.fernice.flare.style.properties.longhand.BorderBottomColorId
@@ -51,14 +58,6 @@ import org.fernice.flare.style.value.specified.BorderCornerRadius
 import org.fernice.flare.style.value.specified.BorderSideWidth
 import org.fernice.flare.style.value.specified.Color
 import org.fernice.flare.style.value.specified.LengthOrPercentage
-import fernice.std.Empty
-import fernice.std.Err
-import fernice.std.None
-import fernice.std.Ok
-import fernice.std.Option
-import fernice.std.Result
-import fernice.std.Some
-import fernice.std.unwrapOr
 
 private data class Longhands(
     val width: BorderSideWidth,
@@ -119,12 +118,9 @@ private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands
     }
 }
 
-@PropertyEntryPoint
-class BorderId : ShorthandId() {
+object BorderId : ShorthandId() {
 
-    override fun name(): String {
-        return "border"
-    }
+    override val name: String = "border"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val result = parseBorder(context, input)
@@ -201,42 +197,30 @@ class BorderId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderTopColorId,
+            BorderTopStyleId,
+            BorderTopWidthId,
 
-    companion object {
+            BorderRightColorId,
+            BorderRightStyleId,
+            BorderRightWidthId,
 
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderTopColorId,
-                BorderTopStyleId,
-                BorderTopWidthId,
+            BorderBottomColorId,
+            BorderBottomStyleId,
+            BorderBottomWidthId,
 
-                BorderRightColorId,
-                BorderRightStyleId,
-                BorderRightWidthId,
-
-                BorderBottomColorId,
-                BorderBottomStyleId,
-                BorderBottomWidthId,
-
-                BorderLeftColorId,
-                BorderLeftStyleId,
-                BorderLeftWidthId
-            )
-        }
-
-        val instance: BorderId by lazy { BorderId() }
+            BorderLeftColorId,
+            BorderLeftStyleId,
+            BorderLeftWidthId
+        )
     }
 }
 
-@PropertyEntryPoint
-class BorderColorId : ShorthandId() {
+object BorderColorId : ShorthandId() {
 
-    override fun name(): String {
-        return "border-color"
-    }
+    override val name: String = "border-color"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val result = Rect.parseWith(context, input, Color.Companion::parse)
@@ -270,31 +254,19 @@ class BorderColorId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
-
-    companion object {
-
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderTopColorId,
-                BorderRightColorId,
-                BorderBottomColorId,
-                BorderLeftColorId
-            )
-        }
-
-        val instance: BorderColorId by lazy { BorderColorId() }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderTopColorId,
+            BorderRightColorId,
+            BorderBottomColorId,
+            BorderLeftColorId
+        )
     }
 }
 
-@PropertyEntryPoint
-class BorderStyleId : ShorthandId() {
+object BorderStyleId : ShorthandId() {
 
-    override fun name(): String {
-        return "border-style"
-    }
+    override val name: String = "border-style"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val result = Rect.parseWith(context, input) { _, input -> Style.parse(input) }
@@ -328,31 +300,19 @@ class BorderStyleId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
-
-    companion object {
-
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderTopStyleId,
-                BorderRightStyleId,
-                BorderBottomStyleId,
-                BorderLeftStyleId
-            )
-        }
-
-        val instance: BorderStyleId by lazy { BorderStyleId() }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderTopStyleId,
+            BorderRightStyleId,
+            BorderBottomStyleId,
+            BorderLeftStyleId
+        )
     }
 }
 
-@PropertyEntryPoint
-class BorderWidthId : ShorthandId() {
+object BorderWidthId : ShorthandId() {
 
-    override fun name(): String {
-        return "border-width"
-    }
+    override val name: String = "border-width"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val result = Rect.parseWith(context, input, BorderSideWidth.Companion::parse)
@@ -386,31 +346,19 @@ class BorderWidthId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
-
-    companion object {
-
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderTopWidthId,
-                BorderRightWidthId,
-                BorderBottomWidthId,
-                BorderLeftWidthId
-            )
-        }
-
-        val instance: BorderWidthId by lazy { BorderWidthId() }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderTopWidthId,
+            BorderRightWidthId,
+            BorderBottomWidthId,
+            BorderLeftWidthId
+        )
     }
 }
 
-@PropertyEntryPoint
-class BorderRadiusId : ShorthandId() {
+object BorderRadiusId : ShorthandId() {
 
-    override fun name(): String {
-        return "border-radius"
-    }
+    override val name: String = "border-radius"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val widthsResult = Rect.parseWith(context, input, LengthOrPercentage.Companion::parse)
@@ -455,31 +403,19 @@ class BorderRadiusId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
-
-    companion object {
-
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderTopLeftRadiusId,
-                BorderTopRightRadiusId,
-                BorderBottomLeftRadiusId,
-                BorderBottomRightRadiusId
-            )
-        }
-
-        val instance: BorderRadiusId by lazy { BorderRadiusId() }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderTopLeftRadiusId,
+            BorderTopRightRadiusId,
+            BorderBottomLeftRadiusId,
+            BorderBottomRightRadiusId
+        )
     }
 }
 
-@PropertyEntryPoint
-class BorderTopId : ShorthandId() {
+object BorderTopId : ShorthandId() {
 
-    override fun name(): String {
-        return "border-top"
-    }
+    override val name: String = "border-top"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val result = parseBorder(context, input)
@@ -508,30 +444,18 @@ class BorderTopId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
-
-    companion object {
-
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderTopWidthId,
-                BorderTopColorId,
-                BorderTopStyleId
-            )
-        }
-
-        val instance: BorderTopId by lazy { BorderTopId() }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderTopWidthId,
+            BorderTopColorId,
+            BorderTopStyleId
+        )
     }
 }
 
-@PropertyEntryPoint
-class BorderRightId : ShorthandId() {
+object BorderRightId : ShorthandId() {
 
-    override fun name(): String {
-        return "border-right"
-    }
+    override val name: String = "border-right"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val result = parseBorder(context, input)
@@ -560,30 +484,18 @@ class BorderRightId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
-
-    companion object {
-
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderRightWidthId,
-                BorderRightColorId,
-                BorderRightStyleId
-            )
-        }
-
-        val instance: BorderRightId by lazy { BorderRightId() }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderRightWidthId,
+            BorderRightColorId,
+            BorderRightStyleId
+        )
     }
 }
 
-@PropertyEntryPoint
-class BorderBottomId : ShorthandId() {
+object BorderBottomId : ShorthandId() {
 
-    override fun name(): String {
-        return "border-bottom"
-    }
+    override val name: String = "border-bottom"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val result = parseBorder(context, input)
@@ -612,30 +524,19 @@ class BorderBottomId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
 
-    companion object {
-
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderBottomWidthId,
-                BorderBottomColorId,
-                BorderBottomStyleId
-            )
-        }
-
-        val instance: BorderBottomId by lazy { BorderBottomId() }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderBottomWidthId,
+            BorderBottomColorId,
+            BorderBottomStyleId
+        )
     }
 }
 
-@PropertyEntryPoint
-class BorderLeftId : ShorthandId() {
+object BorderLeftId : ShorthandId() {
 
-    override fun name(): String {
-        return "border-left"
-    }
+    override val name: String = "border-left"
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
         val result = parseBorder(context, input)
@@ -664,20 +565,11 @@ class BorderLeftId : ShorthandId() {
         return Ok()
     }
 
-    override fun getLonghands(): List<LonghandId> {
-        return longhands
-    }
-
-    companion object {
-
-        private val longhands: List<LonghandId> by lazy {
-            listOf(
-                BorderLeftWidthId,
-                BorderLeftColorId,
-                BorderLeftStyleId
-            )
-        }
-
-        val instance: BorderLeftId by lazy { BorderLeftId() }
+    override val longhands: List<LonghandId> by lazy {
+        listOf(
+            BorderLeftWidthId,
+            BorderLeftColorId,
+            BorderLeftStyleId
+        )
     }
 }

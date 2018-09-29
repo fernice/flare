@@ -31,10 +31,10 @@ import fernice.std.ifLet
 import fernice.std.unwrapOr
 
 class Rule(
-        val selector: Selector,
-        val hashes: AncestorHashes,
-        val sourceOrder: Int,
-        val styleRule: StyleRule
+    val selector: Selector,
+    val hashes: AncestorHashes,
+    val sourceOrder: Int,
+    val styleRule: StyleRule
 ) {
 
     fun specificity(): Int {
@@ -43,105 +43,107 @@ class Rule(
 
     fun toApplicableDeclaration(cascadeLevel: CascadeLevel): ApplicableDeclarationBlock {
         return ApplicableDeclarationBlock.new(
-                StyleSource.fromRule(styleRule),
-                sourceOrder,
-                cascadeLevel,
-                specificity()
+            StyleSource.fromRule(styleRule),
+            sourceOrder,
+            cascadeLevel,
+            specificity()
         )
     }
 }
 
 class Stylist(
-        private val quirksMode: QuirksMode,
-        val ruleTree: RuleTree,
-        private val stylesheets: DocumentStylesheetList,
-        private val cascadeData: DocumentCascadeData
+    private val quirksMode: QuirksMode,
+    val ruleTree: RuleTree,
+    private val stylesheets: DocumentStylesheetList,
+    private val cascadeData: DocumentCascadeData
 ) {
 
     companion object {
         fun new(quirksMode: QuirksMode): Stylist {
             return Stylist(
-                    quirksMode,
-                    RuleTree.new(),
-                    DocumentStylesheetList.new(),
-                    DocumentCascadeData.default()
+                quirksMode,
+                RuleTree.new(),
+                DocumentStylesheetList.new(),
+                DocumentCascadeData.default()
             )
         }
     }
 
-    fun pushApplicableDeclarations(element: Element,
-                                   pseudoElement: Option<PseudoElement>,
-                                   styleAttribute: Option<PropertyDeclarationBlock>,
-                                   applicableDeclarations: MutableList<ApplicableDeclarationBlock>,
-                                   context: MatchingContext) {
+    fun pushApplicableDeclarations(
+        element: Element,
+        pseudoElement: Option<PseudoElement>,
+        styleAttribute: Option<PropertyDeclarationBlock>,
+        applicableDeclarations: MutableList<ApplicableDeclarationBlock>,
+        context: MatchingContext
+    ) {
 
         cascadeData.userAgent.normalRules(pseudoElement).ifLet { map ->
             map.getAllMatchingRules(
-                    element,
-                    applicableDeclarations,
-                    context,
-                    CascadeLevel.AUTHOR_NORMAL
+                element,
+                applicableDeclarations,
+                context,
+                CascadeLevel.USER_AGENT_NORMAL
             )
         }
 
         cascadeData.user.normalRules(pseudoElement).ifLet { map ->
             map.getAllMatchingRules(
-                    element,
-                    applicableDeclarations,
-                    context,
-                    CascadeLevel.AUTHOR_NORMAL
+                element,
+                applicableDeclarations,
+                context,
+                CascadeLevel.USER_NORMAL
             )
         }
 
         cascadeData.author.normalRules(pseudoElement).ifLet { map ->
             map.getAllMatchingRules(
-                    element,
-                    applicableDeclarations,
-                    context,
-                    CascadeLevel.AUTHOR_NORMAL
+                element,
+                applicableDeclarations,
+                context,
+                CascadeLevel.AUTHOR_NORMAL
             )
         }
 
         styleAttribute.ifLet { block ->
             applicableDeclarations.add(
-                    ApplicableDeclarationBlock.fromDeclarations(
-                            block,
-                            CascadeLevel.STYLE_ATTRIBUTE_NORMAL
-                    )
+                ApplicableDeclarationBlock.fromDeclarations(
+                    block,
+                    CascadeLevel.STYLE_ATTRIBUTE_NORMAL
+                )
             )
         }
     }
 
     fun cascadeStyleAndVisited(
-            device: Device,
-            element: Option<Element>,
-            pseudoElement: Option<PseudoElement>,
-            inputs: CascadeInputs,
-            parentStyle: Option<ComputedValues>,
-            parentStyleIgnoringFirstLine: Option<ComputedValues>,
-            layoutStyle: Option<ComputedValues>,
-            fontMetricsProvider: FontMetricsProvider
+        device: Device,
+        element: Option<Element>,
+        pseudoElement: Option<PseudoElement>,
+        inputs: CascadeInputs,
+        parentStyle: Option<ComputedValues>,
+        parentStyleIgnoringFirstLine: Option<ComputedValues>,
+        layoutStyle: Option<ComputedValues>,
+        fontMetricsProvider: FontMetricsProvider
     ): ComputedValues {
         return cascade(
-                device,
-                element,
-                pseudoElement,
-                inputs.rules.unwrapOr(ruleTree.root()),
-                parentStyle,
-                parentStyleIgnoringFirstLine,
-                layoutStyle,
-                fontMetricsProvider
+            device,
+            element,
+            pseudoElement,
+            inputs.rules.unwrapOr(ruleTree.root()),
+            parentStyle,
+            parentStyleIgnoringFirstLine,
+            layoutStyle,
+            fontMetricsProvider
         )
     }
 
     fun addStylesheet(stylesheet: Stylesheet) {
         stylesheets.perOrigin
-                .get(stylesheet.origin)
-                .add(stylesheet)
+            .get(stylesheet.origin)
+            .add(stylesheet)
 
         cascadeData.preOrigin
-                .get(stylesheet.origin)
-                .insertStylesheet(stylesheet, quirksMode)
+            .get(stylesheet.origin)
+            .insertStylesheet(stylesheet, quirksMode)
     }
 
     /**
@@ -151,27 +153,27 @@ class Stylist(
      */
     fun removeStylesheet(stylesheet: Stylesheet) {
         stylesheets.perOrigin
-                .get(stylesheet.origin)
-                .remove(stylesheet)
+            .get(stylesheet.origin)
+            .remove(stylesheet)
 
         // This is an optimization to just calling rebuild() reducing this
         // operation down to the origin modified
         val collection = stylesheets.perOrigin
-                .get(stylesheet.origin)
+            .get(stylesheet.origin)
 
         cascadeData.preOrigin
-                .get(stylesheet.origin)
-                .rebuild(collection, quirksMode)
+            .get(stylesheet.origin)
+            .rebuild(collection, quirksMode)
     }
 
     fun rebuild() {
         for (origin in Origin.values()) {
             val collection = stylesheets.perOrigin
-                    .get(origin)
+                .get(origin)
 
             cascadeData.preOrigin
-                    .get(origin)
-                    .rebuild(collection, quirksMode)
+                .get(origin)
+                .rebuild(collection, quirksMode)
         }
     }
 }
@@ -181,66 +183,68 @@ class DocumentStylesheetList(val perOrigin: PerOrigin<MutableList<Stylesheet>>) 
     companion object {
         fun new(): DocumentStylesheetList {
             return DocumentStylesheetList(
-                    PerOrigin(
-                            mutableListOf(),
-                            mutableListOf(),
-                            mutableListOf()
-                    )
+                PerOrigin(
+                    mutableListOf(),
+                    mutableListOf(),
+                    mutableListOf()
+                )
             )
         }
     }
 }
 
 class DocumentCascadeData(
-        val userAgent: CascadeData,
-        val user: CascadeData,
-        val author: CascadeData,
-        val preOrigin: PerOrigin<CascadeData>
+    val userAgent: CascadeData,
+    val user: CascadeData,
+    val author: CascadeData,
+    val preOrigin: PerOrigin<CascadeData>
 ) {
 
     companion object {
         fun default(): DocumentCascadeData {
             return new(
-                    CascadeData.new(),
-                    CascadeData.new(),
-                    CascadeData.new()
+                CascadeData.new(),
+                CascadeData.new(),
+                CascadeData.new()
             )
         }
 
-        fun new(userAgent: CascadeData,
-                user: CascadeData,
-                author: CascadeData): DocumentCascadeData {
+        fun new(
+            userAgent: CascadeData,
+            user: CascadeData,
+            author: CascadeData
+        ): DocumentCascadeData {
             return DocumentCascadeData(
+                userAgent,
+                user,
+                author,
+                PerOrigin(
                     userAgent,
                     user,
-                    author,
-                    PerOrigin(
-                            userAgent,
-                            user,
-                            author
-                    )
+                    author
+                )
             )
         }
     }
 }
 
 class ElementAndPseudoRules(
-        private val elementMap: SelectorMap,
-        private val pseudoMap: PerPseudoElementMap<SelectorMap>
+    private val elementMap: SelectorMap,
+    private val pseudoMap: PerPseudoElementMap<SelectorMap>
 ) {
 
     companion object {
         fun new(): ElementAndPseudoRules {
             return ElementAndPseudoRules(
-                    SelectorMap(),
-                    PerPseudoElementMap()
+                SelectorMap(),
+                PerPseudoElementMap()
             )
         }
     }
 
     fun insert(rule: Rule, pseudoElement: Option<PseudoElement>, quirksMode: QuirksMode) {
         val map = when (pseudoElement) {
-            is Some -> pseudoMap.computeIfAbsent(pseudoElement.value, { SelectorMap() })
+            is Some -> pseudoMap.computeIfAbsent(pseudoElement.value) { SelectorMap() }
             is None -> elementMap
         }
 
@@ -269,7 +273,7 @@ class CascadeData(private val normalRules: ElementAndPseudoRules) {
     companion object {
         fun new(): CascadeData {
             return CascadeData(
-                    ElementAndPseudoRules.new()
+                ElementAndPseudoRules.new()
             )
         }
     }
@@ -293,10 +297,10 @@ class CascadeData(private val normalRules: ElementAndPseudoRules) {
                         val pseudoElement = selector.pseudoElement()
 
                         val indexedRule = Rule(
-                                selector,
-                                AncestorHashes.new(selector, quirksMode),
-                                sourceOrder,
-                                styleRule
+                            selector,
+                            AncestorHashes.new(selector, quirksMode),
+                            sourceOrder,
+                            styleRule
                         )
 
                         normalRules.insert(indexedRule, pseudoElement, quirksMode)

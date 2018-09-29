@@ -13,14 +13,23 @@ import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
+import org.fernice.flare.cssparser.ToCss
+import java.io.Writer
 
 data class FontFamily(val values: FontFamilyList) : ComputedValue
 
-sealed class SingleFontFamily {
+sealed class SingleFontFamily : ToCss {
 
     data class FamilyName(val name: org.fernice.flare.style.value.computed.FamilyName) : SingleFontFamily()
 
     data class Generic(val name: String) : SingleFontFamily()
+
+    final override fun toCss(writer: Writer) {
+        when (this) {
+            is SingleFontFamily.FamilyName -> name.toCss(writer)
+            is SingleFontFamily.Generic -> writer.append(name)
+        }
+    }
 
     companion object Contract {
 
@@ -28,9 +37,13 @@ sealed class SingleFontFamily {
             val stringResult = input.tryParse(Parser::expectString)
 
             if (stringResult is Ok) {
-                return Ok(FamilyName(FamilyName(
-                        stringResult.value
-                )))
+                return Ok(
+                    FamilyName(
+                        FamilyName(
+                            stringResult.value
+                        )
+                    )
+                )
             }
 
             val identifierResult = input.expectIdentifier()
@@ -80,9 +93,13 @@ sealed class SingleFontFamily {
                 value += " $next"
             }
 
-            return Ok(FamilyName(FamilyName(
-                    value
-            )))
+            return Ok(
+                FamilyName(
+                    FamilyName(
+                        value
+                    )
+                )
+            )
         }
     }
 }
@@ -92,11 +109,16 @@ data class FontFamilyList(private val values: List<SingleFontFamily>) : Iterable
     override fun iterator(): Iterator<SingleFontFamily> = values.asReversed().iterator()
 }
 
-data class FamilyName(val value: String)
+data class FamilyName(val value: String) : ToCss {
+
+    override fun toCss(writer: Writer) {
+        writer.append(value)
+    }
+}
 
 data class FontSize(
-        val size: NonNegativeLength,
-        val keywordInfo: Option<KeywordInfo>
+    val size: NonNegativeLength,
+    val keywordInfo: Option<KeywordInfo>
 ) : ComputedValue {
 
     fun size(): Au {

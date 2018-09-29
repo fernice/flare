@@ -35,8 +35,7 @@ class Stylesheet(
 
     companion object {
 
-        fun from(text: String,
-                 origin: Origin): Stylesheet {
+        fun from(text: String, origin: Origin): Stylesheet {
 
             val input = Parser.new(ParserInput(text))
             val context = ParserContext(ParseMode.Default, QuirksMode.NO_QUIRKS, Url(""))

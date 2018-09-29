@@ -5,26 +5,23 @@
  */
 package org.fernice.flare.style.properties.longhand
 
+import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.computed.FontFamilyList
 import org.fernice.flare.style.value.computed.SingleFontFamily
 import org.fernice.flare.style.value.specified.FontFamily
-import fernice.std.Result
 import java.io.Writer
 import org.fernice.flare.style.value.computed.FontFamily as ComputedFontFamily
 
-@PropertyEntryPoint(legacy = false)
 object FontFamilyId : LonghandId() {
-    override fun name(): String {
-        return "font-family"
-    }
+
+    override val name: String = "font-family"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return FontFamily.parse(input).map(::FontFamilyDeclaration)

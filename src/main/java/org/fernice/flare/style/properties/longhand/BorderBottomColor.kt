@@ -5,25 +5,21 @@
  */
 package org.fernice.flare.style.properties.longhand
 
+import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.Color
-import fernice.std.Result
 import java.io.Writer
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 
-@PropertyEntryPoint(legacy = false)
 object BorderBottomColorId : LonghandId() {
 
-    override fun name(): String {
-        return "border-bottom-color"
-    }
+    override val name: String = "border-bottom-color"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return Color.parse(context, input).map { color -> BorderBottomColorDeclaration(color) }

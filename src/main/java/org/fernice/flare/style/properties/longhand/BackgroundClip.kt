@@ -5,28 +5,24 @@
  */
 package org.fernice.flare.style.properties.longhand
 
+import fernice.std.Err
+import fernice.std.Ok
+import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
-import org.fernice.flare.cssparser.ToCss
 import java.io.Writer
 
-@PropertyEntryPoint(legacy = false)
 object BackgroundClipId : LonghandId() {
 
-    override fun name(): String {
-        return "background-clip"
-    }
+    override val name: String = "background-clip"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return Clip.parse(input).map(::BackgroundClipDeclaration)

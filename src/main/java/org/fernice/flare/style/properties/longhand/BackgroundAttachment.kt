@@ -9,8 +9,8 @@ import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.cssparser.toCssJoining
@@ -18,16 +18,12 @@ import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import java.io.Writer
 
-@PropertyEntryPoint(legacy = false)
 object BackgroundAttachmentId : LonghandId() {
 
-    override fun name(): String {
-        return "background-attachment"
-    }
+    override val name: String = "background-attachment"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return input.parseCommaSeparated { Attachment.parse(context, it) }.map { BackgroundAttachmentDeclaration(it) }

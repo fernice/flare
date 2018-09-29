@@ -5,8 +5,18 @@
  */
 package org.fernice.flare.style.properties
 
+import fernice.std.Empty
+import fernice.std.Err
+import fernice.std.None
+import fernice.std.Ok
+import fernice.std.Option
+import fernice.std.Result
+import fernice.std.Some
+import mu.KotlinLogging
+import org.fernice.flare.Experimental
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.dom.Device
@@ -23,28 +33,11 @@ import org.fernice.flare.style.properties.longhand.FontFamilyDeclaration
 import org.fernice.flare.style.properties.longhand.FontFamilyId
 import org.fernice.flare.style.properties.longhand.FontSizeDeclaration
 import org.fernice.flare.style.properties.longhand.FontSizeId
+import org.fernice.flare.style.properties.module.PropertyModule
 import org.fernice.flare.style.ruletree.CascadeLevel
 import org.fernice.flare.style.ruletree.RuleNode
 import org.fernice.flare.style.value.Context
-import fernice.std.Empty
-import fernice.std.Err
-import fernice.std.None
-import fernice.std.Ok
-import fernice.std.Option
-import fernice.std.Result
-import fernice.std.Some
-import org.fernice.flare.cssparser.ToCss
-import org.reflections.Reflections
 import java.io.Writer
-import kotlin.reflect.full.companionObjectInstance
-
-/**
- * Marks an entry point to a property declaration. Currently only [LonghandId] and [ShorthandId]
- * are valid entry points.
- */
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class PropertyEntryPoint(val legacy: Boolean = true)
 
 abstract class PropertyDeclaration : ToCss {
 
@@ -65,7 +58,7 @@ abstract class PropertyDeclaration : ToCss {
     protected abstract fun toCssInternally(writer: Writer)
 
     final override fun toCss(writer: Writer) {
-        writer.append(id().name())
+        writer.append(id().name)
         writer.append(": ")
         toCssInternally(writer)
         writer.append(';')
@@ -84,12 +77,52 @@ abstract class PropertyDeclaration : ToCss {
     }
 }
 
+private val LOG = KotlinLogging.logger { }
+private val REGISTERED_PROPERTIES: MutableMap<String, PropertyId> = mutableMapOf()
+
+fun register(vararg modules: PropertyModule) {
+    for (module in modules) {
+        register(module)
+    }
+}
+
+fun register(module: PropertyModule) {
+    val experimental = module::class.java.isAnnotationPresent(Experimental::class.java)
+    val hint = if (experimental) " experimental" else ""
+
+    LOG.info { "loading$hint property module: ${module.name}" }
+
+    for (longhand in module.longhands) {
+        val property = PropertyId.Longhand(longhand)
+
+        if (REGISTERED_PROPERTIES.containsKey(longhand.name)) {
+            throw IllegalStateException("Property '${longhand.name}' has already been registered")
+        }
+
+        LOG.debug { "${longhand.name.padEnd(30)} Longhand ${longhand::class.qualifiedName}" }
+
+        REGISTERED_PROPERTIES[longhand.name] = property
+    }
+
+    for (shorthand in module.shorthands) {
+        val property = PropertyId.Shorthand(shorthand)
+
+        if (REGISTERED_PROPERTIES.containsKey(shorthand.name)) {
+            throw IllegalStateException("Property '${shorthand.name}' has already been registered")
+        }
+
+        LOG.debug { "${shorthand.name.padEnd(30)} Shorthand ${shorthand::class.qualifiedName}" }
+
+        REGISTERED_PROPERTIES[shorthand.name] = property
+    }
+}
+
 abstract class LonghandId {
 
     /**
      * Returns the name of the property.
      */
-    abstract fun name(): String
+    abstract val name: String
 
     abstract fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError>
 
@@ -102,9 +135,9 @@ abstract class ShorthandId {
 
     abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError>
 
-    abstract fun getLonghands(): List<LonghandId>
+    abstract val longhands: List<LonghandId>
 
-    abstract fun name(): String
+    abstract val name: String
 }
 
 sealed class PropertyId {
@@ -151,7 +184,7 @@ sealed class PropertyId {
 
             return when (keyword) {
                 is Ok -> {
-                    for (longhand in id.getLonghands()) {
+                    for (longhand in id.longhands) {
                         declarations.add(PropertyDeclaration.CssWideKeyword(longhand, keyword.value))
                     }
 
@@ -170,70 +203,8 @@ sealed class PropertyId {
 
     companion object {
 
-        val ids: Map<String, PropertyId> by lazy { indexProperties() }
-
-        private fun indexProperties(): Map<String, PropertyId> {
-            println("initializing properties...")
-
-            val ids = mutableMapOf<String, PropertyId>()
-
-            val reflections = Reflections("org.fernice.flare.style.properties")
-
-            val types = reflections.getTypesAnnotatedWith(PropertyEntryPoint::class.java)
-
-            for (type in types) {
-                val annotation = type.getDeclaredAnnotation(PropertyEntryPoint::class.java)
-
-                val instance = if (annotation.legacy) {
-                    val companionType = Class.forName("${type.name}\$Companion")
-                    val instanceMethod = companionType.getDeclaredMethod("getInstance")
-                    instanceMethod.invoke(type.kotlin.companionObjectInstance)
-                } else {
-                    val instanceField = type.getDeclaredField("INSTANCE")
-                    instanceField.get(null)
-                }
-
-                if (!type.isInstance(instance)) {
-                    throw IllegalStateException("property id instance is expected to be of type ${type.name} but returned ${instance.javaClass.name}")
-                }
-
-                val (name, id) = when (instance) {
-                    is LonghandId -> {
-                        Pair(instance.name(), PropertyId.Longhand(instance))
-                    }
-                    is ShorthandId -> {
-                        Pair(instance.name(), PropertyId.Shorthand(instance))
-                    }
-                    else -> {
-                        throw IllegalStateException("unsupported property entry point")
-                    }
-                }
-
-                if (ids.containsKey(name)) {
-                    throw IllegalStateException("duplicated property: $name")
-                }
-
-                ids[name] = id
-            }
-
-            val properties = ids.entries.sortedBy { entry -> entry.key }
-
-            println("Loaded ${properties.size} properties:")
-
-            for (entry in properties) {
-                val letter = if (entry.value is PropertyId.Longhand) {
-                    "L"
-                } else {
-                    "S"
-                }
-                println("$letter ${entry.key}")
-            }
-
-            return ids
-        }
-
         fun parse(name: String): Result<PropertyId, Empty> {
-            val result = ids[name.toLowerCase()]
+            val result = REGISTERED_PROPERTIES[name.toLowerCase()]
 
             return if (result != null) {
                 Ok(result)

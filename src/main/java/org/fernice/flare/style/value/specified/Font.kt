@@ -38,7 +38,9 @@ sealed class FontFamily : SpecifiedValue<ComputedFontFamily>, ToCss {
     }
 
     override fun toCss(writer: Writer) {
-        writer.append("<font-family>")
+        when (this) {
+            is FontFamily.Values -> values.toCssJoining(writer, ", ")
+        }
     }
 
     companion object {
@@ -134,7 +136,7 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
         }
     }
 
-    internal fun composeKeyword(context: Context, factor: Float): Option<KeywordInfo> {
+    private fun composeKeyword(context: Context, factor: Float): Option<KeywordInfo> {
         return context
             .style()
             .getParentFont()
@@ -143,12 +145,17 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
             .map { info -> info.compose(factor, Au(0).intoNonNegative()) }
     }
 
-    override fun toComputedValue(context: Context): ComputedFontSize {
+    final override fun toComputedValue(context: Context): ComputedFontSize {
         return toComputedValueAgainst(context, FontBaseSize.CurrentStyle)
     }
 
-    override fun toCss(writer: Writer) {
-        writer.append("<font-size>")
+    final override fun toCss(writer: Writer) {
+        when (this) {
+            is FontSize.Length -> lop.toCss(writer)
+            is FontSize.Keyword -> keyword.toCss(writer)
+            is FontSize.Larger -> writer.append("larger")
+            is FontSize.Smaller -> writer.append("smaller")
+        }
     }
 
     companion object {
@@ -194,7 +201,7 @@ data class KeywordInfo(
     val keyword: KeywordSize,
     val factor: Float,
     val offset: NonNegativeLength
-) : SpecifiedValue<NonNegativeLength> {
+) : SpecifiedValue<NonNegativeLength>, ToCss {
 
     companion object {
 
@@ -219,9 +226,11 @@ data class KeywordInfo(
         val base = keyword.toComputedValue(context)
         return base.scaleBy(factor) + offset
     }
+
+    override fun toCss(writer: Writer) = keyword.toCss(writer)
 }
 
-sealed class KeywordSize : SpecifiedValue<NonNegativeLength> {
+sealed class KeywordSize : SpecifiedValue<NonNegativeLength>, ToCss {
 
     object XXSmall : KeywordSize()
 
@@ -247,6 +256,20 @@ sealed class KeywordSize : SpecifiedValue<NonNegativeLength> {
             is XLarge -> (Au.fromPx(FONT_MEDIUM_PX) * 3 / 2).intoNonNegative()
             is XXLarge -> (Au.fromPx(FONT_MEDIUM_PX) * 2).intoNonNegative()
         }
+    }
+
+    final override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is KeywordSize.XXSmall -> "xx-small"
+                is KeywordSize.XSmall -> "x-small"
+                is KeywordSize.Small -> "small"
+                is KeywordSize.Medium -> "medium"
+                is KeywordSize.Large -> "large"
+                is KeywordSize.XLarge -> "x-large"
+                is KeywordSize.XXLarge -> "xx-large"
+            }
+        )
     }
 
     companion object {

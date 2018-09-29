@@ -5,28 +5,25 @@
  */
 package org.fernice.flare.style.properties.longhand
 
+import fernice.std.Result
+import fernice.std.Some
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.computed.NonNegativeLength
 import org.fernice.flare.style.value.specified.FontSize
 import org.fernice.flare.style.value.specified.KeywordInfo
 import org.fernice.flare.style.value.specified.KeywordSize
-import org.fernice.flare.style.value.computed.FontSize as ComputedFontSize
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.Parser
-import fernice.std.Result
-import fernice.std.Some
 import java.io.Writer
+import org.fernice.flare.style.value.computed.FontSize as ComputedFontSize
 
-@PropertyEntryPoint(legacy = false)
 object FontSizeId : LonghandId() {
-    override fun name(): String {
-        return "font-size"
-    }
+
+    override val name: String = "font-size"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return FontSize.parse(context, input).map(::FontSizeDeclaration)

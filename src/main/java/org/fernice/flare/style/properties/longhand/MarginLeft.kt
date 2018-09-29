@@ -5,25 +5,21 @@
  */
 package org.fernice.flare.style.properties.longhand
 
+import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.LengthOrPercentageOrAuto
-import fernice.std.Result
 import java.io.Writer
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
 
-@PropertyEntryPoint(legacy = false)
 object MarginLeftId : LonghandId() {
 
-    override fun name(): String {
-        return "margin-left"
-    }
+    override val name: String = "margin-left"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return LengthOrPercentageOrAuto.parse(context, input).map { width -> MarginLeftDeclaration(width) }

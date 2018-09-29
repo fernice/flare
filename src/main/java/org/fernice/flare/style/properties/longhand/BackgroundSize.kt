@@ -5,27 +5,23 @@
  */
 package org.fernice.flare.style.properties.longhand
 
+import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.BackgroundSize
-import org.fernice.flare.style.value.computed.BackgroundSize as ComputedBackgroundSize
 import org.fernice.flare.style.value.toComputedValue
-import fernice.std.Result
-import org.fernice.flare.cssparser.toCssJoining
 import java.io.Writer
+import org.fernice.flare.style.value.computed.BackgroundSize as ComputedBackgroundSize
 
-@PropertyEntryPoint(legacy = false)
 object BackgroundSizeId : LonghandId() {
 
-    override fun name(): String {
-        return "background-size"
-    }
+    override val name: String = "background-size"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return input.parseCommaSeparated { BackgroundSize.parse(context, it) }

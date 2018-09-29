@@ -5,25 +5,21 @@
  */
 package org.fernice.flare.style.properties.longhand
 
+import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
-import org.fernice.flare.style.properties.PropertyEntryPoint
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentage
-import fernice.std.Result
 import java.io.Writer
 import org.fernice.flare.style.value.computed.NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage
 
-@PropertyEntryPoint(legacy = false)
 object PaddingRightId : LonghandId() {
 
-    override fun name(): String {
-        return "padding-right"
-    }
+    override val name: String = "padding-right"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
         return NonNegativeLengthOrPercentage.parse(context, input).map { width -> PaddingRightDeclaration(width) }
