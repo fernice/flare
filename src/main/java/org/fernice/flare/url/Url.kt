@@ -22,6 +22,4 @@ data class Url(val value: String) : ToCss {
     }
 }
 
-sealed class ParseError {
-
-}
+sealed class ParseError

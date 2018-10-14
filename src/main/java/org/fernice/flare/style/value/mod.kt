@@ -40,9 +40,7 @@ class Context(
 sealed class FontBaseSize {
 
     object CurrentStyle : FontBaseSize()
-
     object InheritStyle : FontBaseSize()
-
     object InheritStyleButStripEmUnits : FontBaseSize()
 
     fun resolve(context: Context): Au {
