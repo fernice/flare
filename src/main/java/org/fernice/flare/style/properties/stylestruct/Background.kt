@@ -50,82 +50,82 @@ interface Background : StyleStruct<MutBackground> {
 
         val initial: Background by lazy {
             StaticBackground(
-                    BackgroundColorDeclaration.initialValue,
-                    BackgroundImageDeclaration.initialValue,
-                    BackgroundAttachmentDeclaration.initialValue,
-                    BackgroundPositionXDeclaration.initialValue,
-                    BackgroundPositionYDeclaration.initialValue,
-                    BackgroundSizeDeclaration.initialValue,
-                    BackgroundRepeatDeclaration.initialValue,
-                    BackgroundOriginDeclaration.initialValue,
-                    BackgroundClipDeclaration.initialValue
+                BackgroundColorDeclaration.initialValue,
+                BackgroundImageDeclaration.initialValue,
+                BackgroundAttachmentDeclaration.initialValue,
+                BackgroundPositionXDeclaration.initialValue,
+                BackgroundPositionYDeclaration.initialValue,
+                BackgroundSizeDeclaration.initialValue,
+                BackgroundRepeatDeclaration.initialValue,
+                BackgroundOriginDeclaration.initialValue,
+                BackgroundClipDeclaration.initialValue
             )
         }
     }
 }
 
 private class StaticBackground(
-        override val color: Color,
-        override val image: List<Image>,
-        override val attachment: List<Attachment>,
-        override val positionX: List<HorizontalPosition>,
-        override val positionY: List<VerticalPosition>,
-        override val size: List<BackgroundSize>,
-        override val repeat: List<BackgroundRepeat>,
-        override val origin: List<Origin>,
-        override val clip: Clip
+    override val color: Color,
+    override val image: List<Image>,
+    override val attachment: List<Attachment>,
+    override val positionX: List<HorizontalPosition>,
+    override val positionY: List<VerticalPosition>,
+    override val size: List<BackgroundSize>,
+    override val repeat: List<BackgroundRepeat>,
+    override val origin: List<Origin>,
+    override val clip: Clip
 ) : Background {
 
     override fun clone(): MutBackground {
         return MutBackground(
-                color,
-                image,
-                attachment,
-                positionX,
-                positionY,
-                size,
-                repeat,
-                origin,
-                clip
+            color,
+            image,
+            attachment,
+            positionX,
+            positionY,
+            size,
+            repeat,
+            origin,
+            clip
         )
     }
 }
 
 data class MutBackground(
-        override var color: Color,
-        override var image: List<Image>,
-        override var attachment: List<Attachment>,
-        override var positionX: List<HorizontalPosition>,
-        override var positionY: List<VerticalPosition>,
-        override var size: List<BackgroundSize>,
-        override var repeat: List<BackgroundRepeat>,
-        override var origin: List<Origin>,
-        override var clip: Clip
+    override var color: Color,
+    override var image: List<Image>,
+    override var attachment: List<Attachment>,
+    override var positionX: List<HorizontalPosition>,
+    override var positionY: List<VerticalPosition>,
+    override var size: List<BackgroundSize>,
+    override var repeat: List<BackgroundRepeat>,
+    override var origin: List<Origin>,
+    override var clip: Clip
 ) : Background, MutStyleStruct {
 
     override fun clone(): MutBackground {
         return MutBackground(
-                color,
-                image,
-                attachment,
-                positionX,
-                positionY,
-                size,
-                repeat,
-                origin,
-                clip
+            color,
+            image,
+            attachment,
+            positionX,
+            positionY,
+            size,
+            repeat,
+            origin,
+            clip
         )
     }
 }
 
 class ImageLayer(
-        val image: Image,
-        val attachment: Attachment,
-        val positionX: HorizontalPosition,
-        val positionY: VerticalPosition,
-        val size: BackgroundSize,
-        val repeat: BackgroundRepeat,
-        val origin: Origin
+    val image: Image,
+    val attachment: Attachment,
+    val positionX: HorizontalPosition,
+    val positionY: VerticalPosition,
+    val size: BackgroundSize,
+    val repeat: BackgroundRepeat,
+    val origin: Origin
 )
 
 class ImageLayerIterator(private val background: Background) : Iterator<ImageLayer> {
@@ -148,13 +148,13 @@ class ImageLayerIterator(private val background: Background) : Iterator<ImageLay
         val origin = background.origin.drag(i)
 
         return ImageLayer(
-                image,
-                attachment,
-                positionX,
-                positionY,
-                size,
-                repeat,
-                origin
+            image,
+            attachment,
+            positionX,
+            positionY,
+            size,
+            repeat,
+            origin
         )
     }
 }

@@ -17,10 +17,12 @@ import fernice.std.unwrap
  * of the selector and the [BloomFilter] of the element's parent is given. See [mayMatch] for the premise
  * of fast rejecting.
  */
-fun matchesSelector(selector: Selector,
-                    hashes: Option<AncestorHashes>,
-                    element: Element,
-                    context: MatchingContext): Boolean {
+fun matchesSelector(
+    selector: Selector,
+    hashes: Option<AncestorHashes>,
+    element: Element,
+    context: MatchingContext
+): Boolean {
 
     hashes.ifLet { h ->
         context.bloomFilter.ifLet { bf ->
@@ -67,7 +69,11 @@ private enum class MatchResult {
     NOT_MATCHED_RESTART_FROM_CLOSET_LATER_SIBLING
 }
 
-private fun matchesComplexSelector(iter: SelectorIter, element: Element, context: MatchingContext): Boolean {
+private fun matchesComplexSelector(
+    iter: SelectorIter,
+    element: Element,
+    context: MatchingContext
+): Boolean {
     val result = matchesComplexSelectorInternal(iter, element, context)
 
     return when (result) {
@@ -76,17 +82,20 @@ private fun matchesComplexSelector(iter: SelectorIter, element: Element, context
     }
 }
 
-private fun matchesComplexSelectorInternal(iter: SelectorIter, element: Element, context: MatchingContext): MatchResult {
+private fun matchesComplexSelectorInternal(
+    iter: SelectorIter,
+    element: Element,
+    context: MatchingContext
+): MatchResult {
     val matchesCompoundSelector = matchesCompoundSelector(iter, element, context)
 
     if (!matchesCompoundSelector) {
         return MatchResult.NOT_MATCHED_RESTART_FROM_CLOSET_LATER_SIBLING
     }
 
-    val nextCombinator = iter.nextSequence()
 
-    val combinator = when (nextCombinator) {
-        is Some -> nextCombinator.value
+    val combinator = when (val combinator = iter.nextSequence()) {
+        is Some -> combinator.value
         is None -> return MatchResult.MATCHED
     }
 

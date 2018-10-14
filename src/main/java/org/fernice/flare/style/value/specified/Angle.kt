@@ -12,26 +12,25 @@ import org.fernice.flare.cssparser.Token
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
 import org.fernice.flare.style.value.computed.Angle as ComputedAngle
 
 data class Angle(
-        val value: ComputedAngle,
-        val wasCalc: Boolean
+    val value: ComputedAngle,
+    val wasCalc: Boolean
 ) : SpecifiedValue<ComputedAngle> {
 
     override fun toComputedValue(context: Context): ComputedAngle {
         return value
     }
 
-    fun radians():Float {
+    fun radians(): Float {
         return value.radians()
     }
 
-    fun degrees():Float {
+    fun degrees(): Float {
         return value.degrees()
     }
 
@@ -39,36 +38,36 @@ data class Angle(
 
         fun fromDegree(angle: Float, wasCalc: Boolean): Angle {
             return Angle(
-                    ComputedAngle.Deg(angle),
-                    wasCalc
+                ComputedAngle.Deg(angle),
+                wasCalc
             )
         }
 
         fun fromGradians(angle: Float, wasCalc: Boolean): Angle {
             return Angle(
-                    ComputedAngle.Grad(angle),
-                    wasCalc
+                ComputedAngle.Grad(angle),
+                wasCalc
             )
         }
 
         fun fromTurns(angle: Float, wasCalc: Boolean): Angle {
             return Angle(
-                    ComputedAngle.Turn(angle),
-                    wasCalc
+                ComputedAngle.Turn(angle),
+                wasCalc
             )
         }
 
         fun fromRadians(angle: Float, wasCalc: Boolean): Angle {
             return Angle(
-                    ComputedAngle.Rad(angle),
-                    wasCalc
+                ComputedAngle.Rad(angle),
+                wasCalc
             )
         }
 
         fun fromCalc(radians: Float): Angle {
             return Angle(
-                    ComputedAngle.Rad(radians),
-                    true
+                ComputedAngle.Rad(radians),
+                true
             )
         }
 
@@ -78,7 +77,7 @@ data class Angle(
             return zero
         }
 
-        fun parseDimension(value: Float, unit: String, wasCalc: Boolean): Result<Angle, Empty> {
+        fun parseDimension(value: Float, unit: String, wasCalc: Boolean): Result<Angle, Unit> {
             val angle = when (unit.toLowerCase()) {
                 "deg" -> fromDegree(value, wasCalc)
                 "grad" -> fromGradians(value, wasCalc)
@@ -93,12 +92,14 @@ data class Angle(
             return Err(input.newError(ParseErrorKind.Unknown))
         }
 
-        fun parseInternal(context: ParserContext, input: Parser, allowUnitless: Boolean): Result<Angle, ParseError> {
-            val tokenResult = input.next()
-
-            val token = when (tokenResult) {
-                is Ok -> tokenResult.value
-                is Err -> return tokenResult
+        fun parseInternal(
+            context: ParserContext,
+            input: Parser,
+            allowUnitless: Boolean
+        ): Result<Angle, ParseError> {
+            val token = when (val token = input.next()) {
+                is Ok -> token.value
+                is Err -> return token
             }
 
             return when (token) {
@@ -125,5 +126,4 @@ data class Angle(
             }.mapErr { input.newUnexpectedTokenError(token) }
         }
     }
-
 }

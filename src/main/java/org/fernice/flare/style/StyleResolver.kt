@@ -31,11 +31,9 @@ class PrimaryStyle(val style: ResolvedStyle) {
 
 class CascadeInputs(val rules: Option<RuleNode>)
 
-class ResolvedElementStyles(val primary: PrimaryStyle,
-                            val pseudos: PerPseudoElementMap<ComputedValues>)
+class ResolvedElementStyles(val primary: PrimaryStyle, val pseudos: PerPseudoElementMap<ComputedValues>)
 
-class ElementStyleResolver(val element: Element,
-                           val context: StyleContext) {
+class ElementStyleResolver(val element: Element, val context: StyleContext) {
 
     fun <R> withDefaultParentStyles(run: (Option<ComputedValues>, Option<ComputedValues>) -> R): R {
         val parentElement = element.inheritanceParent()
@@ -58,9 +56,9 @@ class ElementStyleResolver(val element: Element,
 
         PseudoElement.forEachEagerCascadedPseudoElement { pseudo ->
             val pseudoStyle = resolvePseudoStyle(
-                    pseudo,
-                    primaryStyle,
-                    Some(primaryStyle.style())
+                pseudo,
+                primaryStyle,
+                Some(primaryStyle.style())
             )
 
             if (pseudoStyle is Some) {
@@ -69,23 +67,23 @@ class ElementStyleResolver(val element: Element,
         }
 
         return ResolvedElementStyles(
-                primaryStyle,
-                pseudoElements
+            primaryStyle,
+            pseudoElements
         )
     }
 
     fun resolvePrimaryStyle(
-            parentStyle: Option<ComputedValues>,
-            layoutStyle: Option<ComputedValues>
+        parentStyle: Option<ComputedValues>,
+        layoutStyle: Option<ComputedValues>
     ): PrimaryStyle {
         val primaryStyle = matchPrimary()
 
         return cascadePrimaryStyle(
-                CascadeInputs(
-                        Some(primaryStyle.ruleNode)
-                ),
-                parentStyle,
-                layoutStyle
+            CascadeInputs(
+                Some(primaryStyle.ruleNode)
+            ),
+            parentStyle,
+            layoutStyle
         )
     }
 
@@ -94,18 +92,18 @@ class ElementStyleResolver(val element: Element,
 
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
-                Some(bloomFilter),
-                QuirksMode.NO_QUIRKS
+            Some(bloomFilter),
+            QuirksMode.NO_QUIRKS
         )
 
         val stylist = context.stylist
 
         stylist.pushApplicableDeclarations(
-                element,
-                element.pseudoElement(),
-                element.styleAttribute(),
-                declarations,
-                matchingContext
+            element,
+            element.pseudoElement(),
+            element.styleAttribute(),
+            declarations,
+            matchingContext
         )
 
         val ruleNode = stylist.ruleTree.computedRuleNode(declarations)
@@ -114,40 +112,40 @@ class ElementStyleResolver(val element: Element,
     }
 
     fun cascadePrimaryStyle(
-            inputs: CascadeInputs,
-            parentStyle: Option<ComputedValues>,
-            layoutStyle: Option<ComputedValues>
+        inputs: CascadeInputs,
+        parentStyle: Option<ComputedValues>,
+        layoutStyle: Option<ComputedValues>
     ): PrimaryStyle {
         return PrimaryStyle(
-                cascadeStyleAndVisited(
-                        inputs,
-                        parentStyle,
-                        layoutStyle,
-                        None
-                )
+            cascadeStyleAndVisited(
+                inputs,
+                parentStyle,
+                layoutStyle,
+                None
+            )
         )
     }
 
     fun resolvePseudoStyle(
-            pseudo: PseudoElement,
-            primaryStyle: PrimaryStyle,
-            layoutParentStyle: Option<ComputedValues>
+        pseudo: PseudoElement,
+        primaryStyle: PrimaryStyle,
+        layoutParentStyle: Option<ComputedValues>
     ): Option<ResolvedStyle> {
-        val matchedStyle = matchPseudo(pseudo)
-
-        val style = when (matchedStyle) {
+        val style = when (val matchedStyle = matchPseudo(pseudo)) {
             is Some -> matchedStyle.value
             is None -> return None
         }
 
-        return Some(cascadeStyleAndVisited(
+        return Some(
+            cascadeStyleAndVisited(
                 CascadeInputs(
-                        Some(style)
+                    Some(style)
                 ),
                 Some(primaryStyle.style()),
                 layoutParentStyle,
                 Some(pseudo)
-        ))
+            )
+        )
     }
 
     fun matchPseudo(pseudo: PseudoElement): Option<RuleNode> {
@@ -155,18 +153,18 @@ class ElementStyleResolver(val element: Element,
 
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
-                Some(bloomFilter),
-                QuirksMode.NO_QUIRKS
+            Some(bloomFilter),
+            QuirksMode.NO_QUIRKS
         )
 
         val stylist = context.stylist
 
         stylist.pushApplicableDeclarations(
-                element,
-                Some(pseudo),
-                None,
-                declarations,
-                matchingContext
+            element,
+            Some(pseudo),
+            None,
+            declarations,
+            matchingContext
         )
 
         if (declarations.isEmpty()) {
@@ -179,24 +177,24 @@ class ElementStyleResolver(val element: Element,
     }
 
     fun cascadeStyleAndVisited(
-            inputs: CascadeInputs,
-            parentStyle: Option<ComputedValues>,
-            layoutStyle: Option<ComputedValues>,
-            pseudoElement: Option<PseudoElement>
+        inputs: CascadeInputs,
+        parentStyle: Option<ComputedValues>,
+        layoutStyle: Option<ComputedValues>,
+        pseudoElement: Option<PseudoElement>
     ): ResolvedStyle {
         val values = context.stylist.cascadeStyleAndVisited(
-                context.device,
-                Some(element),
-                pseudoElement,
-                inputs,
-                parentStyle,
-                parentStyle,
-                layoutStyle,
-                context.fontMetricsProvider
+            context.device,
+            Some(element),
+            pseudoElement,
+            inputs,
+            parentStyle,
+            parentStyle,
+            layoutStyle,
+            context.fontMetricsProvider
         )
 
         return ResolvedStyle(
-                values
+            values
         )
     }
 }

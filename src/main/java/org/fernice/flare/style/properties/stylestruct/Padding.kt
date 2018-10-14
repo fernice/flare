@@ -22,10 +22,10 @@ interface Padding : StyleStruct<MutPadding> {
 
     override fun clone(): MutPadding {
         return MutPadding(
-                top,
-                right,
-                bottom,
-                left
+            top,
+            right,
+            bottom,
+            left
         )
     }
 
@@ -33,23 +33,25 @@ interface Padding : StyleStruct<MutPadding> {
 
         val initial: Padding by lazy {
             StaticPadding(
-                    PaddingTopDeclaration.initialValue,
-                    PaddingRightDeclaration.initialValue,
-                    PaddingBottomDeclaration.initialValue,
-                    PaddingLeftDeclaration.initialValue
+                PaddingTopDeclaration.initialValue,
+                PaddingRightDeclaration.initialValue,
+                PaddingBottomDeclaration.initialValue,
+                PaddingLeftDeclaration.initialValue
             )
         }
     }
 }
 
 class StaticPadding(
-        override val top: NonNegativeLengthOrPercentage,
-        override val right: NonNegativeLengthOrPercentage,
-        override val bottom: NonNegativeLengthOrPercentage,
-        override val left: NonNegativeLengthOrPercentage) : Padding
+    override val top: NonNegativeLengthOrPercentage,
+    override val right: NonNegativeLengthOrPercentage,
+    override val bottom: NonNegativeLengthOrPercentage,
+    override val left: NonNegativeLengthOrPercentage
+) : Padding
 
 class MutPadding(
-        override var top: NonNegativeLengthOrPercentage,
-        override var right: NonNegativeLengthOrPercentage,
-        override var bottom: NonNegativeLengthOrPercentage,
-        override var left: NonNegativeLengthOrPercentage) : Padding, MutStyleStruct
+    override var top: NonNegativeLengthOrPercentage,
+    override var right: NonNegativeLengthOrPercentage,
+    override var bottom: NonNegativeLengthOrPercentage,
+    override var left: NonNegativeLengthOrPercentage
+) : Padding, MutStyleStruct

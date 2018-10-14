@@ -8,7 +8,7 @@ package org.fernice.flare.selector
 import org.fernice.flare.debugAssert
 import org.fernice.flare.std.iter.Iter
 import org.fernice.flare.std.iter.iter
-import org.fernice.flare.std.max
+import org.fernice.flare.std.atMost
 import fernice.std.None
 import fernice.std.Some
 
@@ -39,13 +39,10 @@ class SelectorBuilder {
     }
 
     fun build(hasPseudoElement: Boolean): Selector {
-
-        var specificity = specificity(simpleSelectors.iter())
-
-        specificity = if (hasPseudoElement) {
-            specificity or PSEUDO_ELEMENT_BIT
+        val specificity = if (hasPseudoElement) {
+            specificity(simpleSelectors.iter()) or PSEUDO_ELEMENT_BIT
         } else {
-            specificity and PSEUDO_ELEMENT_BIT.inv()
+            specificity(simpleSelectors.iter()) and PSEUDO_ELEMENT_BIT.inv()
         }
 
         return buildWithSpecificityAndFlags(SpecificityAndFlags(specificity))
@@ -63,9 +60,7 @@ class SelectorBuilder {
         do {
             selector.addAll(simpleSelectors.subList(lower, upper))
 
-            val next = combinatorIter.next()
-
-            when (next) {
+            when (val next = combinatorIter.next()) {
                 is Some -> {
                     val (combinator, length) = next.value
 
@@ -92,9 +87,9 @@ private class Specificity {
 private const val MAX_10_BIT = (1 shl 10) - 1
 
 private fun Specificity.into(): Int {
-    return (this.idSelectors.max(MAX_10_BIT) shl 20) or
-            (this.classSelectors.max(MAX_10_BIT) shl 10) or
-            (this.elementSelectors.max(MAX_10_BIT))
+    return (this.idSelectors.atMost(MAX_10_BIT) shl 20) or
+            (this.classSelectors.atMost(MAX_10_BIT) shl 10) or
+            (this.elementSelectors.atMost(MAX_10_BIT))
 }
 
 private fun specificity(iter: Iter<Component>): Int {

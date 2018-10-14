@@ -105,9 +105,7 @@ class SelectorMap {
 
         val list = when (bucket) {
             is Some -> {
-                val component = bucket.value
-
-                when (component) {
+                when (val component = bucket.value) {
                     is Component.ID -> idHash.entry(component.id)
                     is Component.Class -> classHash.entry(component.styleClass)
                     is Component.LocalName -> {

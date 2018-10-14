@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.cssparser
 
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
@@ -20,18 +19,18 @@ import fernice.std.unwrap
  * A CSS assistive, partial [Parser], that provides common parse functions and keeps track of nested blocks.
  */
 class Parser private constructor(
-        private val tokenizer: Tokenizer,
-        private var blockType: Option<BlockType>,
-        private val delimiters: Int
+    private val tokenizer: Tokenizer,
+    private var blockType: Option<BlockType>,
+    private val delimiters: Int
 ) {
 
     companion object {
 
         fun new(input: ParserInput): Parser {
             return Parser(
-                    Tokenizer.new(input.text),
-                    None,
-                    0
+                Tokenizer.new(input.text),
+                None,
+                0
             )
         }
     }
@@ -105,9 +104,7 @@ class Parser private constructor(
      */
     fun nextIncludingWhitespace(): Result<Token, ParseError> {
         while (true) {
-            val result = nextIncludingWhitespaceAndComment()
-
-            when (result) {
+            when (val result = nextIncludingWhitespaceAndComment()) {
                 is Err -> return result
                 is Ok -> {
                     if (result.value !is Token.Comment) {
@@ -131,14 +128,12 @@ class Parser private constructor(
 
         val state = state()
 
-        val tokenResult = tokenizer.nextToken()
-
-        val token = when (tokenResult) {
+        val token = when (val token = tokenizer.nextToken()) {
             is Err -> {
                 reset(state)
                 return Err(newError(ParseErrorKind.EndOfFile))
             }
-            is Ok -> tokenResult.value
+            is Ok -> token.value
         }
 
         if (delimiters and Delimiters.from(token).bits != 0) {
@@ -152,14 +147,13 @@ class Parser private constructor(
     }
 
     /**
-     * Skips all whitespace tokens.
+     * Skips all whitespace and comment tokens.
      */
     fun skipWhitespace() {
         while (true) {
             val state = state()
-            val result = nextIncludingWhitespaceAndComment()
 
-            when (result) {
+            when (val result = nextIncludingWhitespace()) {
                 is Err -> {
                     reset(state)
                     return
@@ -175,7 +169,8 @@ class Parser private constructor(
     }
 
     /**
-     * Returns whether the Parser is exhausted.
+     * Returns whether the Parser is exhausted, that is when the Parser reaches the end of the file or a token that the Parser
+     * is delimited by. If the Parser encounters an error during testing i.a. a illegal token this method will return false.
      */
     fun isExhausted(): Boolean {
         return expectExhausted() is Ok
@@ -184,9 +179,9 @@ class Parser private constructor(
     /**
      * Returns [Ok] if the Parser is exhausted, otherwise [Err]. The Parser is exhausted if end of file or a delimiter has been
      * reached. If the Parser is exhausted [next], [nextIncludingWhitespace] and [nextIncludingWhitespaceAndComment] all return
-     * [Err]
+     * [Err].
      */
-    fun expectExhausted(): Result<Empty, ParseError> {
+    fun expectExhausted(): Result<Unit, ParseError> {
         val state = state()
 
         val tokenResult = next()
@@ -210,15 +205,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be a [Token.Identifier] that matches the [text]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be a [Token.Identifier] that matches the [text]. Returns [Ok] if the token matches, otherwise
+     * returns [Err] of type [ParseErrorKind.UnexpectedToken].
      */
-    fun expectIdentifierMatching(text: String): Result<Empty, ParseError> {
+    fun expectIdentifierMatching(text: String): Result<Unit, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -234,15 +229,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be [Token.Identifier]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.Identifier]. Returns [Ok] bearing the identifier if the token matches, otherwise
+     * returns [Err] of type [ParseErrorKind.UnexpectedToken].
      */
     fun expectIdentifier(): Result<String, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -251,13 +246,16 @@ class Parser private constructor(
         }
     }
 
+    /**
+     * Expects the next token to be [Token.Url]. Returns [Ok] bearing the url if the token matches, otherwise returns [Err] of
+     * type [ParseErrorKind.UnexpectedToken].
+     */
     fun expectUrl(): Result<String, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -267,15 +265,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be [Token.Function]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.Function]. Returns [Ok] bearing the function name if the token matches, otherwise
+     * returns [Err] of type [ParseErrorKind.UnexpectedToken].
      */
     fun expectFunction(): Result<String, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -286,15 +284,15 @@ class Parser private constructor(
 
 
     /**
-     * Expects the next token to be [Token.String]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.String]. Returns [Ok] bearing the string if the token matches, otherwise returns
+     * [Err] of type [ParseErrorKind.UnexpectedToken].
      */
     fun expectString(): Result<String, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -305,16 +303,15 @@ class Parser private constructor(
 
 
     /**
-     * Expects the next token to be [Token.Identifier] or [Token.String]. Returns [Ok] bearing the text if the token matches,
-     * otherwise [Err].
+     * Expects the next token to be [Token.Identifier] or [Token.String]. Returns [Ok] bearing the identifier or string if the
+     * token matches, otherwise returns [Err] of type [ParseErrorKind.UnexpectedToken].
      */
     fun expectIdentifierOrString(): Result<String, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -325,15 +322,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be [Token.Number]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.Number]. Returns [Ok] bearing the value if the token matches, otherwise returns [Err]
+     * of type [ParseErrorKind.UnexpectedToken].
      */
     fun expectNumber(): Result<Float, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -343,15 +340,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be [Token.Percentage]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.Percentage]. Returns [Ok] bearing the value if the token matches, otherwise returns
+     * [Err] of type [ParseErrorKind.UnexpectedToken].
      */
     fun expectPercentage(): Result<Float, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -361,15 +358,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be [Token.Comma]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.Comma]. Returns [Ok] if the token matches, otherwise returns [Err] of type
+     * [ParseErrorKind.UnexpectedToken].
      */
-    fun expectComma(): Result<Empty, ParseError> {
+    fun expectComma(): Result<Unit, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -379,15 +376,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be [Token.Solidus]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.Solidus]. Returns [Ok] if the token matches, otherwise returns [Err] of type
+     * [ParseErrorKind.UnexpectedToken].
      */
-    fun expectSolidus(): Result<Empty, ParseError> {
+    fun expectSolidus(): Result<Unit, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -397,15 +394,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be [Token.Colon]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.Colon]. Returns [Ok] if the token matches, otherwise returns [Err] of type
+     * [ParseErrorKind.UnexpectedToken].
      */
-    fun expectColon(): Result<Empty, ParseError> {
+    fun expectColon(): Result<Unit, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -415,15 +412,15 @@ class Parser private constructor(
     }
 
     /**
-     * Expects the next token to be [Token.Bang]. Returns [Ok] if the token matches, otherwise [Err].
+     * Expects the next token to be [Token.Bang]. Returns [Ok] if the token matches, otherwise returns [Err] of type
+     * [ParseErrorKind.UnexpectedToken].
      */
-    fun expectBang(): Result<Empty, ParseError> {
+    fun expectBang(): Result<Unit, ParseError> {
         val location = sourceLocation()
-        val tokenResult = next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -433,14 +430,14 @@ class Parser private constructor(
     }
 
     /**
-     * Creates a next [ParseError] at the current [SourceLocation] with the specified [kind].
+     * Creates a [ParseError] for the current [SourceLocation] with the specified [kind].
      */
     fun newError(kind: ParseErrorKind): ParseError {
         return ParseError(kind, sourceLocation())
     }
 
     /**
-     * Creates a next [ParseError] bearing [ParseErrorKind.UnexpectedToken] at the current [SourceLocation] with the specified
+     * Creates a [ParseError] bearing [ParseErrorKind.UnexpectedToken] for the current [SourceLocation] with the specified
      * [token] as unexpected token.
      */
     fun newUnexpectedTokenError(token: Token): ParseError {
@@ -465,8 +462,7 @@ class Parser private constructor(
 
     /**
      * Parses using the specified [parse] function and expects the Parser to be exhausted afterwards. Returns [Err] with
-     * [ParseErrorKind.Unexhausted] as error kind if the parse was not exhaustive. Otherwise returns the [Result] of the
-     * parse.
+     * [ParseErrorKind.Unexhausted] as error kind if the parse was not exhaustive. Otherwise returns the [Result] of the parse.
      */
     inline fun <T> parseEntirely(parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
         val result = parse(this)
@@ -487,16 +483,12 @@ class Parser private constructor(
         val values = mutableListOf<T>()
 
         while (true) {
-            val value = parseUntilBefore(Delimiters.Comma, parse)
-
-            when (value) {
+            when (val value = parseUntilBefore(Delimiters.Comma, parse)) {
                 is Ok -> values.add(value.value)
                 is Err -> return value
             }
 
-            val token = next()
-
-            when (token) {
+            when (val token = next()) {
                 is Ok -> {
                     if (token.value !is Token.Comma) {
                         throw IllegalStateException("unreachable")
@@ -519,8 +511,8 @@ class Parser private constructor(
 
         val result = delimitedParser.parseEntirely(parse)
 
-        delimitedParser.blockType.let {
-            delimitedParser.tokenizer.consumeUntilEndOfBlock(it)
+        delimitedParser.blockType.let { blockType ->
+            delimitedParser.tokenizer.consumeUntilEndOfBlock(blockType)
         }
 
         tokenizer.consumeUntilBefore(delimitedDelimiters)
@@ -542,8 +534,8 @@ class Parser private constructor(
             // make sure to take the next token not some token
             tokenizer.nextToken()
 
-            BlockType.opening(token.unwrap()).let {
-                tokenizer.consumeUntilEndOfBlock(it)
+            BlockType.opening(token.unwrap()).let { blockType ->
+                tokenizer.consumeUntilEndOfBlock(blockType)
             }
         }
 
@@ -564,8 +556,8 @@ class Parser private constructor(
 
         val result = nestedParser.parseEntirely(parse)
 
-        nestedParser.blockType.let {
-            nestedParser.tokenizer.consumeUntilEndOfBlock(it)
+        nestedParser.blockType.let { nestedBlockType ->
+            nestedParser.tokenizer.consumeUntilEndOfBlock(nestedBlockType)
         }
 
         tokenizer.consumeUntilEndOfBlock(blockType)

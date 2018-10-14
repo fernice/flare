@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.style.properties
 
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
@@ -39,6 +38,8 @@ import org.fernice.flare.style.ruletree.RuleNode
 import org.fernice.flare.style.value.Context
 import java.io.Writer
 
+private val LOG = KotlinLogging.logger { }
+
 abstract class PropertyDeclaration : ToCss {
 
     class CssWideKeyword(val id: LonghandId, val keyword: org.fernice.flare.style.properties.CssWideKeyword) : PropertyDeclaration() {
@@ -71,13 +72,12 @@ abstract class PropertyDeclaration : ToCss {
             id: PropertyId,
             context: ParserContext,
             input: Parser
-        ): Result<Empty, ParseError> {
+        ): Result<Unit, ParseError> {
             return id.parseInto(declarations, context, input)
         }
     }
 }
 
-private val LOG = KotlinLogging.logger { }
 private val REGISTERED_PROPERTIES: MutableMap<String, PropertyId> = mutableMapOf()
 
 fun register(vararg modules: PropertyModule) {
@@ -133,7 +133,7 @@ abstract class LonghandId {
 
 abstract class ShorthandId {
 
-    abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError>
+    abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError>
 
     abstract val longhands: List<LonghandId>
 
@@ -142,23 +142,19 @@ abstract class ShorthandId {
 
 sealed class PropertyId {
 
-    abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError>
+    abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError>
 
     class Longhand(private val id: LonghandId) : PropertyId() {
 
-        override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
-            val keyword = input.tryParse { CssWideKeyword.parse(it) }
-
-            return when (keyword) {
+        override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
+            return when (val keyword = input.tryParse { CssWideKeyword.parse(it) }) {
                 is Ok -> {
                     declarations.add(PropertyDeclaration.CssWideKeyword(id, keyword.value))
 
                     Ok()
                 }
                 is Err -> {
-                    val declaration = input.parseEntirely { id.parseValue(context, input) }
-
-                    when (declaration) {
+                    when (val declaration = input.parseEntirely { id.parseValue(context, input) }) {
                         is Ok -> {
                             declarations.add(declaration.value)
 
@@ -179,10 +175,8 @@ sealed class PropertyId {
 
     class Shorthand(private val id: ShorthandId) : PropertyId() {
 
-        override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
-            val keyword = input.tryParse { CssWideKeyword.parse(it) }
-
-            return when (keyword) {
+        override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
+            return when (val keyword = input.tryParse { CssWideKeyword.parse(it) }) {
                 is Ok -> {
                     for (longhand in id.longhands) {
                         declarations.add(PropertyDeclaration.CssWideKeyword(longhand, keyword.value))
@@ -203,7 +197,7 @@ sealed class PropertyId {
 
     companion object {
 
-        fun parse(name: String): Result<PropertyId, Empty> {
+        fun parse(name: String): Result<PropertyId, Unit> {
             val result = REGISTERED_PROPERTIES[name.toLowerCase()]
 
             return if (result != null) {
@@ -215,12 +209,32 @@ sealed class PropertyId {
     }
 }
 
+/**
+ * Represents the three universally definable property value keywords.
+ */
 sealed class CssWideKeyword : ToCss {
 
+    /**
+     * The `inherit` CSS keyword causes the element for which it is specified to take the computed value of the property
+     * from its parent element. It can be applied to any CSS property, including the CSS shorthand `all`.
+     *
+     * For inherited properties this keyword behaves the same as `unset`, on non-inherited properties it causes an
+     * explicit inheritance.
+     */
     object Unset : CssWideKeyword()
 
+    /**
+     * The `unset` CSS keyword resets a property to its inherited value if it inherits from its parent, and to its initial
+     * value if not. In other words, it behaves like the inherit keyword in the first case, and like the initial keyword
+     * in the second case. It can be applied to any CSS property, including the CSS shorthand `all`.
+     */
     object Initial : CssWideKeyword()
 
+    /**
+     * The `initial` CSS keyword applies the initial (or default) value of a property to an element. It can be applied to
+     * any CSS property. This includes the CSS shorthand `all`, with which `initial` can be used to restore all CSS
+     * properties to their initial state.
+     */
     object Inherit : CssWideKeyword()
 
     override fun toCss(writer: Writer) {
@@ -237,11 +251,10 @@ sealed class CssWideKeyword : ToCss {
 
         fun parse(input: Parser): Result<CssWideKeyword, ParseError> {
             val location = input.sourceLocation()
-            val identifierResult = input.expectIdentifier()
 
-            val identifier = when (identifierResult) {
-                is Ok -> identifierResult.value
-                is Err -> return identifierResult
+            val identifier = when (val identifier = input.expectIdentifier()) {
+                is Ok -> identifier.value
+                is Err -> return identifier
             }
 
             return when (identifier.toLowerCase()) {
@@ -270,12 +283,10 @@ fun cascade(
     val iter = {
         ruleNode.selfAndAncestors().flatMap { node ->
             val level = node.cascadeLevel()
-            val source = node.styleSource()
 
-            val declarations = if (source is Some) {
-                source.value.declarations().reversedDeclarationImportanceIter()
-            } else {
-                DeclarationImportanceIter(listOf<DeclarationAndImportance>().iter())
+            val declarations = when (val source = node.styleSource()) {
+                is Some -> source.value.declarations().reversedDeclarationImportanceIter()
+                else -> DeclarationImportanceIter(listOf<DeclarationAndImportance>().iter())
             }
 
             val nodeImportance = node.importance()

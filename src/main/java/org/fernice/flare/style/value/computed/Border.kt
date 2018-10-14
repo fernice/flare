@@ -39,23 +39,14 @@ data class BorderCornerRadius(
 sealed class Style : ToCss {
 
     object None : Style()
-
     object Hidden : Style()
-
     object Dotted : Style()
-
     object Dashed : Style()
-
     object Solid : Style()
-
     object Double : Style()
-
     object Groove : Style()
-
     object Ride : Style()
-
     object Inset : Style()
-
     object Outset : Style()
 
     override fun toCss(writer: Writer) {

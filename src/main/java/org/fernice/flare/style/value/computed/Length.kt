@@ -5,13 +5,26 @@
  */
 package org.fernice.flare.style.value.computed
 
-import org.fernice.flare.style.value.ComputedValue
 import fernice.std.Some
 import fernice.std.unwrap
 import org.fernice.flare.cssparser.ToCss
-import org.fernice.flare.std.min
+import org.fernice.flare.std.max
+import org.fernice.flare.style.value.ComputedValue
 import java.io.Writer
+import org.fernice.flare.style.value.specified.AbsoluteLength
+import org.fernice.flare.style.value.specified.FontRelativeLength
+import org.fernice.flare.style.value.specified.ViewportPercentageLength
+import org.fernice.flare.style.value.specified.NoCalcLength
+import org.fernice.flare.style.value.specified.Length
+import org.fernice.flare.style.value.specified.NonNegativeLength as SpecifiedNonNegativeLength
+import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentage as SpecifiedNonNegativeLengthOrPercentage
+import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentageOrAuto as SpecifiedNonNegativeLengthOrPercentageOrAuto
+import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentageOrNone as SpecifiedNonNegativeLengthOrPercentageOrNone
 
+/**
+ * Computed representation of [AbsoluteLength], [FontRelativeLength], [ViewportPercentageLength], [NoCalcLength]
+ * and [Length].
+ */
 data class PixelLength(val value: Float) : ComputedValue {
 
     fun px(): Float {
@@ -58,10 +71,16 @@ fun Au.into(): PixelLength {
     return PixelLength(this.toPx())
 }
 
+/**
+ * Computed representation of [org.fernice.flare.style.value.specified.NonNegativeLength],
+ * [org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentage],
+ * [org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentageOrAuto] and
+ * [org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentageOrNone].
+ */
 data class NonNegativeLength(val length: PixelLength) : ComputedValue {
 
     fun scaleBy(factor: Float): NonNegativeLength {
-        return new(length.px() * factor.min(0f))
+        return new(length.px() * factor.max(0f))
     }
 
     operator fun plus(other: NonNegativeLength): NonNegativeLength {
@@ -71,7 +90,7 @@ data class NonNegativeLength(val length: PixelLength) : ComputedValue {
     companion object {
 
         fun new(px: Float): NonNegativeLength {
-            return NonNegativeLength(PixelLength(px.min(0f)))
+            return NonNegativeLength(PixelLength(px.max(0f)))
         }
 
         private val zero: NonNegativeLength by lazy { NonNegativeLength(PixelLength.zero()) }
@@ -94,7 +113,13 @@ fun PixelLength.intoNonNegative(): NonNegativeLength {
     return NonNegativeLength(this)
 }
 
-data class Au(val value: Int) {
+private const val AU_PER_PX = 60
+
+/**
+ * Int-based unit primarily used for layouting. An AU is 1/60 of a pixel, removing the inaccuracy of floating-point
+ * conversions.
+ */
+inline class Au(val value: Int) {
 
     fun toPx(): Float {
         return value / AU_PER_PX.toFloat()
@@ -173,11 +198,12 @@ data class Au(val value: Int) {
         fun from(px: PixelLength): Au {
             return fromPx(px.value)
         }
-
-        private const val AU_PER_PX = 60
     }
 }
 
+/**
+ * Computed representation of [org.fernice.flare.style.value.specified.Percentage].
+ */
 data class Percentage(val value: Float) : ComputedValue, ToCss {
 
     override fun toCss(writer: Writer) {
@@ -197,9 +223,7 @@ data class Percentage(val value: Float) : ComputedValue, ToCss {
 sealed class LengthOrPercentage : ComputedValue {
 
     data class Length(val length: PixelLength) : LengthOrPercentage()
-
     data class Percentage(val percentage: org.fernice.flare.style.value.computed.Percentage) : LengthOrPercentage()
-
     data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentage()
 
     fun toPixelLength(containingLength: Au): PixelLength {
@@ -250,11 +274,8 @@ data class NonNegativeLengthOrPercentage(val value: LengthOrPercentage) : Comput
 sealed class LengthOrPercentageOrAuto : ComputedValue {
 
     data class Length(val length: PixelLength) : LengthOrPercentageOrAuto()
-
     data class Percentage(val percentage: org.fernice.flare.style.value.computed.Percentage) : LengthOrPercentageOrAuto()
-
     data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrAuto()
-
     object Auto : LengthOrPercentageOrAuto()
 
     fun toPixelLength(containingLength: Au): PixelLength {
@@ -270,6 +291,23 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
             }
             is LengthOrPercentageOrAuto.Auto -> {
                 PixelLength.zero()
+            }
+        }
+    }
+
+    fun toPixelLength(containingLength: Au, referenceLength: Au): PixelLength {
+        return when (this) {
+            is LengthOrPercentageOrAuto.Length -> {
+                length
+            }
+            is LengthOrPercentageOrAuto.Percentage -> {
+                containingLength.scaleBy(percentage.value).into()
+            }
+            is LengthOrPercentageOrAuto.Calc -> {
+                calc.toPixelLength(Some(containingLength)).unwrap()
+            }
+            is LengthOrPercentageOrAuto.Auto -> {
+                referenceLength.into()
             }
         }
     }
@@ -290,6 +328,10 @@ data class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAu
         return value.toPixelLength(containingLength)
     }
 
+    fun toPixelLength(containingLength: Au, referenceLength: Au): PixelLength {
+        return value.toPixelLength(containingLength, referenceLength)
+    }
+
     companion object {
         private val auto: NonNegativeLengthOrPercentageOrAuto by lazy { NonNegativeLengthOrPercentageOrAuto(LengthOrPercentageOrAuto.Auto) }
 
@@ -302,11 +344,8 @@ data class NonNegativeLengthOrPercentageOrAuto(val value: LengthOrPercentageOrAu
 sealed class LengthOrPercentageOrNone : ComputedValue {
 
     data class Length(val length: PixelLength) : LengthOrPercentageOrNone()
-
     data class Percentage(val percentage: org.fernice.flare.style.value.computed.Percentage) : LengthOrPercentageOrNone()
-
     data class Calc(val calc: CalcLengthOrPercentage) : LengthOrPercentageOrNone()
-
     object None : LengthOrPercentageOrNone()
 }
 

@@ -96,9 +96,7 @@ class Filter<E>(private val iter: Iter<E>, private val p: (E) -> Boolean) : Iter
 class FilterMap<E, B>(private val iter: Iter<E>, private val fp: (E) -> Option<B>) : Iter<B> {
     override fun next(): Option<B> {
         while (true) {
-            val next = iter.next()
-
-            val item = when (next) {
+            val item = when (val next = iter.next()) {
                 is Some -> next.value
                 is None -> return None
             }

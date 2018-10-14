@@ -84,8 +84,7 @@ class ElementData(var styles: ElementStyles) {
     }
 }
 
-class ElementStyles(val primary: Option<ComputedValues>,
-                    val pseudos: PerPseudoElementMap<ComputedValues>) {
+class ElementStyles(val primary: Option<ComputedValues>, val pseudos: PerPseudoElementMap<ComputedValues>) {
 
     /**
      * Returns the primary style, panics if unavailable.
@@ -97,7 +96,7 @@ class ElementStyles(val primary: Option<ComputedValues>,
 
 fun ResolvedElementStyles.into(): ElementStyles {
     return ElementStyles(
-            Some(this.primary.style()),
-            this.pseudos
+        Some(this.primary.style()),
+        this.pseudos
     )
 }

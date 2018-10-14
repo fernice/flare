@@ -25,7 +25,6 @@ import org.fernice.flare.style.value.computed.RGBAColor as ComputedColorProperty
 sealed class Color : SpecifiedValue<ComputedColor>, ToCss {
 
     data class RGBA(val rgba: org.fernice.flare.cssparser.RGBA, val keyword: Option<String>) : Color()
-
     object CurrentColor : Color()
 
     final override fun toComputedValue(context: Context): ComputedColor {
@@ -55,11 +54,9 @@ sealed class Color : SpecifiedValue<ComputedColor>, ToCss {
             val keyword = input.expectIdentifier().ok()
             input.reset(state)
 
-            val colorResult = ParserColor.parse(input)
-
-            val color = when (colorResult) {
-                is Ok -> colorResult.value
-                is Err -> return colorResult
+            val color = when (val color = ParserColor.parse(input)) {
+                is Ok -> color.value
+                is Err -> return color
             }
 
             return when (color) {

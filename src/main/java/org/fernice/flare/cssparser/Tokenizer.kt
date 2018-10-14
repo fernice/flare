@@ -5,8 +5,6 @@
  */
 package org.fernice.flare.cssparser
 
-import org.fernice.flare.std.getBooleanProperty
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
@@ -14,6 +12,7 @@ import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
 import fernice.std.unwrap
+import org.fernice.flare.std.getBooleanProperty
 import java.util.Stack
 
 /**
@@ -27,9 +26,9 @@ private val print_token: Boolean by lazy { getBooleanProperty("flare.print_token
  * such as nested block skipping.
  */
 class Tokenizer private constructor(
-        private val text: String,
-        private val lexer: Lexer,
-        private var state: State
+    private val text: String,
+    private val lexer: Lexer,
+    private var state: State
 ) {
 
     companion object {
@@ -38,12 +37,12 @@ class Tokenizer private constructor(
          * Create a new Tokenizer using the specified [text] as the input for the token stream.
          */
         fun new(text: String): Tokenizer {
-            val lexer = Lexer(org.fernice.flare.cssparser.CssReader(text))
+            val lexer = Lexer(Reader(text))
 
             return Tokenizer(
-                    text,
-                    lexer,
-                    State.next(lexer)
+                text,
+                lexer,
+                State.next(lexer)
             )
         }
     }
@@ -59,9 +58,7 @@ class Tokenizer private constructor(
 
                 println("${iter.token} ${iter.sourceLocation}")
 
-                val next = state.next
-
-                iter = when (next) {
+                iter = when (val next = state.next) {
                     is None -> {
                         val nextState = State.next(lexer)
                         state.next = Some(nextState)
@@ -76,16 +73,14 @@ class Tokenizer private constructor(
     /**
      * Advances the token stream by one [Token] and returns it. Returns [Err], if the stream is exhausted or an error occurred.
      */
-    fun nextToken(): Result<Token, Empty> {
+    fun nextToken(): Result<Token, Unit> {
         val token = state.token
 
         if (token is Err) {
             return token
         }
 
-        val next = state.next
-
-        state = when (next) {
+        state = when (val next = state.next) {
             is None -> {
                 val nextState = State.next(lexer)
                 state.next = Some(nextState)
@@ -101,7 +96,7 @@ class Tokenizer private constructor(
      * Retrieves the next [Token] without advancing the token stream and returns it. Returns [Err], if the stream is exhausted
      * or an error occurred.
      */
-    fun peekToken(count: Int): Result<Token, Empty> {
+    fun peekToken(count: Int): Result<Token, Unit> {
         var state = state
 
         for (i in 0 until count) {
@@ -109,10 +104,7 @@ class Tokenizer private constructor(
                 return state.token
             }
 
-
-            val next = state.next
-
-            state = when (next) {
+            state = when (val next = state.next) {
                 is None -> {
                     val nextState = State.next(lexer)
                     state.next = Some(nextState)
@@ -190,10 +182,8 @@ class Tokenizer private constructor(
 
         loop@
         while (true) {
-            val tokenResult = nextToken()
-
-            val token = when (tokenResult) {
-                is Ok -> tokenResult.value
+            val token = when (val token = nextToken()) {
+                is Ok -> token.value
                 is Err -> break@loop
             }
 
@@ -227,10 +217,8 @@ class Tokenizer private constructor(
                 break
             }
 
-            val tokenResult = nextToken()
-
-            val blockType = when (tokenResult) {
-                is Ok -> BlockType.opening(tokenResult.value)
+            val blockType = when (val token = nextToken()) {
+                is Ok -> BlockType.opening(token.value)
                 is Err -> break@loop
             }
 
@@ -249,9 +237,9 @@ class Tokenizer private constructor(
  * Represents a concrete state of a [Tokenizer] bearing the [Token], [SourcePosition] and [SourceLocation] at that very state.
  */
 data class State(
-        val token: Result<Token, Empty>,
-        val sourcePosition: SourcePosition,
-        val sourceLocation: SourceLocation
+    val token: Result<Token, Unit>,
+    val sourcePosition: SourcePosition,
+    val sourceLocation: SourceLocation
 ) {
 
     /**

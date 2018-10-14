@@ -47,9 +47,7 @@ class Stylesheet(
 
             loop@
             while (true) {
-                val next = iter.next()
-
-                val result = when (next) {
+                val result = when (val next = iter.next()) {
                     is Some -> next.value
                     is None -> break@loop
                 }

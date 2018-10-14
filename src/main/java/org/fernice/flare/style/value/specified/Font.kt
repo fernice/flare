@@ -23,6 +23,8 @@ import fernice.std.map
 import fernice.std.mapOr
 import fernice.std.unwrap
 import fernice.std.unwrapOr
+import org.fernice.flare.style.parser.Parse
+import org.fernice.flare.style.parser.ParseQuirky
 import java.io.Writer
 import org.fernice.flare.style.value.computed.FontFamily as ComputedFontFamily
 import org.fernice.flare.style.value.computed.FontSize as ComputedFontSize
@@ -63,14 +65,22 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
     object Larger : FontSize()
 
     fun toComputedValueAgainst(context: Context, baseSize: FontBaseSize): ComputedFontSize {
+        fun composeKeyword(context: Context, factor: Float): Option<KeywordInfo> {
+            return context
+                .style()
+                .getParentFont()
+                .fontSize
+                .keywordInfo
+                .map { info -> info.compose(factor, Au(0).intoNonNegative()) }
+        }
+
         return when (this) {
             is FontSize.Length -> {
                 var info: Option<KeywordInfo> = None
+
                 val size = when (lop) {
                     is LengthOrPercentage.Length -> {
-                        val length = lop.length
-
-                        when (length) {
+                        when (val length = lop.length) {
                             is NoCalcLength.FontRelative -> {
                                 if (length.length is FontRelativeLength.Em) {
                                     info = composeKeyword(context, length.length.value)
@@ -136,15 +146,6 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
         }
     }
 
-    private fun composeKeyword(context: Context, factor: Float): Option<KeywordInfo> {
-        return context
-            .style()
-            .getParentFont()
-            .fontSize
-            .keywordInfo
-            .map { info -> info.compose(factor, Au(0).intoNonNegative()) }
-    }
-
     final override fun toComputedValue(context: Context): ComputedFontSize {
         return toComputedValueAgainst(context, FontBaseSize.CurrentStyle)
     }
@@ -158,13 +159,13 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
         }
     }
 
-    companion object {
+    companion object : Parse<FontSize>, ParseQuirky<FontSize> {
 
-        fun parse(context: ParserContext, input: Parser): Result<FontSize, ParseError> {
+        override fun parse(context: ParserContext, input: Parser): Result<FontSize, ParseError> {
             return parseQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseQuirky(context: ParserContext, input: Parser, allowQuirks: AllowQuirks): Result<FontSize, ParseError> {
+        override fun parseQuirky(context: ParserContext, input: Parser, allowQuirks: AllowQuirks): Result<FontSize, ParseError> {
             val lopResult = input.tryParse { parser -> LengthOrPercentage.parseNonNegativeQuirky(context, parser, allowQuirks) }
 
             if (lopResult is Ok) {
@@ -178,11 +179,10 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
             }
 
             val location = input.sourceLocation()
-            val identifierResult = input.expectIdentifier()
 
-            val identifier = when (identifierResult) {
-                is Ok -> identifierResult.value
-                is Err -> return identifierResult
+            val identifier = when (val identifier = input.expectIdentifier()) {
+                is Ok -> identifier.value
+                is Err -> return identifier
             }
 
             return when (identifier) {
@@ -276,11 +276,10 @@ sealed class KeywordSize : SpecifiedValue<NonNegativeLength>, ToCss {
 
         fun parse(input: Parser): Result<KeywordSize, ParseError> {
             val location = input.sourceLocation()
-            val identifierResult = input.expectIdentifier()
 
-            val identifier = when (identifierResult) {
-                is Ok -> identifierResult.value
-                is Err -> return identifierResult
+            val identifier = when (val identifier = input.expectIdentifier()) {
+                is Ok -> identifier.value
+                is Err -> return identifier
             }
 
             return when (identifier.toLowerCase()) {

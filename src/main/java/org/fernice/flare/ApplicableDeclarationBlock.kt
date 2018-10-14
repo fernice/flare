@@ -5,33 +5,39 @@
  */
 package org.fernice.flare
 
-import org.fernice.flare.std.max
+import org.fernice.flare.std.atMost
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
 import org.fernice.flare.style.ruletree.CascadeLevel
 import org.fernice.flare.style.ruletree.StyleSource
 
-data class ApplicableDeclarationBlock(val source: StyleSource,
-                                      val bits: ApplicableDeclarationBits,
-                                      val specificity: Int) {
+data class ApplicableDeclarationBlock(
+    val source: StyleSource,
+    val bits: ApplicableDeclarationBits,
+    val specificity: Int
+) {
 
     companion object {
-        fun fromDeclarations(declarations: PropertyDeclarationBlock,
-                             cascadeLevel: CascadeLevel): ApplicableDeclarationBlock {
+        fun fromDeclarations(
+            declarations: PropertyDeclarationBlock,
+            cascadeLevel: CascadeLevel
+        ): ApplicableDeclarationBlock {
             return ApplicableDeclarationBlock(
-                    StyleSource.fromDeclarations(declarations),
-                    ApplicableDeclarationBits.new(0, cascadeLevel),
-                    0
+                StyleSource.fromDeclarations(declarations),
+                ApplicableDeclarationBits.new(0, cascadeLevel),
+                0
             )
         }
 
-        fun new(source: StyleSource,
-                sourceOrder: Int,
-                cascadeLevel: CascadeLevel,
-                specificity: Int): ApplicableDeclarationBlock {
+        fun new(
+            source: StyleSource,
+            sourceOrder: Int,
+            cascadeLevel: CascadeLevel,
+            specificity: Int
+        ): ApplicableDeclarationBlock {
             return ApplicableDeclarationBlock(
-                    source,
-                    ApplicableDeclarationBits.new(sourceOrder, cascadeLevel),
-                    specificity
+                source,
+                ApplicableDeclarationBits.new(sourceOrder, cascadeLevel),
+                specificity
             )
         }
     }
@@ -69,8 +75,8 @@ class ApplicableDeclarationBits private constructor(private val bits: Int) {
 
     companion object {
         fun new(sourceOrder: Int, cascadeLevel: CascadeLevel): ApplicableDeclarationBits {
-            var bits = sourceOrder.max(SOURCE_ORDER_MAX)
-            bits = bits or (cascadeLevel.ordinal.max(CASCADE_LEVEL_MAX) shl CASCADE_LEVEL_SHIFT)
+            var bits = sourceOrder.atMost(SOURCE_ORDER_MAX)
+            bits = bits or (cascadeLevel.ordinal.atMost(CASCADE_LEVEL_MAX) shl CASCADE_LEVEL_SHIFT)
             return ApplicableDeclarationBits(bits)
         }
     }

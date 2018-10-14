@@ -32,7 +32,7 @@ object BackgroundPositionYId : LonghandId() {
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is BackgroundPositionXDeclaration -> {
+            is BackgroundPositionYDeclaration -> {
                 val computed = declaration.position.toComputedValue(context)
 
                 context.builder.setBackgroundPositionY(computed)

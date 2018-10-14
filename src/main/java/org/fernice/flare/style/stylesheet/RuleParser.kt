@@ -54,14 +54,12 @@ class TopLevelRuleParser(private val context: ParserContext) : AtRuleParser<AtRu
 class NestedRuleParser(private val context: ParserContext) : AtRuleParser<AtRulePrelude, CssRule>, QualifiedRuleParser<QualifiedRulePrelude, CssRule> {
 
     override fun parseQualifiedRulePrelude(input: Parser): Result<QualifiedRulePrelude, ParseError> {
+        val parser = SelectorParser()
         val location = input.sourceLocation()
 
-        val parser = SelectorParser()
-        val selectorResult = SelectorList.parse(parser, input)
-
-        val selectorList = when (selectorResult) {
-            is Ok -> selectorResult.value
-            is Err -> return selectorResult
+        val selectorList = when (val selectorList = SelectorList.parse(parser, input)) {
+            is Ok -> selectorList.value
+            is Err -> return selectorList
         }
 
         return Ok(QualifiedRulePrelude(selectorList, location))

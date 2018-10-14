@@ -59,11 +59,9 @@ class CssUrl(
         }
 
         fun parse(context: ParserContext, input: Parser): Result<CssUrl, ParseError> {
-            val urlResult = input.expectUrl()
-
-            val url = when (urlResult) {
-                is Ok -> urlResult.value
-                is Err -> return urlResult
+            val url = when (val url = input.expectUrl()) {
+                is Ok -> url.value
+                is Err -> return url
             }
 
             return Ok(parseFromString(url, context))

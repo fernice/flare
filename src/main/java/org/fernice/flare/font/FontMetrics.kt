@@ -11,9 +11,11 @@ import org.fernice.flare.dom.Device
 
 interface FontMetricsProvider {
 
-    fun query(font: Font,
-              fontSize: Au,
-              device: Device): FontMetricsQueryResult
+    fun query(
+        font: Font,
+        fontSize: Au,
+        device: Device
+    ): FontMetricsQueryResult
 }
 
 sealed class FontMetricsQueryResult {
@@ -23,5 +25,4 @@ sealed class FontMetricsQueryResult {
     class NotAvailable : FontMetricsQueryResult()
 }
 
-class FontMetrics(val xHeight: Au,
-                  val zeroAdvanceMeasure: Au)
+class FontMetrics(val xHeight: Au, val zeroAdvanceMeasure: Au)

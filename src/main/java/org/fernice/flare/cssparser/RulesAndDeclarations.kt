@@ -5,14 +5,13 @@
  */
 package org.fernice.flare.cssparser
 
-import org.fernice.flare.std.iter.Iter
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
+import org.fernice.flare.std.iter.Iter
 
 /**
  * Marks a parser that is capable of parsing any kind of at-rule.
@@ -68,15 +67,15 @@ interface DeclarationParser<D> {
  * Wraps a [ParseError] additionally providing the original input that raised the parse error. This should be used for
  * error reporting as it provides human readable information about the error.
  */
-class ParseErrorSlice(val error: ParseError, val slice: String)
+data class ParseErrorSlice(val error: ParseError, val slice: String)
 
 /**
  * Parser wrapper for parsing a list of declaration inside a declaration block. Takes of care of recognizing declarations
  * and at-rules as well as a limiting the parsable scope passed on to the utilized [parser].
  */
 class DeclarationListParser<A, D, P>(
-        private val input: Parser,
-        private val parser: P
+    private val input: Parser,
+    private val parser: P
 ) : Iter<Result<D, ParseErrorSlice>>
         where P : AtRuleParser<A, D>, P : DeclarationParser<D> {
 
@@ -94,10 +93,9 @@ class DeclarationListParser<A, D, P>(
         loop@
         while (true) {
             val state = input.state()
-            val tokenResult = input.nextIncludingWhitespaceAndComment()
 
-            val token = when (tokenResult) {
-                is Ok -> tokenResult.value
+            val token = when (val token = input.nextIncludingWhitespaceAndComment()) {
+                is Ok -> token.value
                 is Err -> return None
             }
 
@@ -132,9 +130,9 @@ class DeclarationListParser<A, D, P>(
  * and at-rules as well as a limiting the parsable scope passed on to the utilized [parser].
  */
 class RuleListParser<A, Q, R, P>(
-        private val input: Parser,
-        private val parser: P,
-        private val stylesheet: Boolean
+    private val input: Parser,
+    private val parser: P,
+    private val stylesheet: Boolean
 ) where P : AtRuleParser<A, R>, P : QualifiedRuleParser<Q, R> {
 
     private var firstRule = true
@@ -145,11 +143,12 @@ class RuleListParser<A, Q, R, P>(
      */
     fun next(): Option<Result<R, ParseErrorSlice>> {
         while (true) {
-            val state = input.state()
-            val tokenResult = input.next()
+            input.skipWhitespace()
 
-            val token = when (tokenResult) {
-                is Ok -> tokenResult.value
+            val state = input.state()
+
+            val token = when (val token = input.next()) {
+                is Ok -> token.value
                 is Err -> return None
             }
 
@@ -185,28 +184,32 @@ class RuleListParser<A, Q, R, P>(
  * Tries to parse an at-rule with the specified [name] using the [parser]. The [Token.AtKeyword] is expected to have
  * already been parsed.
  */
-private fun <P, R> parseAtRule(input: Parser,
-                               parser: AtRuleParser<P, R>,
-                               state: ParserState,
-                               name: String): Result<R, ParseErrorSlice> {
-    return Err(ParseErrorSlice(
+private fun <P, R> parseAtRule(
+    input: Parser,
+    @Suppress("UNUSED_PARAMETER") parser: AtRuleParser<P, R>,
+    state: ParserState,
+    name: String
+): Result<R, ParseErrorSlice> {
+    return Err(
+        ParseErrorSlice(
             state.location().newUnexpectedTokenError(Token.AtKeyword(name)),
             input.sliceFrom(state.position())
-    ))
+        )
+    )
 }
 
 /**
  * Tries to parse an qualified using the [parser].
  */
-private fun <P, R> parseQualifiedRule(input: Parser,
-                                      parser: QualifiedRuleParser<P, R>): Result<R, ParseError> {
+private fun <P, R> parseQualifiedRule(
+    input: Parser,
+    parser: QualifiedRuleParser<P, R>
+): Result<R, ParseError> {
     val preludeResult = input.parseUntilBefore(Delimiters.LeftBrace, parser::parseQualifiedRulePrelude)
 
-    val tokenResult = input.next()
-
-    val token = when (tokenResult) {
-        is Ok -> tokenResult.value
-        is Err -> return tokenResult
+    val token = when (val token = input.next()) {
+        is Ok -> token.value
+        is Err -> return token
     }
 
     when (token) {
@@ -225,7 +228,7 @@ private fun <P, R> parseQualifiedRule(input: Parser,
 /**
  * Tries to parse an '!important' from the [input].
  */
-fun parseImportant(input: Parser): Result<Empty, ParseError> {
+fun parseImportant(input: Parser): Result<Unit, ParseError> {
     val bangResult = input.expectBang()
 
     if (bangResult is Err) {

@@ -170,40 +170,44 @@ class StyleStructRef<T, M> private constructor(private var state: State<T, M>)
     }
 }
 
-class StyleBuilder(val device: Device,
-                   var writingMode: WritingMode,
-                   private val inheritStyle: ComputedValues,
-                   private val inheritStyleIgnoringFirstLine: ComputedValues,
-                   private val resetStyle: ComputedValues,
-                   private val font: StyleStructRef<Font, MutFont>,
-                   private val color: StyleStructRef<Color, MutColor>,
-                   private val background: StyleStructRef<Background, MutBackground>,
-                   private val border: StyleStructRef<Border, MutBorder>,
-                   private val margin: StyleStructRef<Margin, MutMargin>,
-                   private val padding: StyleStructRef<Padding, MutPadding>) {
+class StyleBuilder(
+    val device: Device,
+    var writingMode: WritingMode,
+    private val inheritStyle: ComputedValues,
+    private val inheritStyleIgnoringFirstLine: ComputedValues,
+    private val resetStyle: ComputedValues,
+    private val font: StyleStructRef<Font, MutFont>,
+    private val color: StyleStructRef<Color, MutColor>,
+    private val background: StyleStructRef<Background, MutBackground>,
+    private val border: StyleStructRef<Border, MutBorder>,
+    private val margin: StyleStructRef<Margin, MutMargin>,
+    private val padding: StyleStructRef<Padding, MutPadding>
+) {
 
     companion object {
 
-        fun new(device: Device,
-                writingMode: WritingMode,
-                parentStyle: Option<ComputedValues>,
-                parentStyleIgnoringFirstLine: Option<ComputedValues>): StyleBuilder {
+        fun new(
+            device: Device,
+            writingMode: WritingMode,
+            parentStyle: Option<ComputedValues>,
+            parentStyleIgnoringFirstLine: Option<ComputedValues>
+        ): StyleBuilder {
             val resetStyle = device.defaultComputedValues()
             val inheritStyle = parentStyle.unwrapOr(resetStyle)
             val inheritStyleIgnoringFirstList = parentStyleIgnoringFirstLine.unwrapOr(resetStyle)
 
             return StyleBuilder(
-                    device,
-                    writingMode,
-                    inheritStyle,
-                    inheritStyleIgnoringFirstList,
-                    resetStyle,
-                    StyleStructRef.borrowed(inheritStyle.font),
-                    StyleStructRef.borrowed(inheritStyle.color),
-                    StyleStructRef.borrowed(resetStyle.background),
-                    StyleStructRef.borrowed(resetStyle.border),
-                    StyleStructRef.borrowed(resetStyle.margin),
-                    StyleStructRef.borrowed(resetStyle.padding)
+                device,
+                writingMode,
+                inheritStyle,
+                inheritStyleIgnoringFirstList,
+                resetStyle,
+                StyleStructRef.borrowed(inheritStyle.font),
+                StyleStructRef.borrowed(inheritStyle.color),
+                StyleStructRef.borrowed(resetStyle.background),
+                StyleStructRef.borrowed(resetStyle.border),
+                StyleStructRef.borrowed(resetStyle.margin),
+                StyleStructRef.borrowed(resetStyle.padding)
             )
         }
     }
@@ -906,12 +910,12 @@ class StyleBuilder(val device: Device,
 
     fun build(): ComputedValues {
         return ComputedValues(
-                font.build(),
-                color.build(),
-                background.build(),
-                border.build(),
-                margin.build(),
-                padding.build()
+            font.build(),
+            color.build(),
+            background.build(),
+            border.build(),
+            margin.build(),
+            padding.build()
         )
     }
 }

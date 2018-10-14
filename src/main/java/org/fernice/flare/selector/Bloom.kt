@@ -83,7 +83,6 @@ class CountingBloomStorage : BloomStorage {
     private val counters = ByteArray(ARRAY_SIZE)
 
     override fun isSlotEmpty(index: Int): Boolean {
-        //fixme(kralli) jvm is probably killing this one
         return counters[index] == (0x00).toByte()
     }
 

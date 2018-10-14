@@ -134,9 +134,7 @@ fun parsePropertyDeclarationList(context: ParserContext, input: Parser): Propert
 
     loop@
     while (true) {
-        val next = iter.next()
-
-        val result = when (next) {
+        val result = when (val next = iter.next()) {
             is Some -> next.value
             is None -> break@loop
         }
@@ -165,15 +163,13 @@ class PropertyDeclarationParser(private val context: ParserContext, private val 
     AtRuleParser<AtRulePrelude, Importance>, DeclarationParser<Importance> {
 
     override fun parseValue(input: Parser, name: String): Result<Importance, ParseError> {
-        val idResult = PropertyId.parse(name)
-
-        val id = when (idResult) {
-            is Ok -> idResult.value
+        val id = when (val id = PropertyId.parse(name)) {
+            is Ok -> id.value
             is Err -> return Err(input.newError(PropertyParseErrorKind.UnknownProperty))
         }
 
-        val parseResult = input.parseUntilBefore(Delimiters.Bang) { input ->
-            PropertyDeclaration.parseInto(declarations, id, context, input)
+        val parseResult = input.parseUntilBefore(Delimiters.Bang) { parser ->
+            PropertyDeclaration.parseInto(declarations, id, context, parser)
         }
 
         if (parseResult is Err) {

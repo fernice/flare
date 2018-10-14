@@ -5,8 +5,8 @@
  */
 package org.fernice.flare.style.value.computed
 
-import org.fernice.flare.std.max
-import org.fernice.flare.std.min
+import org.fernice.flare.std.atMost
+import org.fernice.flare.std.atLeast
 import org.fernice.flare.style.value.ComputedValue
 
 private const val RAD_PER_DEG = Math.PI / 180.0
@@ -35,7 +35,7 @@ sealed class Angle : ComputedValue {
             is Angle.Rad -> this.value.toDouble()
         }
 
-        return radians.min(Double.MIN_VALUE).max(Double.MAX_VALUE)
+        return radians.atLeast(Double.MIN_VALUE).atMost(Double.MAX_VALUE)
     }
 
     fun degrees(): Float {

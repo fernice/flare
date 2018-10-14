@@ -21,31 +21,35 @@ interface Font : StyleStruct<MutFont> {
 
         val initial: Font by lazy {
             StaticFont(
-                    FontFamilyDeclaration.initialValue,
-                    FontSizeDeclaration.initialValue
+                FontFamilyDeclaration.initialValue,
+                FontSizeDeclaration.initialValue
             )
         }
     }
 }
 
-class StaticFont(override val fontFamily: FontFamily,
-                 override val fontSize: FontSize) : Font {
+class StaticFont(
+    override val fontFamily: FontFamily,
+    override val fontSize: FontSize
+) : Font {
 
     override fun clone(): MutFont {
         return MutFont(
-                fontFamily,
-                fontSize
+            fontFamily,
+            fontSize
         )
     }
 }
 
-class MutFont(override var fontFamily: FontFamily,
-              override var fontSize: FontSize) : Font, MutStyleStruct {
+class MutFont(
+    override var fontFamily: FontFamily,
+    override var fontSize: FontSize
+) : Font, MutStyleStruct {
 
     override fun clone(): MutFont {
         return MutFont(
-                fontFamily,
-                fontSize
+            fontFamily,
+            fontSize
         )
     }
 }

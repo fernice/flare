@@ -11,9 +11,9 @@ import org.fernice.flare.url.Url
 import fernice.std.Result
 
 class ParserContext(
-        val parseMode: ParseMode,
-        val quirksMode: QuirksMode,
-        val baseUrl: Url
+    val parseMode: ParseMode,
+    val quirksMode: QuirksMode,
+    val baseUrl: Url
 )
 
 interface Parse<T> {

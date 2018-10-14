@@ -5,20 +5,6 @@
  */
 package org.fernice.flare.style.value.specified
 
-import org.fernice.flare.Experimental
-import org.fernice.flare.cssparser.NumberOrPercentage
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.ParseErrorKind
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.style.parser.ClampingMode
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.value.Context
-import org.fernice.flare.style.value.FontBaseSize
-import org.fernice.flare.style.value.SpecifiedValue
-import org.fernice.flare.style.value.computed.PixelLength
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
@@ -30,7 +16,20 @@ import fernice.std.map
 import fernice.std.mapOr
 import fernice.std.unwrap
 import fernice.std.unwrapOr
+import org.fernice.flare.Experimental
+import org.fernice.flare.cssparser.NumberOrPercentage
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.ParseErrorKind
+import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.cssparser.Token
+import org.fernice.flare.cssparser.newUnexpectedTokenError
+import org.fernice.flare.style.parser.ClampingMode
+import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.value.Context
+import org.fernice.flare.style.value.FontBaseSize
+import org.fernice.flare.style.value.SpecifiedValue
+import org.fernice.flare.style.value.computed.PixelLength
 import java.io.Writer
 import org.fernice.flare.style.value.computed.CalcLengthOrPercentage as ComputedCalcLengthOrPercentage
 import org.fernice.flare.style.value.computed.Percentage as ComputedPercentage
@@ -204,7 +203,7 @@ sealed class CalcNode {
      * [CalcNode.Angle] and [CalcNode.Time] as well as [CalcNode.Number] only in [CalcNode.Mul] on both sides and in
      * [CalcNode.Div] only on the right hand side.
      */
-    fun toLengthOrPercentage(clampingMode: ClampingMode): Result<CalcLengthOrPercentage, Empty> {
+    fun toLengthOrPercentage(clampingMode: ClampingMode): Result<CalcLengthOrPercentage, Unit> {
         val ret = CalcLengthOrPercentage(clampingMode)
 
         val result = reduceCalc(ret, 1f)
@@ -220,7 +219,7 @@ sealed class CalcNode {
      * [CalcNode.Angle] and [CalcNode.Time] as well as [CalcNode.Number] only in [CalcNode.Mul] on both sides and in
      * [CalcNode.Div] only on the right hand side.
      */
-    internal open fun reduceCalc(ret: CalcLengthOrPercentage, factor: Float): Result<Empty, Empty> {
+    internal open fun reduceCalc(ret: CalcLengthOrPercentage, factor: Float): Result<Unit, Unit> {
         when (this) {
             is CalcNode.Percentage -> {
                 ret.percentage = Some(
@@ -238,8 +237,7 @@ sealed class CalcNode {
                         }
                     }
                     is NoCalcLength.FontRelative -> {
-                        val rel = length.length
-                        when (rel) {
+                        when (val rel = length.length) {
                             is FontRelativeLength.Em -> {
                                 ret.em = Some(ret.em.unwrapOr(0f) + rel.value * factor)
                             }
@@ -255,8 +253,7 @@ sealed class CalcNode {
                         }
                     }
                     is NoCalcLength.ViewportPercentage -> {
-                        val rel = length.length
-                        when (rel) {
+                        when (val rel = length.length) {
                             is ViewportPercentageLength.Vw -> {
                                 ret.vw = Some(ret.vw.unwrapOr(0f) + rel.value * factor)
                             }
@@ -274,67 +271,54 @@ sealed class CalcNode {
                 }
             }
             is CalcNode.Sum -> {
-                val leftResult = left.reduceCalc(ret, factor)
-                if (leftResult is Err) {
-                    return leftResult
+                when (val result = left.reduceCalc(ret, factor)) {
+                    is Err -> return result
                 }
 
-                val rightResult = right.reduceCalc(ret, factor)
-                if (rightResult is Err) {
-                    return rightResult
+                when (val result = right.reduceCalc(ret, factor)) {
+                    is Err -> return result
                 }
             }
             is CalcNode.Sub -> {
-                val leftResult = left.reduceCalc(ret, factor)
-                if (leftResult is Err) {
-                    return leftResult
+                when (val result = left.reduceCalc(ret, factor)) {
+                    is Err -> return result
                 }
 
-                val rightResult = right.reduceCalc(ret, factor * -1)
-                if (rightResult is Err) {
-                    return rightResult
+                when (val result = right.reduceCalc(ret, factor * -1)) {
+                    is Err -> return result
                 }
             }
             is CalcNode.Mul -> {
-                var operand = left.toNumber()
-                if (operand is Err) {
-                    return operand
-                }
-
-                when (operand) {
+                when (val operandLeft = left.toNumber()) {
                     is Ok -> {
-                        val result = right.reduceCalc(ret, factor * operand.value)
-                        if (result is Err) {
-                            return result
+                        when (val result = right.reduceCalc(ret, factor * operandLeft.value)) {
+                            is Err -> return result
                         }
                     }
                     is Err -> {
-                        operand = right.toNumber()
-                        if (operand is Err) {
-                            return operand
+                        val operand = when (val operand = right.toNumber()) {
+                            is Ok -> operand.value
+                            is Err -> return operand
                         }
 
-                        val result = left.reduceCalc(ret, factor * operand.unwrap())
-                        if (result is Err) {
-                            return result
+                        when (val result = left.reduceCalc(ret, factor * operand)) {
+                            is Err -> return result
                         }
                     }
                 }
             }
             is CalcNode.Div -> {
-                val operandResult = right.toNumber()
-                val operand = when (operandResult) {
-                    is Ok -> operandResult.value
-                    is Err -> return operandResult
+                val operand = when (val operand = right.toNumber()) {
+                    is Ok -> operand.value
+                    is Err -> return operand
                 }
 
                 if (operand == 0f) {
                     return Err()
                 }
 
-                val result = left.reduceCalc(ret, factor / operand)
-                if (result is Err) {
-                    return result
+                when (val result = left.reduceCalc(ret, factor / operand)) {
+                    is Err -> return result
                 }
             }
             is CalcNode.Angle,
@@ -350,65 +334,57 @@ sealed class CalcNode {
      * [CalcNode.Length], [CalcNode.Angle] and [CalcNode.Time] as well as [CalcNode.Number] only in [CalcNode.Mul] on both
      * sides and in [CalcNode.Div] only on the right hand side.
      */
-    open fun toPercentage(): Result<Float, Empty> {
+    open fun toPercentage(): Result<Float, Unit> {
         return Ok(
             when (this) {
                 is Percentage -> this.value
                 is Sum -> {
-                    val leftResult = this.left.toPercentage()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toPercentage()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toPercentage()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toPercentage()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     left + right
                 }
                 is Sub -> {
-                    val leftResult = this.left.toPercentage()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toPercentage()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toPercentage()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toPercentage()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     left - right
                 }
                 is Mul -> {
-                    val leftResult = this.left.toPercentage()
-                    when (leftResult) {
+                    when (val leftResult = this.left.toPercentage()) {
                         is Ok -> {
                             val left = leftResult.value
 
-                            val rightResult = this.right.toNumber()
-                            val right = when (rightResult) {
-                                is Ok -> rightResult.value
-                                is Err -> return rightResult
+                            val right = when (val right = this.right.toNumber()) {
+                                is Ok -> right.value
+                                is Err -> return right
                             }
 
                             left * right
                         }
                         is Err -> {
-                            val leftResult = this.left.toNumber()
-                            val left = when (leftResult) {
-                                is Ok -> leftResult.value
-                                is Err -> return leftResult
+                            val left = when (val left = this.left.toNumber()) {
+                                is Ok -> left.value
+                                is Err -> return left
                             }
 
-                            val rightResult = this.right.toPercentage()
-                            val right = when (rightResult) {
-                                is Ok -> rightResult.value
-                                is Err -> return rightResult
+                            val right = when (val right = this.right.toPercentage()) {
+                                is Ok -> right.value
+                                is Err -> return right
                             }
 
                             left * right
@@ -416,16 +392,14 @@ sealed class CalcNode {
                     }
                 }
                 is Div -> {
-                    val leftResult = this.left.toPercentage()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toPercentage()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toNumber()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toNumber()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     if (right == 0.0f) {
@@ -446,65 +420,57 @@ sealed class CalcNode {
      * Tries to simplify the calc expression to a [Float]. The expression may not contain any of [CalcNode.Length],
      * [CalcNode.Percentage], [CalcNode.Time] and [CalcNode.Angle].
      */
-    open fun toNumber(): Result<Float, Empty> {
+    open fun toNumber(): Result<Float, Unit> {
         return Ok(
             when (this) {
                 is Number -> this.value
                 is Sum -> {
-                    val leftResult = this.left.toNumber()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toNumber()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toNumber()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toNumber()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     left + right
                 }
                 is Sub -> {
-                    val leftResult = this.left.toNumber()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toNumber()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toNumber()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toNumber()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     left - right
                 }
                 is Mul -> {
-                    val leftResult = this.left.toNumber()
-                    when (leftResult) {
+                    when (val leftResult = this.left.toNumber()) {
                         is Ok -> {
                             val left = leftResult.value
 
-                            val rightResult = this.right.toNumber()
-                            val right = when (rightResult) {
-                                is Ok -> rightResult.value
-                                is Err -> return rightResult
+                            val right = when (val right = this.right.toNumber()) {
+                                is Ok -> right.value
+                                is Err -> return right
                             }
 
                             left * right
                         }
                         is Err -> {
-                            val leftResult = this.left.toNumber()
-                            val left = when (leftResult) {
-                                is Ok -> leftResult.value
-                                is Err -> return leftResult
+                            val left = when (val left = this.left.toNumber()) {
+                                is Ok -> left.value
+                                is Err -> return left
                             }
 
-                            val rightResult = this.right.toNumber()
-                            val right = when (rightResult) {
-                                is Ok -> rightResult.value
-                                is Err -> return rightResult
+                            val right = when (val right = this.right.toNumber()) {
+                                is Ok -> right.value
+                                is Err -> return right
                             }
 
                             left * right
@@ -512,16 +478,14 @@ sealed class CalcNode {
                     }
                 }
                 is Div -> {
-                    val leftResult = this.left.toNumber()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toNumber()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toNumber()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toNumber()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     if (right == 0.0f) {
@@ -543,65 +507,57 @@ sealed class CalcNode {
      * [CalcNode.Percentage] and [CalcNode.Time] as well as [CalcNode.Number] only in [CalcNode.Mul] on both sides and in
      * [CalcNode.Div] only on the right hand side.
      */
-    fun toAngle(): Result<SpecifiedAngle, Empty> {
+    fun toAngle(): Result<SpecifiedAngle, Unit> {
         return Ok(
             when (this) {
                 is Angle -> this.angle
                 is Sum -> {
-                    val leftResult = this.left.toAngle()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toAngle()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toAngle()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toAngle()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     SpecifiedAngle.fromCalc(left.radians() + right.radians())
                 }
                 is Sub -> {
-                    val leftResult = this.left.toAngle()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toAngle()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toAngle()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toAngle()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     SpecifiedAngle.fromCalc(left.radians() - right.radians())
                 }
                 is Mul -> {
-                    val leftResult = this.left.toAngle()
-                    when (leftResult) {
+                    when (val leftResult = this.left.toAngle()) {
                         is Ok -> {
                             val left = leftResult.value
 
-                            val rightResult = this.right.toNumber()
-                            val right = when (rightResult) {
-                                is Ok -> rightResult.value
-                                is Err -> return rightResult
+                            val right = when (val right = this.right.toNumber()) {
+                                is Ok -> right.value
+                                is Err -> return right
                             }
 
                             SpecifiedAngle.fromCalc(left.radians() * right)
                         }
                         is Err -> {
-                            val leftResult = this.left.toNumber()
-                            val left = when (leftResult) {
-                                is Ok -> leftResult.value
-                                is Err -> return leftResult
+                            val left = when (val left = this.left.toNumber()) {
+                                is Ok -> left.value
+                                is Err -> return left
                             }
 
-                            val rightResult = this.right.toAngle()
-                            val right = when (rightResult) {
-                                is Ok -> rightResult.value
-                                is Err -> return rightResult
+                            val right = when (val right = this.right.toAngle()) {
+                                is Ok -> right.value
+                                is Err -> return right
                             }
 
                             SpecifiedAngle.fromCalc(left * right.radians())
@@ -609,16 +565,14 @@ sealed class CalcNode {
                     }
                 }
                 is Div -> {
-                    val leftResult = this.left.toAngle()
-                    val left = when (leftResult) {
-                        is Ok -> leftResult.value
-                        is Err -> return leftResult
+                    val left = when (val left = this.left.toAngle()) {
+                        is Ok -> left.value
+                        is Err -> return left
                     }
 
-                    val rightResult = this.right.toNumber()
-                    val right = when (rightResult) {
-                        is Ok -> rightResult.value
-                        is Err -> return rightResult
+                    val right = when (val right = this.right.toNumber()) {
+                        is Ok -> right.value
+                        is Err -> return right
                     }
 
                     if (right == 0.0f) {
@@ -643,11 +597,9 @@ sealed class CalcNode {
          * Expects the 'calc(' to have already been parsed.
          */
         fun parseNumber(context: ParserContext, input: Parser): Result<Float, ParseError> {
-            val calcNodeResult = parse(context, input, CalcUnit.NUMBER)
-
-            val calcNode = when (calcNodeResult) {
-                is Ok -> calcNodeResult.value
-                is Err -> return calcNodeResult
+            val calcNode = when (val calcNode = parse(context, input, CalcUnit.NUMBER)) {
+                is Ok -> calcNode.value
+                is Err -> return calcNode
             }
 
             return calcNode.toNumber()
@@ -661,11 +613,9 @@ sealed class CalcNode {
          * Expects the 'calc(' to have already been parsed.
          */
         fun parseInteger(context: ParserContext, input: Parser): Result<Int, ParseError> {
-            val calcNodeResult = parse(context, input, CalcUnit.INTEGER)
-
-            val calcNode = when (calcNodeResult) {
-                is Ok -> calcNodeResult.value
-                is Err -> return calcNodeResult
+            val calcNode = when (val calcNode = parse(context, input, CalcUnit.INTEGER)) {
+                is Ok -> calcNode.value
+                is Err -> return calcNode
             }
 
             return calcNode.toNumber()
@@ -680,11 +630,9 @@ sealed class CalcNode {
          * Expects the 'calc(' to have already been parsed.
          */
         fun parseLength(context: ParserContext, input: Parser, clampingMode: ClampingMode): Result<CalcLengthOrPercentage, ParseError> {
-            val calcNodeResult = parse(context, input, CalcUnit.LENGTH)
-
-            val calcNode = when (calcNodeResult) {
-                is Ok -> calcNodeResult.value
-                is Err -> return calcNodeResult
+            val calcNode = when (val calcNode = parse(context, input, CalcUnit.LENGTH)) {
+                is Ok -> calcNode.value
+                is Err -> return calcNode
             }
 
             return calcNode.toLengthOrPercentage(clampingMode)
@@ -698,11 +646,9 @@ sealed class CalcNode {
          * Expects the 'calc(' to have already been parsed.
          */
         fun parsePercentage(context: ParserContext, input: Parser, clampingMode: ClampingMode): Result<Float, ParseError> {
-            val calcNodeResult = parse(context, input, CalcUnit.PERCENTAGE)
-
-            val calcNode = when (calcNodeResult) {
-                is Ok -> calcNodeResult.value
-                is Err -> return calcNodeResult
+            val calcNode = when (val calcNode = parse(context, input, CalcUnit.PERCENTAGE)) {
+                is Ok -> calcNode.value
+                is Err -> return calcNode
             }
 
             return calcNode.toPercentage()
@@ -716,11 +662,9 @@ sealed class CalcNode {
          * Expects the 'calc(' to have already been parsed.
          */
         fun parseNumberOrPercentage(context: ParserContext, input: Parser, clampingMode: ClampingMode): Result<NumberOrPercentage, ParseError> {
-            val calcNodeResult = parse(context, input, CalcUnit.PERCENTAGE)
-
-            val calcNode = when (calcNodeResult) {
-                is Ok -> calcNodeResult.value
-                is Err -> return calcNodeResult
+            val calcNode = when (val calcNode = parse(context, input, CalcUnit.PERCENTAGE)) {
+                is Ok -> calcNode.value
+                is Err -> return calcNode
             }
 
             val number = calcNode.toNumber()
@@ -745,11 +689,9 @@ sealed class CalcNode {
          * Expects the 'calc(' to have already been parsed.
          */
         fun parseLengthOrPercentage(context: ParserContext, input: Parser, clampingMode: ClampingMode): Result<CalcLengthOrPercentage, ParseError> {
-            val calcNodeResult = parse(context, input, CalcUnit.LENGTH_OR_PERCENTAGE)
-
-            val calcNode = when (calcNodeResult) {
-                is Ok -> calcNodeResult.value
-                is Err -> return calcNodeResult
+            val calcNode = when (val calcNode = parse(context, input, CalcUnit.LENGTH_OR_PERCENTAGE)) {
+                is Ok -> calcNode.value
+                is Err -> return calcNode
             }
 
             return calcNode.toLengthOrPercentage(clampingMode)
@@ -763,10 +705,9 @@ sealed class CalcNode {
          * Expects the 'calc(' to have already been parsed.
          */
         fun parseAngle(context: ParserContext, input: Parser): Result<SpecifiedAngle, ParseError> {
-            val calcNodeResult = parse(context, input, CalcUnit.ANGLE)
-            val calcNode = when (calcNodeResult) {
-                is Ok -> calcNodeResult.value
-                is Err -> return calcNodeResult
+            val calcNode = when (val calcNode = parse(context, input, CalcUnit.ANGLE)) {
+                is Ok -> calcNode.value
+                is Err -> return calcNode
             }
 
             return calcNode
@@ -786,21 +727,17 @@ sealed class CalcNode {
             expectedUnit: CalcUnit
         ): Result<CalcNode, ParseError> {
 
-            val rootResult = parseProduct(context, input, expectedUnit)
-
-            var root = when (rootResult) {
-                is Ok -> rootResult.value
-                is Err -> return rootResult
+            var root = when (val root = parseProduct(context, input, expectedUnit)) {
+                is Ok -> root.value
+                is Err -> return root
             }
 
             loop@
             while (true) {
                 val state = input.state()
 
-                var tokenResult = input.nextIncludingWhitespace()
-
-                var token = when (tokenResult) {
-                    is Ok -> tokenResult.value
+                val token = when (val token = input.nextIncludingWhitespace()) {
+                    is Ok -> token.value
                     is Err -> {
                         input.reset(state)
                         break@loop
@@ -814,33 +751,30 @@ sealed class CalcNode {
                         }
 
                         val location = input.sourceLocation()
-                        tokenResult = input.nextIncludingWhitespace()
 
-                        token = when (tokenResult) {
-                            is Ok -> tokenResult.value
-                            is Err -> return tokenResult
+                        val innerToken = when (val innerToken = input.nextIncludingWhitespace()) {
+                            is Ok -> innerToken.value
+                            is Err -> return innerToken
                         }
 
-                        when (token) {
+                        when (innerToken) {
                             is Token.Plus -> {
-                                val rightResult = parseProduct(context, input, expectedUnit)
-                                val right = when (rightResult) {
-                                    is Ok -> rightResult.value
-                                    is Err -> return rightResult
+                                val right = when (val right = parseProduct(context, input, expectedUnit)) {
+                                    is Ok -> right.value
+                                    is Err -> return right
                                 }
 
                                 root = CalcNode.Sum(root, right)
                             }
                             is Token.Minus -> {
-                                val rightResult = parseProduct(context, input, expectedUnit)
-                                val right = when (rightResult) {
-                                    is Ok -> rightResult.value
-                                    is Err -> return rightResult
+                                val right = when (val right = parseProduct(context, input, expectedUnit)) {
+                                    is Ok -> right.value
+                                    is Err -> return right
                                 }
 
                                 root = CalcNode.Sub(root, right)
                             }
-                            else -> Err(location.newUnexpectedTokenError(token))
+                            else -> Err(location.newUnexpectedTokenError(innerToken))
                         }
                     }
                     else -> {
@@ -861,21 +795,17 @@ sealed class CalcNode {
             input: Parser,
             expectedUnit: CalcUnit
         ): Result<CalcNode, ParseError> {
-            val rootResult = parseOne(context, input, expectedUnit)
-
-            var root = when (rootResult) {
-                is Ok -> rootResult.value
-                is Err -> return rootResult
+            var root = when (val root = parseOne(context, input, expectedUnit)) {
+                is Ok -> root.value
+                is Err -> return root
             }
 
             loop@
             while (true) {
                 val state = input.state()
 
-                var tokenResult = input.nextIncludingWhitespace()
-
-                var token = when (tokenResult) {
-                    is Ok -> tokenResult.value
+                val token = when (val token = input.nextIncludingWhitespace()) {
+                    is Ok -> token.value
                     is Err -> {
                         input.reset(state)
                         break@loop
@@ -889,33 +819,30 @@ sealed class CalcNode {
                         }
 
                         val location = input.sourceLocation()
-                        tokenResult = input.nextIncludingWhitespace()
 
-                        token = when (tokenResult) {
-                            is Ok -> tokenResult.value
-                            is Err -> return tokenResult
+                        val innerToken = when (val innerToken = input.nextIncludingWhitespace()) {
+                            is Ok -> innerToken.value
+                            is Err -> return innerToken
                         }
 
-                        when (token) {
+                        when (innerToken) {
                             is Token.Asterisk -> {
-                                val rightResult = parseOne(context, input, expectedUnit)
-                                val right = when (rightResult) {
-                                    is Ok -> rightResult.value
-                                    is Err -> return rightResult
+                                val right = when (val right = parseOne(context, input, expectedUnit)) {
+                                    is Ok -> right.value
+                                    is Err -> return right
                                 }
 
                                 root = CalcNode.Mul(root, right)
                             }
                             is Token.Solidus -> {
-                                val rightResult = parseOne(context, input, expectedUnit)
-                                val right = when (rightResult) {
-                                    is Ok -> rightResult.value
-                                    is Err -> return rightResult
+                                val right = when (val right = parseOne(context, input, expectedUnit)) {
+                                    is Ok -> right.value
+                                    is Err -> return right
                                 }
 
                                 root = CalcNode.Div(root, right)
                             }
-                            else -> Err(location.newUnexpectedTokenError(token))
+                            else -> Err(location.newUnexpectedTokenError(innerToken))
                         }
                     }
                     else -> {
@@ -937,16 +864,15 @@ sealed class CalcNode {
             expectedUnit: CalcUnit
         ): Result<CalcNode, ParseError> {
             val location = input.sourceLocation()
-            val tokenResult = input.next()
 
-            val token = when (tokenResult) {
-                is Ok -> tokenResult.value
-                is Err -> return tokenResult
+            val token = when (val token = input.next()) {
+                is Ok -> token.value
+                is Err -> return token
             }
 
-            when (token) {
+            return when (token) {
                 is Token.Number -> {
-                    return Ok(Number(token.number.float()))
+                    Ok(Number(token.number.float()))
                 }
                 is Token.Dimension -> {
                     when (expectedUnit) {
@@ -965,27 +891,27 @@ sealed class CalcNode {
                         }
                     }
 
-                    return Err(location.newUnexpectedTokenError(token))
+                    Err(location.newUnexpectedTokenError(token))
                 }
                 is Token.Percentage -> {
                     if (expectedUnit == CalcUnit.PERCENTAGE || expectedUnit == CalcUnit.LENGTH_OR_PERCENTAGE) {
                         return Ok(Percentage(token.number.float()))
                     }
 
-                    return Err(location.newUnexpectedTokenError(token))
+                    Err(location.newUnexpectedTokenError(token))
                 }
                 is Token.Function -> {
-                    return if (!token.name.equals("calc", true)) {
+                    if (!token.name.equals("calc", true)) {
                         Err(location.newUnexpectedTokenError(token))
                     } else {
-                        input.parseNestedBlock { input -> parse(context, input, expectedUnit) }
+                        input.parseNestedBlock { nestedParser -> parse(context, nestedParser, expectedUnit) }
                     }
                 }
                 is Token.LParen -> {
-                    return input.parseNestedBlock { input -> parse(context, input, expectedUnit) }
+                    input.parseNestedBlock { nestedParser -> parse(context, nestedParser, expectedUnit) }
                 }
                 else -> {
-                    return Err(location.newUnexpectedTokenError(token))
+                    Err(location.newUnexpectedTokenError(token))
                 }
             }
         }

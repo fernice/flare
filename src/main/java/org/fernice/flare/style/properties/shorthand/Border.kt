@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.style.properties.shorthand
 
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
@@ -122,7 +121,7 @@ object BorderId : ShorthandId() {
 
     override val name: String = "border"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val result = parseBorder(context, input)
 
         val (width, color, style) = when (result) {
@@ -222,7 +221,7 @@ object BorderColorId : ShorthandId() {
 
     override val name: String = "border-color"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val result = Rect.parseWith(context, input, Color.Companion::parse)
 
         val sides = when (result) {
@@ -268,8 +267,8 @@ object BorderStyleId : ShorthandId() {
 
     override val name: String = "border-style"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
-        val result = Rect.parseWith(context, input) { _, input -> Style.parse(input) }
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
+        val result = Rect.parseWith(context, input) { _, parser -> Style.parse(parser) }
 
         val sides = when (result) {
             is Ok -> result.value
@@ -314,7 +313,7 @@ object BorderWidthId : ShorthandId() {
 
     override val name: String = "border-width"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val result = Rect.parseWith(context, input, BorderSideWidth.Companion::parse)
 
         val sides = when (result) {
@@ -360,7 +359,7 @@ object BorderRadiusId : ShorthandId() {
 
     override val name: String = "border-radius"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val widthsResult = Rect.parseWith(context, input, LengthOrPercentage.Companion::parse)
 
         val widths = when (widthsResult) {
@@ -368,7 +367,7 @@ object BorderRadiusId : ShorthandId() {
             is Err -> return widthsResult
         }
 
-        val heights = if (input.tryParse { input -> input.expectSolidus() } is Ok) {
+        val heights = if (input.tryParse { parser -> parser.expectSolidus() } is Ok) {
             val heightsResult = Rect.parseWith(context, input, LengthOrPercentage.Companion::parse)
 
             when (heightsResult) {
@@ -417,7 +416,7 @@ object BorderTopId : ShorthandId() {
 
     override val name: String = "border-top"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val result = parseBorder(context, input)
 
         val (width, color, style) = when (result) {
@@ -457,7 +456,7 @@ object BorderRightId : ShorthandId() {
 
     override val name: String = "border-right"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val result = parseBorder(context, input)
 
         val (width, color, style) = when (result) {
@@ -497,7 +496,7 @@ object BorderBottomId : ShorthandId() {
 
     override val name: String = "border-bottom"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val result = parseBorder(context, input)
 
         val (width, color, style) = when (result) {
@@ -538,7 +537,7 @@ object BorderLeftId : ShorthandId() {
 
     override val name: String = "border-left"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val result = parseBorder(context, input)
 
         val (width, color, style) = when (result) {

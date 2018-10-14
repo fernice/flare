@@ -5,21 +5,22 @@
  */
 package org.fernice.flare.style.value.specified
 
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.style.parser.Parse
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.value.Context
-import org.fernice.flare.style.value.SpecifiedValue
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
+import fernice.std.Some
 import fernice.std.unwrapOr
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.cssparser.Token
+import org.fernice.flare.cssparser.newUnexpectedTokenError
+import org.fernice.flare.cssparser.toCss
+import org.fernice.flare.style.parser.Parse
+import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.value.Context
+import org.fernice.flare.style.value.SpecifiedValue
 import java.io.Writer
 import org.fernice.flare.style.value.computed.BackgroundRepeat as ComputedBackgroundRepeat
 import org.fernice.flare.style.value.computed.BackgroundSize as ComputedBackgroundSize
@@ -27,12 +28,10 @@ import org.fernice.flare.style.value.computed.BackgroundSize as ComputedBackgrou
 sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize>, ToCss {
 
     class Explicit(val width: NonNegativeLengthOrPercentageOrAuto, val height: NonNegativeLengthOrPercentageOrAuto) : BackgroundSize()
-
     object Cover : BackgroundSize()
-
     object Contain : BackgroundSize()
 
-    override fun toComputedValue(context: Context): ComputedBackgroundSize {
+    final override fun toComputedValue(context: Context): ComputedBackgroundSize {
         return when (this) {
             is BackgroundSize.Explicit -> ComputedBackgroundSize.Explicit(
                 width.toComputedValue(context),
@@ -43,8 +42,16 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize>, ToCss {
         }
     }
 
-    override fun toCss(writer: Writer) {
-        TODO()
+    final override fun toCss(writer: Writer) {
+        when (this) {
+            is BackgroundSize.Explicit -> {
+                width.toCss(writer)
+                writer.append(' ')
+                height.toCss(writer)
+            }
+            is BackgroundSize.Cover -> writer.append("cover")
+            is BackgroundSize.Contain -> writer.append("contain")
+        }
     }
 
     companion object : Parse<BackgroundSize> {
@@ -60,11 +67,10 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize>, ToCss {
             }
 
             val location = input.sourceLocation()
-            val identResult = input.expectIdentifier()
 
-            val ident = when (identResult) {
-                is Ok -> identResult.value
-                is Err -> return identResult
+            val ident = when (val ident = input.expectIdentifier()) {
+                is Ok -> ident.value
+                is Err -> return ident
             }
 
             return Ok(
@@ -88,12 +94,10 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize>, ToCss {
 sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss {
 
     object RepeatX : BackgroundRepeat()
-
     object RepeatY : BackgroundRepeat()
+    data class Keywords(val horizontal: BackgroundRepeatKeyword, val vertical: Option<BackgroundRepeatKeyword>) : BackgroundRepeat()
 
-    class Keywords(val horizontal: BackgroundRepeatKeyword, val vertical: Option<BackgroundRepeatKeyword>) : BackgroundRepeat()
-
-    override fun toComputedValue(context: Context): ComputedBackgroundRepeat {
+    final override fun toComputedValue(context: Context): ComputedBackgroundRepeat {
         return when (this) {
             is BackgroundRepeat.RepeatX -> {
                 ComputedBackgroundRepeat(
@@ -116,18 +120,28 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss 
         }
     }
 
-    override fun toCss(writer: Writer) {
-        TODO()
+    final override fun toCss(writer: Writer) {
+        when (this) {
+            is BackgroundRepeat.RepeatX -> writer.append("repeat-x")
+            is BackgroundRepeat.RepeatY -> writer.append("repeat-y")
+            is BackgroundRepeat.Keywords -> {
+                horizontal.toCss(writer)
+
+                if (vertical is Some) {
+                    writer.append(' ')
+                    vertical.toCss(writer)
+                }
+            }
+        }
     }
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<BackgroundRepeat, ParseError> {
             val location = input.sourceLocation()
-            val identifierResult = input.expectIdentifier()
 
-            val identifier = when (identifierResult) {
-                is Ok -> identifierResult.value
-                is Err -> return identifierResult
+            val identifier = when (val identifier = input.expectIdentifier()) {
+                is Ok -> identifier.value
+                is Err -> return identifier
             }
 
             when (identifier.toLowerCase()) {
@@ -150,18 +164,26 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss 
     }
 }
 
-enum class BackgroundRepeatKeyword {
+sealed class BackgroundRepeatKeyword : ToCss {
 
-    Repeat,
+    object Repeat : BackgroundRepeatKeyword()
+    object Space : BackgroundRepeatKeyword()
+    object Round : BackgroundRepeatKeyword()
+    object NoRepeat : BackgroundRepeatKeyword()
 
-    Space,
-
-    Round,
-
-    NoRepeat;
+    final override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
+                is BackgroundRepeatKeyword.Repeat -> "repeat"
+                is BackgroundRepeatKeyword.Space -> "space"
+                is BackgroundRepeatKeyword.Round -> "round"
+                is BackgroundRepeatKeyword.NoRepeat -> "no-repeat"
+            }
+        )
+    }
 
     companion object {
-        fun fromIdent(keyword: String): Result<BackgroundRepeatKeyword, Empty> {
+        fun fromIdent(keyword: String): Result<BackgroundRepeatKeyword, Unit> {
             return when (keyword.toLowerCase()) {
                 "repeat" -> Ok(Repeat)
                 "space" -> Ok(Space)
@@ -173,11 +195,10 @@ enum class BackgroundRepeatKeyword {
 
         fun parse(input: Parser): Result<BackgroundRepeatKeyword, ParseError> {
             val location = input.sourceLocation()
-            val identifierResult = input.expectIdentifier()
 
-            val identifier = when (identifierResult) {
-                is Ok -> identifierResult.value
-                is Err -> return identifierResult
+            val identifier = when (val identifier = input.expectIdentifier()) {
+                is Ok -> identifier.value
+                is Err -> return identifier
             }
 
             return when (identifier.toLowerCase()) {

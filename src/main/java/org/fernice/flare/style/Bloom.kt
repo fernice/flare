@@ -16,17 +16,17 @@ import fernice.std.unwrap
 import java.util.Stack
 
 class StyleBloom(
-        private val filter: BloomFilter,
-        private val elements: Stack<PushedElement>,
-        private val pushedHashes: Stack<Int>
+    private val filter: BloomFilter,
+    private val elements: Stack<PushedElement>,
+    private val pushedHashes: Stack<Int>
 ) {
 
     companion object {
         fun new(): StyleBloom {
             return StyleBloom(
-                    CountingBloomFilter(),
-                    Stack(),
-                    Stack()
+                CountingBloomFilter(),
+                Stack(),
+                Stack()
             )
         }
     }
@@ -90,9 +90,7 @@ class StyleBloom(
 
         loop@
         while (true) {
-            val parent = current.traversalParent()
-
-            when (parent) {
+            when (val parent = current.traversalParent()) {
                 is Some -> {
                     parentsReversed.add(0, parent.value)
 
@@ -114,9 +112,7 @@ class StyleBloom(
 
         loop@
         while (true) {
-            val parent = current.traversalParent()
-
-            when (parent) {
+            when (val parent = current.traversalParent()) {
                 is Some -> {
                     parentsReversed.add(0, parent.value)
 
@@ -149,9 +145,7 @@ class StyleBloom(
             return
         }
 
-        val traversalParentOption = element.traversalParent()
-
-        val traversalParent = when (traversalParentOption) {
+        val traversalParent = when (val traversalParentOption = element.traversalParent()) {
             is Some -> traversalParentOption.value
             is None -> {
                 clear()
@@ -169,9 +163,7 @@ class StyleBloom(
 
         loop@
         while (true) {
-            val currentParent = pop()
-
-            when (currentParent) {
+            when (val currentParent = pop()) {
                 is Some -> {
                     if (currentParent.value == traversalParent) {
                         rebuildUntil(element, currentParent.value)
@@ -186,5 +178,4 @@ class StyleBloom(
     }
 }
 
-class PushedElement(val element: Element,
-                    val hashes: Int)
+class PushedElement(val element: Element, val hashes: Int)

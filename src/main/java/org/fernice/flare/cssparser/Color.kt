@@ -6,15 +6,14 @@
 package org.fernice.flare.cssparser
 
 import org.fernice.flare.cssparser.Color.RGBA
-import org.fernice.flare.std.max
-import org.fernice.flare.std.min
-import org.fernice.flare.std.round
 import org.fernice.flare.std.trunc
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
+import org.fernice.flare.std.max
+import org.fernice.flare.std.min
 import java.io.Writer
+import kotlin.math.roundToInt
 
 /**
  * Represents a 8 bit, int based RGBA color.
@@ -36,9 +35,9 @@ data class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int) : T
         if (hasAlpha) {
             writer.append(", ")
 
-            var roundedAlpha = (alpha.toFloat() * 100f).round() / 100f
+            var roundedAlpha = (alpha.toFloat() * 100f).roundToInt() / 100f
             if (clampUnit(roundedAlpha) != alpha) {
-                roundedAlpha = (alpha.toFloat() * 1000f).round() / 1000f
+                roundedAlpha = (alpha.toFloat() * 1000f).roundToInt() / 1000f
             }
 
             writer.append("$roundedAlpha")
@@ -171,11 +170,10 @@ interface ColorComponentParser {
 
     fun parseNumberOrPercentage(input: Parser): Result<NumberOrPercentage, ParseError> {
         val location = input.sourceLocation()
-        val tokenResult = input.next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = input.next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -201,11 +199,10 @@ interface ColorComponentParser {
 
     fun parseAngleOrNumber(input: Parser): Result<AngleOrNumber, ParseError> {
         val location = input.sourceLocation()
-        val tokenResult = input.next()
 
-        val token = when (tokenResult) {
-            is Ok -> tokenResult.value
-            is Err -> return tokenResult
+        val token = when (val token = input.next()) {
+            is Ok -> token.value
+            is Err -> return token
         }
 
         return when (token) {
@@ -233,7 +230,7 @@ interface ColorComponentParser {
 /**
  * Parses a color hash into a [RGBA] color.
  */
-private fun parseHash(hash: String): Result<Color, Empty> {
+private fun parseHash(hash: String): Result<Color, Unit> {
     val chars = hash.toCharArray()
 
     try {
@@ -319,7 +316,7 @@ private fun fromHex(c: Char): Int {
 /**
  * Parses a color keyword into a [Color].
  */
-private fun parseColorKeyword(keyword: String): Result<Color, Empty> {
+private fun parseColorKeyword(keyword: String): Result<Color, Unit> {
     val color = when (keyword.toLowerCase()) {
         "black" -> rgb(0, 0, 0)
         "silver" -> rgb(192, 192, 192)
@@ -517,9 +514,7 @@ private fun parseColorFunction(input: Parser, parser: ColorComponentParser, name
             }
         }
 
-        val numberOrPercentageResult = parser.parseNumberOrPercentage(input)
-
-        when (numberOrPercentageResult) {
+        when (val numberOrPercentageResult = parser.parseNumberOrPercentage(input)) {
             is Ok -> clampUnit(numberOrPercentageResult.value.unitValue())
             is Err -> return numberOrPercentageResult
         }
@@ -535,11 +530,9 @@ private fun parseColorFunction(input: Parser, parser: ColorComponentParser, name
  * separated. This function does not parse the alpha argument if present.
  */
 private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): Result<RGBF, ParseError> {
-    val parseResult = parser.parseNumberOrPercentage(input)
-
-    val numberOrPercentage = when (parseResult) {
-        is Ok -> parseResult.value
-        is Err -> return parseResult
+    val numberOrPercentage = when (val numberOrPercentage = parser.parseNumberOrPercentage(input)) {
+        is Ok -> numberOrPercentage.value
+        is Err -> return numberOrPercentage
     }
 
     val (red, isNumber) = when (numberOrPercentage) {
@@ -551,15 +544,13 @@ private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): 
         }
     }
 
-    val usesCommas = input.tryParse { it.expectComma() } is Ok
+    val usesCommas = input.tryParse { it.expectComma() }.isOk()
 
     val green: Int
     val blue: Int
 
     if (isNumber) {
-        val greenResult = parser.parseNumber(input)
-
-        green = when (greenResult) {
+        green = when (val greenResult = parser.parseNumber(input)) {
             is Ok -> clampFloor(greenResult.value)
             is Err -> return greenResult
         }
@@ -572,16 +563,12 @@ private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): 
             }
         }
 
-        val blueResult = parser.parseNumber(input)
-
-        blue = when (blueResult) {
+        blue = when (val blueResult = parser.parseNumber(input)) {
             is Ok -> clampFloor(blueResult.value)
             is Err -> return blueResult
         }
     } else {
-        val greenResult = parser.parsePercentage(input)
-
-        green = when (greenResult) {
+        green = when (val greenResult = parser.parsePercentage(input)) {
             is Ok -> clampUnit(greenResult.value)
             is Err -> return greenResult
         }
@@ -594,9 +581,7 @@ private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): 
             }
         }
 
-        val blueResult = parser.parsePercentage(input)
-
-        blue = when (blueResult) {
+        blue = when (val blueResult = parser.parsePercentage(input)) {
             is Ok -> clampUnit(blueResult.value)
             is Err -> return blueResult
         }
@@ -610,22 +595,18 @@ private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): 
  * comma separated. This function does not parse the alpha argument if present.
  */
 private fun parseHSLColorFunction(input: Parser, parser: ColorComponentParser): Result<RGBF, ParseError> {
-    val angleOrNumberResult = parser.parseAngleOrNumber(input)
-
-    val degrees = when (angleOrNumberResult) {
-        is Ok -> angleOrNumberResult.value.degrees()
-        is Err -> return angleOrNumberResult
+    val degrees = when (val angleOrNumber = parser.parseAngleOrNumber(input)) {
+        is Ok -> angleOrNumber.value.degrees()
+        is Err -> return angleOrNumber
     }
     val normalizedDegrees = degrees - (360.0 * (degrees / 360.0).trunc()).toFloat()
     val hue = normalizedDegrees / 360
 
-    val usesCommas = input.tryParse { it.expectComma() } is Ok
+    val usesCommas = input.tryParse { it.expectComma() }.isOk()
 
-    val saturationResult = parser.parsePercentage(input)
-
-    val saturation = when (saturationResult) {
-        is Ok -> saturationResult.value
-        is Err -> return saturationResult
+    val saturation = when (val saturation = parser.parsePercentage(input)) {
+        is Ok -> saturation.value
+        is Err -> return saturation
     }
 
     if (usesCommas) {
@@ -636,11 +617,9 @@ private fun parseHSLColorFunction(input: Parser, parser: ColorComponentParser): 
         }
     }
 
-    val lightnessResult = parser.parsePercentage(input)
-
-    val lightness = when (lightnessResult) {
-        is Ok -> lightnessResult.value
-        is Err -> return lightnessResult
+    val lightness = when (val lightness = parser.parsePercentage(input)) {
+        is Ok -> lightness.value
+        is Err -> return lightness
     }
 
     val m2 = if (lightness <= 0.5) {
@@ -691,5 +670,5 @@ private fun clampUnit(value: Float): Int {
  * Clamps [value] to a value ranging from 0 to 255.
  */
 private fun clampFloor(value: Float): Int {
-    return value.round().min(0).max(255)
+    return value.roundToInt().max(0).min(255)
 }

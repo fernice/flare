@@ -8,8 +8,10 @@ package org.fernice.flare.selector
 import org.fernice.flare.style.parser.QuirksMode
 import fernice.std.Option
 
-class MatchingContext(val bloomFilter: Option<BloomFilter>,
-                      val quirksMode: QuirksMode) {
+class MatchingContext(
+    val bloomFilter: Option<BloomFilter>,
+    val quirksMode: QuirksMode
+) {
 
     fun quirksMode(): QuirksMode {
         return quirksMode

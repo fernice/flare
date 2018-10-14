@@ -5,17 +5,6 @@
  */
 package org.fernice.flare.style.value.specified
 
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.style.parser.AllowQuirks
-import org.fernice.flare.style.parser.Parse
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.value.Context
-import org.fernice.flare.style.value.SpecifiedValue
-import org.fernice.flare.style.value.computed.CalcLengthOrPercentage
-import org.fernice.flare.style.value.computed.Percentage
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
@@ -25,12 +14,23 @@ import fernice.std.Some
 import fernice.std.mapOr
 import fernice.std.unwrap
 import fernice.std.unwrapOr
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.cssparser.Token
+import org.fernice.flare.cssparser.newUnexpectedTokenError
+import org.fernice.flare.style.parser.AllowQuirks
+import org.fernice.flare.style.parser.Parse
+import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.value.Context
+import org.fernice.flare.style.value.SpecifiedValue
+import org.fernice.flare.style.value.computed.CalcLengthOrPercentage
+import org.fernice.flare.style.value.computed.Percentage
 import java.io.Writer
 import org.fernice.flare.style.value.computed.LengthOrPercentage as ComputedLengthOrPercentage
 import org.fernice.flare.style.value.computed.Position as ComputedPosition
 
-class Position(
+data class Position(
     val horizontal: HorizontalPosition,
     val vertical: VerticalPosition
 ) : SpecifiedValue<ComputedPosition>, ToCss {
@@ -46,13 +46,9 @@ class Position(
             input: Parser,
             allowQuirks: AllowQuirks
         ): Result<Position, ParseError> {
-            val xPosResult = input.tryParse { parser -> PositionComponent.parseQuirky(context, parser, allowQuirks, X.Companion) }
-
-            when (xPosResult) {
+            when (val xPosResult = input.tryParse { parser -> PositionComponent.parseQuirky(context, parser, allowQuirks, X.Companion) }) {
                 is Ok -> {
-                    val xPos = xPosResult.value
-
-                    when (xPos) {
+                    when (val xPos = xPosResult.value) {
                         is PositionComponent.Center -> {
                             val yPosResult = input.tryParse { parser -> PositionComponent.parseQuirky(context, parser, allowQuirks, Y.Companion) }
 
@@ -116,20 +112,18 @@ class Position(
                     }
                 }
                 is Err -> {
-                    val yKeywordResult = Y.parse(input)
-
-                    val yKeyword = when (yKeywordResult) {
-                        is Ok -> yKeywordResult.value
-                        is Err -> return yKeywordResult
+                    val yKeyword = when (val yKeyword = Y.parse(input)) {
+                        is Ok -> yKeyword.value
+                        is Err -> return yKeyword
                     }
 
                     val sideResult: Result<Pair<Option<LengthOrPercentage>, PositionComponent<X>>, ParseError> = input.tryParse { parser ->
-                        val yLop = input.tryParse { parser -> LengthOrPercentage.parseQuirky(context, parser, allowQuirks) }
+                        val yLop = input.tryParse { nestedParser -> LengthOrPercentage.parseQuirky(context, nestedParser, allowQuirks) }
                             .ok()
 
                         val xKeyword = parser.tryParse(X.Companion::parse)
                         if (xKeyword is Ok) {
-                            val xLop = input.tryParse { parser -> LengthOrPercentage.parseQuirky(context, parser, allowQuirks) }
+                            val xLop = input.tryParse { nestedParser -> LengthOrPercentage.parseQuirky(context, nestedParser, allowQuirks) }
                                 .ok()
                             val xPos = PositionComponent.Side(xKeyword.value, xLop)
 
@@ -177,7 +171,9 @@ class Position(
     }
 
     override fun toCss(writer: Writer) {
-        TODO("implement toCss(write) for position")
+        horizontal.toCss(writer)
+        writer.append(' ')
+        vertical.toCss(writer)
     }
 }
 
@@ -188,13 +184,21 @@ typealias VerticalPosition = PositionComponent<Y>
 sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercentage>, ToCss {
 
     class Center<S : org.fernice.flare.style.value.specified.Side> : PositionComponent<S>()
-
     class Length<S : org.fernice.flare.style.value.specified.Side>(val length: LengthOrPercentage) : PositionComponent<S>()
-
     data class Side<S : org.fernice.flare.style.value.specified.Side>(val side: S, val length: Option<LengthOrPercentage>) : PositionComponent<S>()
 
     override fun toCss(writer: Writer) {
-        TODO("implement toCss(write) for position-position")
+        when (this) {
+            is PositionComponent.Center -> writer.write("center")
+            is PositionComponent.Length -> length.toCss(writer)
+            is PositionComponent.Side -> {
+                side.toCss(writer)
+                if (length is Some) {
+                    writer.append(' ')
+                    length.value.toCss(writer)
+                }
+            }
+        }
     }
 
     companion object {
@@ -215,11 +219,9 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
                 return Ok(Length(lopResult.value))
             }
 
-            val sideResult = parse.parse(context, input)
-
-            val side = when (sideResult) {
-                is Ok -> sideResult.value
-                is Err -> return sideResult
+            val side = when (val side = parse.parse(context, input)) {
+                is Ok -> side.value
+                is Err -> return side
             }
 
             val lop = input.tryParse { parser -> LengthOrPercentage.parseQuirky(context, parser, allowQuirks) }.ok()
@@ -248,9 +250,7 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
                 if (this.side.isStart()) {
                     length.toComputedValue(context)
                 } else {
-                    val computed = length.toComputedValue(context)
-
-                    when (computed) {
+                    when (val computed = length.toComputedValue(context)) {
                         is ComputedLengthOrPercentage.Length -> {
                             ComputedLengthOrPercentage.Calc(
                                 CalcLengthOrPercentage.new(
@@ -278,21 +278,28 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
     }
 }
 
-interface Side {
+interface Side : ToCss {
 
     fun isStart(): Boolean
 }
 
-enum class X : Side {
+sealed class X : Side {
 
-    Left,
+    object Left : X()
 
-    Right;
+    object Right : X()
 
-    override fun isStart(): Boolean {
+    final override fun isStart(): Boolean {
         return when (this) {
             Left -> true
             else -> false
+        }
+    }
+
+    final override fun toCss(writer: Writer) {
+        when (this) {
+            is X.Left -> writer.write("left")
+            is X.Right -> writer.write("right")
         }
     }
 
@@ -304,11 +311,10 @@ enum class X : Side {
 
         fun parse(input: Parser): Result<X, ParseError> {
             val location = input.sourceLocation()
-            val identResult = input.expectIdentifier()
 
-            val ident = when (identResult) {
-                is Ok -> identResult.value
-                is Err -> return identResult
+            val ident = when (val ident = input.expectIdentifier()) {
+                is Ok -> ident.value
+                is Err -> return ident
             }
 
             return when (ident.toLowerCase()) {
@@ -320,16 +326,23 @@ enum class X : Side {
     }
 }
 
-enum class Y : Side {
+sealed class Y : Side {
 
-    Top,
+    object Top : Y()
 
-    Bottom;
+    object Bottom : Y()
 
-    override fun isStart(): Boolean {
+    final override fun isStart(): Boolean {
         return when (this) {
             Top -> true
             else -> false
+        }
+    }
+
+    final override fun toCss(writer: Writer) {
+        when (this) {
+            is Y.Top -> writer.write("top")
+            is Y.Bottom -> writer.write("bottom")
         }
     }
 
@@ -341,11 +354,10 @@ enum class Y : Side {
 
         fun parse(input: Parser): Result<Y, ParseError> {
             val location = input.sourceLocation()
-            val identResult = input.expectIdentifier()
 
-            val ident = when (identResult) {
-                is Ok -> identResult.value
-                is Err -> return identResult
+            val ident = when (val ident = input.expectIdentifier()) {
+                is Ok -> ident.value
+                is Err -> return ident
             }
 
             return when (ident.toLowerCase()) {

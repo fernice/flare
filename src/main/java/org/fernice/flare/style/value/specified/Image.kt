@@ -38,7 +38,6 @@ import org.fernice.flare.style.value.computed.Ellipse as ComputedEllipse
 sealed class Image : SpecifiedValue<ComputedImage>, ToCss {
 
     data class Url(val url: ImageUrl) : Image()
-
     data class Gradient(val gradient: SpecifiedGradient) : Image()
 
     override fun toComputedValue(context: Context): ComputedImage {
@@ -63,9 +62,7 @@ sealed class Image : SpecifiedValue<ComputedImage>, ToCss {
                 return Ok(Url(url.value))
             }
 
-            val gradient = SpecifiedGradient.parse(context, input)
-
-            return when (gradient) {
+            return when (val gradient = SpecifiedGradient.parse(context, input)) {
                 is Ok -> Ok(Gradient(gradient.value))
                 is Err -> gradient
             }
@@ -144,9 +141,8 @@ data class Gradient(
 
         fun parse(context: ParserContext, input: Parser): Result<Gradient, ParseError> {
             val location = input.sourceLocation()
-            val functionResult = input.expectFunction()
 
-            val function = when (functionResult) {
+            val function = when (val functionResult = input.expectFunction()) {
                 is Ok -> functionResult.value
                 is Err -> return functionResult
             }
@@ -208,7 +204,6 @@ data class Gradient(
 sealed class GradientItem : SpecifiedValue<ComputedGradientItem>, ToCss {
 
     data class ColorStop(val colorStop: SpecifiedColorStop) : GradientItem()
-
     data class InterpolationHint(val hint: LengthOrPercentage) : GradientItem()
 
     override fun toComputedValue(context: Context): ComputedGradientItem {
@@ -277,11 +272,9 @@ data class ColorStop(
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<ColorStop, ParseError> {
-            val colorResult = RGBAColor.parse(context, input)
-
-            val color = when (colorResult) {
-                is Ok -> colorResult.value
-                is Err -> return colorResult
+            val color = when (val color = RGBAColor.parse(context, input)) {
+                is Ok -> color.value
+                is Err -> return color
             }
 
             val position = input.tryParse { nestedParser -> LengthOrPercentage.parse(context, nestedParser) }.ok()
@@ -299,7 +292,6 @@ data class ColorStop(
 sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
     data class Linear(val direction: LineDirection) : GradientKind()
-
     data class Radial(val shape: EndingShape, val position: Position) : GradientKind()
 
     override fun toComputedValue(context: Context): ComputedGradientKind {
@@ -358,7 +350,7 @@ sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
             val shape = shapeResult.unwrapOrElse { EndingShape.Ellipse(Ellipse.Extend(ShapeExtend.FarthestCorner)) }
 
-            val position = positionResult.unwrapOr() { Position.center() }
+            val position = positionResult.unwrapOr { Position.center() }
 
             return Ok(Radial(shape, position))
         }
@@ -370,11 +362,8 @@ private typealias ImageAngle = Angle
 sealed class LineDirection : SpecifiedValue<ComputedLineDirection>, ToCss {
 
     data class Angle(val angle: ImageAngle) : LineDirection()
-
     data class Horizontal(val x: X) : LineDirection()
-
     data class Vertical(val y: Y) : LineDirection()
-
     data class Corner(val x: X, val y: Y) : LineDirection()
 
     override fun toComputedValue(context: Context): ComputedLineDirection {
@@ -443,7 +432,6 @@ sealed class LineDirection : SpecifiedValue<ComputedLineDirection>, ToCss {
 sealed class EndingShape : SpecifiedValue<ComputedEndingShape>, ToCss {
 
     data class Circle(val circle: SpecifiedCircle) : EndingShape()
-
     data class Ellipse(val ellipse: SpecifiedEllipse) : EndingShape()
 
     override fun toComputedValue(context: Context): ComputedEndingShape {
@@ -502,18 +490,14 @@ sealed class EndingShape : SpecifiedValue<ComputedEndingShape>, ToCss {
                 }
 
                 val pair = input.tryParse<Pair<LengthOrPercentage, LengthOrPercentage>> { nestedParser ->
-                    val xResult = LengthOrPercentage.parse(context, nestedParser)
-
-                    val x = when (xResult) {
-                        is Ok -> xResult.value
-                        is Err -> return@tryParse xResult
+                    val x = when (val x = LengthOrPercentage.parse(context, nestedParser)) {
+                        is Ok -> x.value
+                        is Err -> return@tryParse x
                     }
 
-                    val yResult = LengthOrPercentage.parse(context, nestedParser)
-
-                    val y = when (yResult) {
-                        is Ok -> yResult.value
-                        is Err -> return@tryParse yResult
+                    val y = when (val y = LengthOrPercentage.parse(context, nestedParser)) {
+                        is Ok -> y.value
+                        is Err -> return@tryParse y
                     }
 
                     Ok(Pair(x, y))
@@ -529,11 +513,9 @@ sealed class EndingShape : SpecifiedValue<ComputedEndingShape>, ToCss {
             }
 
             return input.tryParse<EndingShape> { nestedParser ->
-                val xResult = Percentage.parse(context, nestedParser)
-
-                val x = when (xResult) {
-                    is Ok -> xResult.value
-                    is Err -> return@tryParse xResult
+                val x = when (val x = Percentage.parse(context, nestedParser)) {
+                    is Ok -> x.value
+                    is Err -> return@tryParse x
                 }
 
                 val yResult = nestedParser.tryParse { parser -> LengthOrPercentage.parse(context, parser) }
@@ -564,7 +546,6 @@ private typealias SpecifiedCircle = Circle
 sealed class Circle : SpecifiedValue<ComputedCircle> {
 
     data class Radius(val length: Length) : Circle()
-
     data class Extend(val shapeExtend: ShapeExtend) : Circle()
 
     override fun toComputedValue(context: Context): ComputedCircle {
@@ -580,7 +561,6 @@ private typealias  SpecifiedEllipse = Ellipse
 sealed class Ellipse : SpecifiedValue<ComputedEllipse> {
 
     data class Radii(val horizontal: LengthOrPercentage, val vertical: LengthOrPercentage) : Ellipse()
-
     data class Extend(val shapeExtend: ShapeExtend) : Ellipse()
 
     override fun toComputedValue(context: Context): ComputedEllipse {
@@ -594,22 +574,18 @@ sealed class Ellipse : SpecifiedValue<ComputedEllipse> {
 sealed class ShapeExtend {
 
     object ClosestSide : ShapeExtend()
-
     object FarthestSide : ShapeExtend()
-
     object ClosestCorner : ShapeExtend()
-
     object FarthestCorner : ShapeExtend()
 
     companion object {
 
         fun parse(input: Parser): Result<ShapeExtend, ParseError> {
             val location = input.sourceLocation()
-            val identResult = input.expectIdentifier()
 
-            val ident = when (identResult) {
-                is Ok -> identResult.value
-                is Err -> return identResult
+            val ident = when (val ident = input.expectIdentifier()) {
+                is Ok -> ident.value
+                is Err -> return ident
             }
 
             return when (ident.toLowerCase()) {

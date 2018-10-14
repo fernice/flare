@@ -49,9 +49,11 @@ class PerPseudoElementMap<E> {
     }
 }
 
-class PerOrigin<E>(val userAgent: E,
-                   val user: E,
-                   val author: E) {
+class PerOrigin<E>(
+    val userAgent: E,
+    val user: E,
+    val author: E
+) {
 
     fun get(origin: Origin): E {
         return when (origin) {
@@ -63,24 +65,26 @@ class PerOrigin<E>(val userAgent: E,
 
     fun iter(): PerOriginIter<E> {
         return PerOriginIter(
-                this,
-                0,
-                false
+            this,
+            0,
+            false
         )
     }
 
     fun iterReversed(): PerOriginIter<E> {
         return PerOriginIter(
-                this,
-                0,
-                false
+            this,
+            0,
+            false
         )
     }
 }
 
-class PerOriginIter<E>(private val perOrigin: PerOrigin<E>,
-                       private var index: Int,
-                       private val reversed: Boolean) : Iter<E> {
+class PerOriginIter<E>(
+    private val perOrigin: PerOrigin<E>,
+    private var index: Int,
+    private val reversed: Boolean
+) : Iter<E> {
 
     override fun next(): Option<E> {
         if (reversed) {
@@ -106,9 +110,9 @@ class PerOriginIter<E>(private val perOrigin: PerOrigin<E>,
 
     override fun clone(): PerOriginIter<E> {
         return PerOriginIter(
-                perOrigin,
-                index,
-                reversed
+            perOrigin,
+            index,
+            reversed
         )
     }
 }

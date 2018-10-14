@@ -25,11 +25,10 @@ import fernice.std.Some
 import fernice.std.let
 import fernice.std.mapOr
 
+/**
+ * The selector specific error kinds
+ */
 sealed class SelectorParseErrorKind : ParseErrorKind() {
-
-    override fun toString(): String {
-        return "SelectorParseErrorKind::${javaClass.simpleName}"
-    }
 
     object UnknownSelector : SelectorParseErrorKind()
     object DanglingCombinator : SelectorParseErrorKind()
@@ -44,7 +43,11 @@ sealed class SelectorParseErrorKind : ParseErrorKind() {
     object EmptyNegation : SelectorParseErrorKind()
     object NonSimpleSelectorInNegation : SelectorParseErrorKind()
     object NoQualifiedNameInAttributeSelector : SelectorParseErrorKind()
-    class UnexpectedTokenInAttributeSelector(val token: Token) : SelectorParseErrorKind()
+    data class UnexpectedTokenInAttributeSelector(val token: Token) : SelectorParseErrorKind()
+
+    override fun toString(): String {
+        return "SelectorParseErrorKind::${javaClass.simpleName}"
+    }
 }
 
 interface SelectorParserContext {
@@ -92,10 +95,9 @@ fun parseSelector(context: SelectorParserContext, input: Parser): Result<Selecto
         inner@
         while (true) {
             val state = input.state()
-            val tokenResult = input.nextIncludingWhitespace()
 
-            val token = when (tokenResult) {
-                is Ok -> tokenResult.value
+            val token = when (val token = input.nextIncludingWhitespace()) {
+                is Ok -> token.value
                 is Err -> break@outer
             }
 
@@ -134,7 +136,11 @@ fun parseSelector(context: SelectorParserContext, input: Parser): Result<Selecto
 
 private class ParseResult(val hasPseudoElement: Boolean)
 
-private fun parseCompoundSelector(context: SelectorParserContext, input: Parser, builder: SelectorBuilder): Result<Option<ParseResult>, ParseError> {
+private fun parseCompoundSelector(
+    context: SelectorParserContext,
+    input: Parser,
+    builder: SelectorBuilder
+): Result<Option<ParseResult>, ParseError> {
     input.skipWhitespace()
 
     var empty = true
@@ -159,11 +165,9 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
 
     loop@
     while (true) {
-        val selectorResult = parseOneSimpleSelector(context, input, false)
-
-        val selector = when (selectorResult) {
+        val selector = when (val selector = parseOneSimpleSelector(context, input, false)) {
             is Ok -> {
-                val option = selectorResult.value
+                val option = selector.value
 
                 if (option is Some) {
                     option.value
@@ -171,7 +175,7 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
                     break@loop
                 }
             }
-            is Err -> return selectorResult
+            is Err -> return selector
         }
 
         when (selector) {
@@ -186,10 +190,9 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
                 inner@
                 while (true) {
                     var location = input.sourceLocation()
-                    var tokenResult = input.nextIncludingWhitespace()
 
-                    var token = when (tokenResult) {
-                        is Ok -> tokenResult.value
+                    var token = when (val token = input.nextIncludingWhitespace()) {
+                        is Ok -> token.value
                         is Err -> break@inner
                     }
 
@@ -203,18 +206,15 @@ private fun parseCompoundSelector(context: SelectorParserContext, input: Parser,
                     }
 
                     location = input.sourceLocation()
-                    tokenResult = input.nextIncludingWhitespace()
 
-                    token = when (tokenResult) {
+                    token = when (val tokenResult = input.nextIncludingWhitespace()) {
                         is Ok -> tokenResult.value
                         is Err -> return tokenResult
                     }
 
                     when (token) {
                         is Token.Identifier -> {
-                            val pseudoClassResult = parseNonTSPseudoClass(location, token.name)
-
-                            when (pseudoClassResult) {
+                            when (val pseudoClassResult = parseNonTSPseudoClass(location, token.name)) {
                                 is Ok -> {
                                     stateSelectors.add(Component.NonTSPseudoClass(pseudoClassResult.value))
                                 }
@@ -276,16 +276,18 @@ private sealed class QualifiedName {
     class Some(val prefix: QualifiedNamePrefix, val localName: Option<String>) : QualifiedName()
 }
 
-private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sink: (Component) -> Unit): Result<Boolean, ParseError> {
-    val qualifiedNameResult = parseQualifiedName(context, input, false)
-
-    val qualifiedName = when (qualifiedNameResult) {
-        is Ok -> qualifiedNameResult.value
+private fun parseTypeSelector(
+    context: SelectorParserContext,
+    input: Parser,
+    sink: (Component) -> Unit
+): Result<Boolean, ParseError> {
+    val qualifiedName = when (val qualifiedName = parseQualifiedName(context, input, false)) {
+        is Ok -> qualifiedName.value
         is Err -> {
             return if (input.isExhausted()) {
                 Ok(false)
             } else {
-                qualifiedNameResult
+                qualifiedName
             }
         }
     }
@@ -312,8 +314,7 @@ private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sin
                     }
                 }
                 is QualifiedNamePrefix.ExplicitNamespace -> {
-                    val defaultNamespace = context.defaultNamespace()
-                    when (defaultNamespace) {
+                    when (val defaultNamespace = context.defaultNamespace()) {
                         is Some -> {
                             if (defaultNamespace.value == qualifiedName.prefix.url) {
                                 sink(Component.DefaultNamespace(qualifiedName.prefix.url))
@@ -350,16 +351,18 @@ private fun parseTypeSelector(context: SelectorParserContext, input: Parser, sin
     }
 }
 
-private fun parseQualifiedName(context: SelectorParserContext, input: Parser, attributeSelector: Boolean): Result<QualifiedName, ParseError> {
+private fun parseQualifiedName(
+    context: SelectorParserContext,
+    input: Parser,
+    attributeSelector: Boolean
+): Result<QualifiedName, ParseError> {
     val state = input.state()
 
-    val tokenResult = input.nextIncludingWhitespace()
-
-    val token = when (tokenResult) {
-        is Ok -> tokenResult.value
+    val token = when (val token = input.nextIncludingWhitespace()) {
+        is Ok -> token.value
         is Err -> {
             input.reset(state)
-            return tokenResult
+            return token
         }
     }
 
@@ -367,10 +370,8 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
         is Token.Identifier -> {
             val afterIdentState = input.state()
 
-            val innerTokenResult = input.nextIncludingWhitespace()
-
-            val innerToken = when (innerTokenResult) {
-                is Ok -> tokenResult.value
+            val innerToken = when (val innerToken = input.nextIncludingWhitespace()) {
+                is Ok -> innerToken.value
                 is Err -> {
                     input.reset(afterIdentState)
 
@@ -385,9 +386,8 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
             when (innerToken) {
                 is Token.Pipe -> {
                     val prefix = context.namespacePrefix(token.name)
-                    val namespace = context.namespaceForPrefix(prefix)
 
-                    when (namespace) {
+                    when (val namespace = context.namespaceForPrefix(prefix)) {
                         is Some -> {
                             explicitNamespace(input, QualifiedNamePrefix.ExplicitNamespace(prefix, namespace.value), attributeSelector)
                         }
@@ -409,15 +409,13 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
         is Token.Asterisk -> {
             val afterAsteriskState = input.state()
 
-            val innerTokenResult = input.nextIncludingWhitespace()
-
-            val innerToken = when (innerTokenResult) {
-                is Ok -> tokenResult.value
+            val innerToken = when (val innerToken = input.nextIncludingWhitespace()) {
+                is Ok -> innerToken.value
                 is Err -> {
                     input.reset(afterAsteriskState)
 
                     return if (attributeSelector) {
-                        innerTokenResult
+                        innerToken
                     } else {
                         defaultNamespace(context, None)
                     }
@@ -449,13 +447,16 @@ private fun parseQualifiedName(context: SelectorParserContext, input: Parser, at
     }
 }
 
-private fun explicitNamespace(input: Parser, prefix: QualifiedNamePrefix, attributeSelector: Boolean): Result<QualifiedName, ParseError> {
+private fun explicitNamespace(
+    input: Parser,
+    prefix: QualifiedNamePrefix,
+    attributeSelector: Boolean
+): Result<QualifiedName, ParseError> {
     val location = input.sourceLocation()
-    val tokenResult = input.nextIncludingWhitespace()
 
-    val token = when (tokenResult) {
-        is Ok -> tokenResult.value
-        is Err -> return tokenResult
+    val token = when (val token = input.nextIncludingWhitespace()) {
+        is Ok -> token.value
+        is Err -> return token
     }
 
     return when (token) {
@@ -480,9 +481,8 @@ private fun explicitNamespace(input: Parser, prefix: QualifiedNamePrefix, attrib
 }
 
 private fun defaultNamespace(context: SelectorParserContext, name: Option<String>): Result<QualifiedName, ParseError> {
-    val defaultNamespace = context.defaultNamespace()
-    val namespace = when (defaultNamespace) {
-        is Some -> QualifiedNamePrefix.ImplicitDefaultNamespace(defaultNamespace.value)
+    val namespace = when (val namespace = context.defaultNamespace()) {
+        is Some -> QualifiedNamePrefix.ImplicitDefaultNamespace(namespace.value)
         is None -> QualifiedNamePrefix.ImplicitAnyNamespace
     }
 
@@ -496,12 +496,15 @@ private sealed class SimpleSelectorParseResult {
     class PseudoElement(val pseudoElement: org.fernice.flare.selector.PseudoElement) : SimpleSelectorParseResult()
 }
 
-private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser, negated: Boolean): Result<Option<SimpleSelectorParseResult>, ParseError> {
+private fun parseOneSimpleSelector(
+    context: SelectorParserContext,
+    input: Parser,
+    negated: Boolean
+): Result<Option<SimpleSelectorParseResult>, ParseError> {
     val state = input.state()
-    val tokenResult = input.nextIncludingWhitespace()
 
-    val token = when (tokenResult) {
-        is Ok -> tokenResult.value
+    val token = when (val token = input.nextIncludingWhitespace()) {
+        is Ok -> token.value
         is Err -> {
             input.reset(state)
             return Ok(None)
@@ -516,11 +519,10 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
         }
         is Token.Dot -> {
             val location = input.sourceLocation()
-            val innerTokenResult = input.nextIncludingWhitespace()
 
-            val innerToken = when (innerTokenResult) {
-                is Ok -> innerTokenResult.value
-                is Err -> return innerTokenResult
+            val innerToken = when (val innerToken = input.nextIncludingWhitespace()) {
+                is Ok -> innerToken.value
+                is Err -> return innerToken
             }
 
             return when (innerToken) {
@@ -544,18 +546,15 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
         }
         is Token.Colon -> {
             val location = input.sourceLocation()
-            var innerTokenResult = input.nextIncludingWhitespace()
 
-            var innerToken = when (innerTokenResult) {
-                is Ok -> innerTokenResult.value
-                is Err -> return innerTokenResult
+            var innerToken = when (val innerToken = input.nextIncludingWhitespace()) {
+                is Ok -> innerToken.value
+                is Err -> return innerToken
             }
 
             val doubleColon = when (innerToken) {
                 is Token.Colon -> {
-                    innerTokenResult = input.nextIncludingWhitespace()
-
-                    innerToken = when (innerTokenResult) {
+                    innerToken = when (val innerTokenResult = input.nextIncludingWhitespace()) {
                         is Ok -> innerTokenResult.value
                         is Err -> return innerTokenResult
                     }
@@ -611,9 +610,9 @@ private fun parseOneSimpleSelector(context: SelectorParserContext, input: Parser
 }
 
 private fun parseFunctionalPseudoElement(
-        @Suppress("UNUSED_PARAMETER") input: Parser,
-        location: SourceLocation,
-        name: String
+    @Suppress("UNUSED_PARAMETER") input: Parser,
+    location: SourceLocation,
+    name: String
 ): Result<PseudoElement, ParseError> {
     return Err(location.newUnexpectedTokenError(Token.Function(name)))
 }
@@ -633,11 +632,11 @@ private fun parsePseudoElement(location: SourceLocation, name: String): Result<P
 }
 
 private fun parseFunctionalPseudoClass(
-        context: SelectorParserContext,
-        input: Parser,
-        location: SourceLocation,
-        name: String,
-        negated: Boolean
+    context: SelectorParserContext,
+    input: Parser,
+    location: SourceLocation,
+    name: String,
+    negated: Boolean
 ): Result<Component, ParseError> {
     return when (name.toLowerCase()) {
         "nth-child" -> parseNthPseudoClass(input, Component::NthChild)
@@ -664,12 +663,14 @@ private fun parseNthPseudoClass(input: Parser, wrapper: (Nth) -> Component): Res
     }
 }
 
-private fun parseNonTSFunctionalPseudoClass(input: Parser, location: SourceLocation, name: String): Result<NonTSPseudoClass, ParseError> {
+private fun parseNonTSFunctionalPseudoClass(
+    input: Parser,
+    location: SourceLocation,
+    name: String
+): Result<NonTSPseudoClass, ParseError> {
     return when (name.toLowerCase()) {
         "lang" -> {
-            val identifierResult = input.expectIdentifier()
-
-            return when (identifierResult) {
+            return when (val identifierResult = input.expectIdentifier()) {
                 is Ok -> Ok(NonTSPseudoClass.Lang(identifierResult.value))
                 is Err -> identifierResult
             }
@@ -719,9 +720,7 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
 
     input.skipWhitespace()
 
-    val typeSelectorResult = parseTypeSelector(context, input) { simpleSelector.add(it) }
-
-    val parsed = when (typeSelectorResult) {
+    val parsed = when (val typeSelectorResult = parseTypeSelector(context, input) { simpleSelector.add(it) }) {
         is Err -> {
             return if (typeSelectorResult.value.kind == ParseErrorKind.EndOfFile) {
                 Err(input.newError(SelectorParseErrorKind.EmptyNegation))
@@ -733,18 +732,16 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
     }
 
     if (!parsed) {
-        val selectorResult = parseOneSimpleSelector(context, input, true)
-
-        val selector = when (selectorResult) {
+        val selector = when (val selector = parseOneSimpleSelector(context, input, true)) {
             is Ok -> {
-                val option = selectorResult.value
+                val option = selector.value
 
                 when (option) {
                     is Some -> option.value
                     is None -> return Err(input.newError(SelectorParseErrorKind.EmptyNegation))
                 }
             }
-            is Err -> return selectorResult
+            is Err -> return selector
         }
 
         when (selector) {
@@ -762,11 +759,9 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
 
 
 private fun parseAttributeSelector(context: SelectorParserContext, input: Parser): Result<Component, ParseError> {
-    val qualifiedNameResult = parseQualifiedName(context, input, true)
-
-    val qualifiedName = when (qualifiedNameResult) {
-        is Ok -> qualifiedNameResult.value
-        is Err -> return qualifiedNameResult
+    val qualifiedName = when (val qualifiedName = parseQualifiedName(context, input, true)) {
+        is Ok -> qualifiedName.value
+        is Err -> return qualifiedName
     }
 
     val localName: String
@@ -799,25 +794,28 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
     }
 
     val location = input.sourceLocation()
-    val tokenResult = input.next()
 
-    val token = when (tokenResult) {
-        is Ok -> tokenResult.value
+    val token = when (val token = input.next()) {
+        is Ok -> token.value
         is Err -> {
             val localNameLower = localName.toLowerCase()
             return if (namespace is Some) {
-                Ok(Component.AttributeOther(
+                Ok(
+                    Component.AttributeOther(
                         namespace.value,
                         localName,
                         localNameLower,
                         AttributeSelectorOperation.Exists,
                         false
-                ))
+                    )
+                )
             } else {
-                Ok(Component.AttributeInNoNamespaceExists(
+                Ok(
+                    Component.AttributeInNoNamespaceExists(
                         localName,
                         localNameLower
-                ))
+                    )
+                )
             }
         }
     }
@@ -832,17 +830,15 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
         else -> return Err(location.newError(SelectorParseErrorKind.UnexpectedTokenInAttributeSelector(token)))
     }
 
-    val valueResult = input.expectIdentifierOrString()
-
-    val value = when (valueResult) {
-        is Ok -> valueResult.value
+    val value = when (val value = input.expectIdentifierOrString()) {
+        is Ok -> value.value
         is Err -> {
-            val error = valueResult.value
+            val error = value.value
 
             return if (error.kind is ParseErrorKind.UnexpectedToken) {
-                Err(valueResult.value.location.newError(SelectorParseErrorKind.UnexpectedTokenInAttributeSelector(error.kind.token)))
+                Err(value.value.location.newError(SelectorParseErrorKind.UnexpectedTokenInAttributeSelector(error.kind.token)))
             } else {
-                valueResult
+                value
             }
         }
     }
@@ -865,35 +861,38 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
     val localNameLower = localName.toLowerCase()
 
     return if (namespace is Some) {
-        Ok(Component.AttributeOther(
+        Ok(
+            Component.AttributeOther(
                 namespace.value,
                 localName,
                 localNameLower,
                 AttributeSelectorOperation.WithValue(
-                        operator,
-                        caseSensitive,
-                        value
+                    operator,
+                    caseSensitive,
+                    value
                 ),
                 neverMatches
-        ))
+            )
+        )
     } else {
-        Ok(Component.AttributeInNoNamespace(
+        Ok(
+            Component.AttributeInNoNamespace(
                 localName,
                 localNameLower,
                 operator,
                 value,
                 caseSensitive,
                 neverMatches
-        ))
+            )
+        )
     }
 }
 
 private fun parseAttributeSelectorFlags(input: Parser): Result<Boolean, ParseError> {
     val location = input.sourceLocation()
-    val tokenResult = input.next()
 
-    val token = when (tokenResult) {
-        is Ok -> tokenResult.value
+    val token = when (val token = input.next()) {
+        is Ok -> token.value
         is Err -> return Ok(true)
     }
 
@@ -907,23 +906,6 @@ private fun parseAttributeSelectorFlags(input: Parser): Result<Boolean, ParseErr
         }
         else -> Err(location.newUnexpectedTokenError(token))
     }
-}
-
-fun main(args: Array<String>) {
-    val fourth = 10239454 and HASH_BLOOM_MASK
-
-    val o = 23403243 and HASH_BLOOM_MASK
-    val a1 = o or ((fourth and 0x000000ff) shl 24)
-    val a2 = o or ((fourth and 0x0000ff00) shl 16)
-    val a3 = o or ((fourth and 0x00ff0000) shl 8)
-
-    println(fourth)
-
-    val b = ((a1 and UPPER_EIGHT_BIT_MASK) ushr 24) or
-            ((a2 and UPPER_EIGHT_BIT_MASK) ushr 16) or
-            ((a3 and UPPER_EIGHT_BIT_MASK) ushr 8)
-
-    println(b)
 }
 
 private const val UPPER_EIGHT_BIT_MASK = 0xff shl 24
@@ -958,7 +940,7 @@ class AncestorHashes(val packedHashes: IntArray) {
             }
 
             return AncestorHashes(
-                    intArrayOf(hashes[0], hashes[1], hashes[2])
+                intArrayOf(hashes[0], hashes[1], hashes[2])
             )
         }
     }

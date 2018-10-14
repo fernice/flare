@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.style.properties.shorthand
 
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
@@ -30,7 +29,7 @@ object PaddingId : ShorthandId() {
 
     override val name: String = "padding"
 
-    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Empty, ParseError> {
+    override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
         val result = Rect.parseWith(context, input, NonNegativeLengthOrPercentage.Companion::parse)
 
         val sides = when (result) {

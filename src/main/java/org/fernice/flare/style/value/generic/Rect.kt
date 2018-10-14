@@ -12,65 +12,69 @@ import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
 
-class Rect<T>(val top: T,
-              val right: T,
-              val bottom: T,
-              val left: T) {
+data class Rect<T>(
+    val top: T,
+    val right: T,
+    val bottom: T,
+    val left: T
+) {
 
     companion object {
 
-        fun <T> parseWith(context: ParserContext,
-                          input: Parser,
-                          parser: (ParserContext, Parser) -> Result<T, ParseError>): Result<Rect<T>, ParseError> {
-            val firstResult = parser(context, input)
-
-            val first = when (firstResult) {
-                is Ok -> firstResult.value
-                is Err -> return firstResult
+        fun <T> parseWith(
+            context: ParserContext,
+            input: Parser,
+            parser: (ParserContext, Parser) -> Result<T, ParseError>
+        ): Result<Rect<T>, ParseError> {
+            val first = when (val first = parser(context, input)) {
+                is Ok -> first.value
+                is Err -> return first
             }
 
-            val secondResult = input.tryParse { parser(context, input) }
-
-            val second = when (secondResult) {
-                is Ok -> secondResult.value
-                is Err -> return Ok(Rect(
+            val second = when (val second = input.tryParse { parser(context, input) }) {
+                is Ok -> second.value
+                is Err -> return Ok(
+                    Rect(
                         first,
                         first,
                         first,
                         first
-                ))
+                    )
+                )
             }
 
-            val thirdResult = input.tryParse { parser(context, input) }
-
-            val third = when (thirdResult) {
-                is Ok -> thirdResult.value
-                is Err -> return Ok(Rect(
+            val third = when (val third = input.tryParse { parser(context, input) }) {
+                is Ok -> third.value
+                is Err -> return Ok(
+                    Rect(
                         first,
                         second,
                         first,
                         second
-                ))
+                    )
+                )
             }
 
-            val fourthResult = input.tryParse { parser(context, input) }
-
-            val fourth = when (fourthResult) {
-                is Ok -> fourthResult.value
-                is Err -> return Ok(Rect(
+            val fourth = when (val fourth = input.tryParse { parser(context, input) }) {
+                is Ok -> fourth.value
+                is Err -> return Ok(
+                    Rect(
                         first,
                         second,
                         third,
                         second
-                ))
+                    )
+                )
             }
 
-            return Ok(Rect(
+            return Ok(
+                Rect(
                     first,
                     second,
                     third,
                     fourth
-            ))
+                )
+            )
         }
     }
 }

@@ -70,25 +70,25 @@ interface Border : StyleStruct<MutBorder> {
 
     override fun clone(): MutBorder {
         return MutBorder(
-                topWidth,
-                topColor,
-                topStyle,
-                topLeftRadius,
-                topRightRadius,
+            topWidth,
+            topColor,
+            topStyle,
+            topLeftRadius,
+            topRightRadius,
 
-                rightWidth,
-                rightColor,
-                rightStyle,
+            rightWidth,
+            rightColor,
+            rightStyle,
 
-                bottomWidth,
-                bottomColor,
-                bottomStyle,
-                bottomLeftRadius,
-                bottomRightRadius,
+            bottomWidth,
+            bottomColor,
+            bottomStyle,
+            bottomLeftRadius,
+            bottomRightRadius,
 
-                leftWidth,
-                leftColor,
-                leftStyle
+            leftWidth,
+            leftColor,
+            leftStyle
         )
     }
 
@@ -96,70 +96,70 @@ interface Border : StyleStruct<MutBorder> {
 
         val initial: Border by lazy {
             StaticBorder(
-                    BorderTopWidthDeclaration.initialValue,
-                    BorderTopColorDeclaration.initialValue,
-                    BorderTopStyleDeclaration.initialValue,
-                    BorderTopLeftRadiusDeclaration.initialValue,
-                    BorderTopRightRadiusDeclaration.initialValue,
+                BorderTopWidthDeclaration.initialValue,
+                BorderTopColorDeclaration.initialValue,
+                BorderTopStyleDeclaration.initialValue,
+                BorderTopLeftRadiusDeclaration.initialValue,
+                BorderTopRightRadiusDeclaration.initialValue,
 
-                    BorderRightWidthDeclaration.initialValue,
-                    BorderRightColorDeclaration.initialValue,
-                    BorderRightStyleDeclaration.initialValue,
+                BorderRightWidthDeclaration.initialValue,
+                BorderRightColorDeclaration.initialValue,
+                BorderRightStyleDeclaration.initialValue,
 
-                    BorderBottomWidthDeclaration.initialValue,
-                    BorderBottomColorDeclaration.initialValue,
-                    BorderBottomStyleDeclaration.initialValue,
-                    BorderBottomLeftRadiusDeclaration.initialValue,
-                    BorderBottomRightRadiusDeclaration.initialValue,
+                BorderBottomWidthDeclaration.initialValue,
+                BorderBottomColorDeclaration.initialValue,
+                BorderBottomStyleDeclaration.initialValue,
+                BorderBottomLeftRadiusDeclaration.initialValue,
+                BorderBottomRightRadiusDeclaration.initialValue,
 
-                    BorderLeftWidthDeclaration.initialValue,
-                    BorderLeftColorDeclaration.initialValue,
-                    BorderLeftStyleDeclaration.initialValue
+                BorderLeftWidthDeclaration.initialValue,
+                BorderLeftColorDeclaration.initialValue,
+                BorderLeftStyleDeclaration.initialValue
             )
         }
     }
 }
 
 private class StaticBorder(
-        override val topWidth: NonNegativeLength,
-        override val topColor: ComputedColor,
-        override val topStyle: Style,
-        override val topLeftRadius: BorderCornerRadius,
-        override val topRightRadius: BorderCornerRadius,
+    override val topWidth: NonNegativeLength,
+    override val topColor: ComputedColor,
+    override val topStyle: Style,
+    override val topLeftRadius: BorderCornerRadius,
+    override val topRightRadius: BorderCornerRadius,
 
-        override val rightWidth: NonNegativeLength,
-        override val rightColor: ComputedColor,
-        override val rightStyle: Style,
+    override val rightWidth: NonNegativeLength,
+    override val rightColor: ComputedColor,
+    override val rightStyle: Style,
 
-        override val bottomWidth: NonNegativeLength,
-        override val bottomColor: ComputedColor,
-        override val bottomStyle: Style,
-        override val bottomLeftRadius: BorderCornerRadius,
-        override val bottomRightRadius: BorderCornerRadius,
+    override val bottomWidth: NonNegativeLength,
+    override val bottomColor: ComputedColor,
+    override val bottomStyle: Style,
+    override val bottomLeftRadius: BorderCornerRadius,
+    override val bottomRightRadius: BorderCornerRadius,
 
-        override val leftWidth: NonNegativeLength,
-        override val leftColor: ComputedColor,
-        override val leftStyle: Style
+    override val leftWidth: NonNegativeLength,
+    override val leftColor: ComputedColor,
+    override val leftStyle: Style
 ) : Border
 
 data class MutBorder(
-        override var topWidth: NonNegativeLength,
-        override var topColor: ComputedColor,
-        override var topStyle: Style,
-        override var topLeftRadius: BorderCornerRadius,
-        override var topRightRadius: BorderCornerRadius,
+    override var topWidth: NonNegativeLength,
+    override var topColor: ComputedColor,
+    override var topStyle: Style,
+    override var topLeftRadius: BorderCornerRadius,
+    override var topRightRadius: BorderCornerRadius,
 
-        override var rightWidth: NonNegativeLength,
-        override var rightColor: ComputedColor,
-        override var rightStyle: Style,
+    override var rightWidth: NonNegativeLength,
+    override var rightColor: ComputedColor,
+    override var rightStyle: Style,
 
-        override var bottomWidth: NonNegativeLength,
-        override var bottomColor: ComputedColor,
-        override var bottomStyle: Style,
-        override var bottomLeftRadius: BorderCornerRadius,
-        override var bottomRightRadius: BorderCornerRadius,
+    override var bottomWidth: NonNegativeLength,
+    override var bottomColor: ComputedColor,
+    override var bottomStyle: Style,
+    override var bottomLeftRadius: BorderCornerRadius,
+    override var bottomRightRadius: BorderCornerRadius,
 
-        override var leftWidth: NonNegativeLength,
-        override var leftColor: ComputedColor,
-        override var leftStyle: Style
+    override var leftWidth: NonNegativeLength,
+    override var leftColor: ComputedColor,
+    override var leftStyle: Style
 ) : Border, MutStyleStruct

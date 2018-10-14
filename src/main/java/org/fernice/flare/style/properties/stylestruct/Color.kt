@@ -16,14 +16,14 @@ interface Color : StyleStruct<MutColor> {
 
     override fun clone(): MutColor {
         return MutColor(
-                color
+            color
         )
     }
 
     companion object {
         val initial: Color by lazy {
             StaticColor(
-                    RGBA(0, 0, 0, 255)
+                RGBA(0, 0, 0, 255)
             )
         }
     }

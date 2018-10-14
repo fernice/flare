@@ -502,9 +502,7 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
 
             inner@
             while (true) {
-                val next = iter.next()
-
-                when (next) {
+                when (val next = iter.next()) {
                     is Some -> compoundSelector.add(next.value)
                     is None -> break@inner
                 }
@@ -512,9 +510,7 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
 
             selector.addAll(compoundSelector.drain().reversed())
 
-            val next = iter.nextSequence()
-
-            when (next) {
+            when (val next = iter.nextSequence()) {
                 is Some -> selector.add(Component.Combinator(next.value))
                 is None -> break@outer
             }
@@ -539,9 +535,7 @@ data class SelectorIter(private val iter: Iter<Component>, private var nextCombi
             throw IllegalStateException("next in sequence")
         }
 
-        val next = iter.next()
-
-        return when (next) {
+        return when (val next = iter.next()) {
             is Some -> {
                 val component = next.value
 
@@ -588,17 +582,13 @@ data class SelectorList(private val selectors: List<Selector>) : Iterable<Select
 
             loop@
             while (true) {
-                val selectorResult = input.parseUntilBefore(Delimiters.Comma) { i -> parseSelector(context, i) }
-
-                when (selectorResult) {
-                    is Ok -> selectors.add(selectorResult.value)
-                    is Err -> return selectorResult
+                when (val selector = input.parseUntilBefore(Delimiters.Comma) { i -> parseSelector(context, i) }) {
+                    is Ok -> selectors.add(selector.value)
+                    is Err -> return selector
                 }
 
-                val tokenResult = input.next()
-
-                val token = when (tokenResult) {
-                    is Ok -> tokenResult.value
+                val token = when (val token = input.next()) {
+                    is Ok -> token.value
                     is Err -> return Ok(SelectorList(selectors))
                 }
 

@@ -5,21 +5,23 @@
  */
 package org.fernice.flare.style.value.specified
 
+import fernice.std.Err
+import fernice.std.Ok
+import fernice.std.Result
+import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.style.parser.AllowQuirks
+import org.fernice.flare.style.parser.Parse
+import org.fernice.flare.style.parser.ParseQuirky
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.computed.PixelLength
 import org.fernice.flare.style.value.computed.intoNonNegative
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
-import fernice.std.unwrapOrElse
-import org.fernice.flare.cssparser.ToCss
 import java.io.Writer
 import org.fernice.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
 import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
@@ -27,11 +29,8 @@ import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNe
 sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength>, ToCss {
 
     object Thin : BorderSideWidth()
-
     object Medium : BorderSideWidth()
-
     object Thick : BorderSideWidth()
-
     data class Length(val length: org.fernice.flare.style.value.specified.NonNegativeLength) : BorderSideWidth()
 
     final override fun toComputedValue(context: Context): org.fernice.flare.style.value.computed.NonNegativeLength {
@@ -54,12 +53,12 @@ sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength>, ToCss 
         }
     }
 
-    companion object {
-        fun parse(context: ParserContext, input: Parser): Result<BorderSideWidth, ParseError> {
+    companion object : Parse<BorderSideWidth>, ParseQuirky<BorderSideWidth> {
+        override fun parse(context: ParserContext, input: Parser): Result<BorderSideWidth, ParseError> {
             return parseQuirky(context, input, AllowQuirks.No)
         }
 
-        fun parseQuirky(context: ParserContext, input: Parser, allowQuirks: AllowQuirks): Result<BorderSideWidth, ParseError> {
+        override fun parseQuirky(context: ParserContext, input: Parser, allowQuirks: AllowQuirks): Result<BorderSideWidth, ParseError> {
             val length = input.tryParse { NonNegativeLength.parseQuirky(context, input, allowQuirks) }
 
             if (length is Ok) {
@@ -67,11 +66,10 @@ sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength>, ToCss 
             }
 
             val location = input.sourceLocation()
-            val identResult = input.expectIdentifier()
 
-            val ident = when (identResult) {
-                is Ok -> identResult.value
-                is Err -> return identResult
+            val ident = when (val ident = input.expectIdentifier()) {
+                is Ok -> ident.value
+                is Err -> return ident
             }
 
             return when (ident.toLowerCase()) {
@@ -107,15 +105,13 @@ data class BorderCornerRadius(
 
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<BorderCornerRadius, ParseError> {
-            val widthResult = LengthOrPercentage.parse(context, input)
-
-            val width = when (widthResult) {
-                is Ok -> widthResult.value
-                is Err -> return widthResult
+            val width = when (val width = LengthOrPercentage.parse(context, input)) {
+                is Ok -> width.value
+                is Err -> return width
             }
 
-            val height = input.tryParse { input -> LengthOrPercentage.parse(context, input) }
-                .unwrapOrElse { _ -> width }
+            val height = input.tryParse { i -> LengthOrPercentage.parse(context, i) }
+                .unwrapOr(width)
 
             return Ok(BorderCornerRadius(width, height))
         }

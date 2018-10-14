@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.cssparser
 
-import fernice.std.Empty
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
@@ -27,7 +26,7 @@ data class SourceLocation(val line: Int, val column: Int)
  *
  * The specification can be found <a href="https://www.w3.org/TR/css-syntax-3/">here</a>.
  */
-class Lexer(private val reader: org.fernice.flare.cssparser.CssReader) {
+class Lexer(private val reader: Reader) {
 
     /**
      * Returns the current position of the [Lexer] within the char stream. This should be used for slicing the input
@@ -47,7 +46,7 @@ class Lexer(private val reader: org.fernice.flare.cssparser.CssReader) {
     /**
      * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-token)
      */
-    fun nextToken(): Result<Token, Empty> {
+    fun nextToken(): Result<Token, Unit> {
         if (reader.isEoF) {
             return Err()
         }
@@ -204,10 +203,8 @@ class Lexer(private val reader: org.fernice.flare.cssparser.CssReader) {
                 }
             }
             'u', 'U' -> {
-                reader.nextChar()
-
-                if (reader.c == '+' && (isHexDigit(reader.peekChar()) || reader.peekChar() == '?')) {
-                    reader.nextChar()
+                if (reader.peekChar() == '+' && (isHexDigit(reader.peekChar(2)) || reader.peekChar(2) == '?')) {
+                    reader.nextChar(2)
                     consumeUnicodeRange()
                 } else {
                     consumeIdentifier()
@@ -348,7 +345,6 @@ class Lexer(private val reader: org.fernice.flare.cssparser.CssReader) {
 
         if (reader.c == '"' || reader.c == '\'') {
             val endChar = reader.c
-            reader.nextChar()
 
             val token = consumeString(endChar)
 
@@ -363,6 +359,7 @@ class Lexer(private val reader: org.fernice.flare.cssparser.CssReader) {
                     }
 
                     return if (reader.c == ')' || reader.isEoF) {
+                        reader.nextChar()
                         Token.Url(token.value)
                     } else {
                         consumeUrlRemnants()
@@ -515,7 +512,7 @@ class Lexer(private val reader: org.fernice.flare.cssparser.CssReader) {
      * [spec](https://www.w3.org/TR/css-syntax-3/#convert-a-string-to-a-number0)
      */
     private fun convertNumber(number: String): Double {
-        val reader = org.fernice.flare.cssparser.CssReader(number.toCharArray(), number.length)
+        val reader = Reader(number.toCharArray(), number.length)
 
         var s = 1
 

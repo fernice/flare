@@ -7,12 +7,14 @@ package org.fernice.flare.style
 
 import org.fernice.flare.style.properties.stylestruct.*
 
-data class ComputedValues(val font: Font,
-                          val color: Color,
-                          val background: Background,
-                          val border: Border,
-                          val margin: Margin,
-                          val padding: Padding) {
+data class ComputedValues(
+    val font: Font,
+    val color: Color,
+    val background: Background,
+    val border: Border,
+    val margin: Margin,
+    val padding: Padding
+) {
 
     fun borderShapeHash(): Int {
         var hash = background.shapeHash() * 31
@@ -33,12 +35,12 @@ data class ComputedValues(val font: Font,
 
         val initial: ComputedValues by lazy {
             ComputedValues(
-                    Font.initial,
-                    Color.initial,
-                    Background.initial,
-                    Border.initial,
-                    Margin.initial,
-                    Padding.initial
+                Font.initial,
+                Color.initial,
+                Background.initial,
+                Border.initial,
+                Margin.initial,
+                Padding.initial
             )
         }
     }

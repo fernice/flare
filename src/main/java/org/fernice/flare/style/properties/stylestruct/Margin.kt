@@ -22,10 +22,10 @@ interface Margin : StyleStruct<MutMargin> {
 
     override fun clone(): MutMargin {
         return MutMargin(
-                top,
-                right,
-                bottom,
-                left
+            top,
+            right,
+            bottom,
+            left
         )
     }
 
@@ -33,23 +33,25 @@ interface Margin : StyleStruct<MutMargin> {
 
         val initial: Margin by lazy {
             StaticMargin(
-                    MarginTopDeclaration.initialValue,
-                    MarginRightDeclaration.initialValue,
-                    MarginBottomDeclaration.initialValue,
-                    MarginLeftDeclaration.initialValue
+                MarginTopDeclaration.initialValue,
+                MarginRightDeclaration.initialValue,
+                MarginBottomDeclaration.initialValue,
+                MarginLeftDeclaration.initialValue
             )
         }
     }
 }
 
 class StaticMargin(
-        override val top: LengthOrPercentageOrAuto,
-        override val right: LengthOrPercentageOrAuto,
-        override val bottom: LengthOrPercentageOrAuto,
-        override val left: LengthOrPercentageOrAuto) : Margin
+    override val top: LengthOrPercentageOrAuto,
+    override val right: LengthOrPercentageOrAuto,
+    override val bottom: LengthOrPercentageOrAuto,
+    override val left: LengthOrPercentageOrAuto
+) : Margin
 
 class MutMargin(
-        override var top: LengthOrPercentageOrAuto,
-        override var right: LengthOrPercentageOrAuto,
-        override var bottom: LengthOrPercentageOrAuto,
-        override var left: LengthOrPercentageOrAuto) : Margin, MutStyleStruct
+    override var top: LengthOrPercentageOrAuto,
+    override var right: LengthOrPercentageOrAuto,
+    override var bottom: LengthOrPercentageOrAuto,
+    override var left: LengthOrPercentageOrAuto
+) : Margin, MutStyleStruct
