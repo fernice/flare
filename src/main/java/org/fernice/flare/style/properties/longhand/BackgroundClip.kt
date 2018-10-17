@@ -69,24 +69,22 @@ class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration() {
 
     companion object {
 
-        val initialValue: Clip by lazy { Clip.BORDER_BOX }
+        val initialValue: Clip by lazy { Clip.BorderBox }
     }
 }
 
-enum class Clip : ToCss {
+sealed class Clip : ToCss {
 
-    BORDER_BOX,
-
-    PADDING_BOX,
-
-    CONTENT_BOX;
+    object BorderBox : Clip()
+    object PaddingBox : Clip()
+    object ContentBox : Clip()
 
     override fun toCss(writer: Writer) {
         writer.append(
             when (this) {
-                BORDER_BOX -> "border-box"
-                PADDING_BOX -> "padding-box"
-                CONTENT_BOX -> "content-box"
+                BorderBox -> "border-box"
+                PaddingBox -> "padding-box"
+                ContentBox -> "content-box"
             }
         )
     }
@@ -103,9 +101,9 @@ enum class Clip : ToCss {
             }
 
             return when (identifier.toLowerCase()) {
-                "border-box" -> Ok(BORDER_BOX)
-                "padding-box" -> Ok(PADDING_BOX)
-                "content-box" -> Ok(CONTENT_BOX)
+                "border-box" -> Ok(BorderBox)
+                "padding-box" -> Ok(PaddingBox)
+                "content-box" -> Ok(ContentBox)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }
