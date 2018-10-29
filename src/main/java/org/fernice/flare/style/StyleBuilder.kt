@@ -212,6 +212,55 @@ class StyleBuilder(
         }
     }
 
+
+    // *****************************************************
+    //  Font
+    // *****************************************************
+
+    fun getFont(): Font {
+        return font.build()
+    }
+
+    fun getParentFont(): Font {
+        return inheritStyle.font
+    }
+
+    // font-family
+
+    fun setFontFamily(fontFamily: FontFamily) {
+        font.mutate().fontFamily = fontFamily
+    }
+
+    fun inheritFontFamily() {
+        val inheritStruct = inheritStyle.font
+
+        font.mutate().fontFamily = inheritStruct.fontFamily
+    }
+
+    fun resetFontFamily() {
+        val resetStruct = resetStyle.font
+
+        font.mutate().fontFamily = resetStruct.fontFamily
+    }
+
+    // font-size
+
+    fun setFontSize(fontSize: FontSize) {
+        font.mutate().fontSize = fontSize
+    }
+
+    fun inheritFontSize() {
+        val inheritStruct = inheritStyle.font
+
+        font.mutate().fontSize = inheritStruct.fontSize
+    }
+
+    fun resetFontSize() {
+        val resetStruct = resetStyle.font
+
+        font.mutate().fontSize = resetStruct.fontSize
+    }
+
     // *****************************************************
     // Color
     // *****************************************************
@@ -224,7 +273,7 @@ class StyleBuilder(
         return inheritStyle.color
     }
 
-    // border-top-color
+    // color
 
     fun setColor(color: RGBA) {
         this.color.mutate().color = color
@@ -858,54 +907,6 @@ class StyleBuilder(
         val resetStruct = resetStyle.padding
 
         padding.mutate().left = resetStruct.left
-    }
-
-    // *****************************************************
-    //  Font
-    // *****************************************************
-
-    fun getFont(): Font {
-        return font.build()
-    }
-
-    fun getParentFont(): Font {
-        return inheritStyle.font
-    }
-
-    // font-family
-
-    fun setFontFamily(fontFamily: FontFamily) {
-        font.mutate().fontFamily = fontFamily
-    }
-
-    fun inheritFontFamily() {
-        val inheritStruct = inheritStyle.font
-
-        font.mutate().fontFamily = inheritStruct.fontFamily
-    }
-
-    fun resetFontFamily() {
-        val resetStruct = resetStyle.font
-
-        font.mutate().fontFamily = resetStruct.fontFamily
-    }
-
-    // font-size
-
-    fun setFontSize(fontSize: FontSize) {
-        font.mutate().fontSize = fontSize
-    }
-
-    fun inheritFontSize() {
-        val inheritStruct = inheritStyle.font
-
-        font.mutate().fontSize = inheritStruct.fontSize
-    }
-
-    fun resetFontSize() {
-        val resetStruct = resetStyle.font
-
-        font.mutate().fontSize = resetStruct.fontSize
     }
 
     fun build(): ComputedValues {

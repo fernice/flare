@@ -389,12 +389,12 @@ object BorderRadiusId : ShorthandId() {
             )
         )
         declarations.add(
-            BorderBottomLeftRadiusDeclaration(
+            BorderBottomRightRadiusDeclaration(
                 BorderCornerRadius(widths.bottom, heights.bottom)
             )
         )
         declarations.add(
-            BorderBottomRightRadiusDeclaration(
+            BorderBottomLeftRadiusDeclaration(
                 BorderCornerRadius(widths.left, heights.left)
             )
         )
@@ -406,8 +406,8 @@ object BorderRadiusId : ShorthandId() {
         listOf(
             BorderTopLeftRadiusId,
             BorderTopRightRadiusId,
-            BorderBottomLeftRadiusId,
-            BorderBottomRightRadiusId
+            BorderBottomRightRadiusId,
+            BorderBottomLeftRadiusId
         )
     }
 }
