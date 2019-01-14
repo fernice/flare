@@ -245,7 +245,7 @@ sealed class GradientItem : SpecifiedValue<ComputedGradientItem>, ToCss {
                         is Err -> return@parseUntilBefore result
                     }
 
-                    val secondPosition = input.tryParse { parser -> LengthOrPercentage.parse(context, parser) }
+                    val secondPosition = nestedParser.tryParse { parser -> LengthOrPercentage.parse(context, parser) }
 
                     if (secondPosition is Ok) {
                         items.add(GradientItem.ColorStop(stop))
@@ -357,7 +357,7 @@ sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
                 result.value
             } else {
-                LineDirection.Vertical(Y.Top)
+                LineDirection.Vertical(Y.Bottom)
             }
 
             return Ok(Linear(direction))

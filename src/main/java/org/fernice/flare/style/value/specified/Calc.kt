@@ -522,7 +522,7 @@ sealed class CalcNode {
                         is Err -> return right
                     }
 
-                    SpecifiedAngle.fromCalc(left.radians() + right.radians())
+                    SpecifiedAngle.fromCalc(left.degrees() + right.degrees())
                 }
                 is Sub -> {
                     val left = when (val left = this.left.toAngle()) {
@@ -535,7 +535,7 @@ sealed class CalcNode {
                         is Err -> return right
                     }
 
-                    SpecifiedAngle.fromCalc(left.radians() - right.radians())
+                    SpecifiedAngle.fromCalc(left.degrees() - right.degrees())
                 }
                 is Mul -> {
                     when (val leftResult = this.left.toAngle()) {
@@ -547,7 +547,7 @@ sealed class CalcNode {
                                 is Err -> return right
                             }
 
-                            SpecifiedAngle.fromCalc(left.radians() * right)
+                            SpecifiedAngle.fromCalc(left.degrees() * right)
                         }
                         is Err -> {
                             val left = when (val left = this.left.toNumber()) {
@@ -560,7 +560,7 @@ sealed class CalcNode {
                                 is Err -> return right
                             }
 
-                            SpecifiedAngle.fromCalc(left * right.radians())
+                            SpecifiedAngle.fromCalc(left * right.degrees())
                         }
                     }
                 }
@@ -579,7 +579,7 @@ sealed class CalcNode {
                         return Err()
                     }
 
-                    SpecifiedAngle.fromCalc(left.radians() / right)
+                    SpecifiedAngle.fromCalc(left.degrees() / right)
                 }
                 is Number,
                 is Length,

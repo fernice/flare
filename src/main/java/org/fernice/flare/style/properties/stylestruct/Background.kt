@@ -160,6 +160,6 @@ class ImageLayerIterator(private val background: Background) : Iterator<ImageLay
 }
 
 private fun <E> List<E>.drag(index: Int): E {
-    return if (index < this.size) this[index] else this[index]
+    return if (index < this.size) this[index] else this[this.lastIndex]
 }
 

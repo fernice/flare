@@ -5,40 +5,19 @@
  */
 package org.fernice.flare.style.value.computed
 
-import org.fernice.flare.std.atMost
-import org.fernice.flare.std.atLeast
 import org.fernice.flare.style.value.ComputedValue
 
-private const val RAD_PER_DEG = Math.PI / 180.0
-private const val RAD_PER_GRAD = Math.PI / 200.0
-private const val RAD_PER_TURN = Math.PI * 2.0
+data class Angle(val value: Float) : ComputedValue {
 
-sealed class Angle : ComputedValue {
-
-    data class Deg(val value: Float) : Angle()
-
-    data class Grad(val value: Float) : Angle()
-
-    data class Rad(val value: Float) : Angle()
-
-    data class Turn(val value: Float) : Angle()
+    fun degrees(): Float {
+        return value
+    }
 
     fun radians(): Float {
         return radians64().toFloat()
     }
 
     fun radians64(): Double {
-        val radians = when (this) {
-            is Angle.Deg -> this.value.toDouble() * RAD_PER_DEG
-            is Angle.Grad -> this.value.toDouble() * RAD_PER_GRAD
-            is Angle.Turn -> this.value.toDouble() * RAD_PER_TURN
-            is Angle.Rad -> this.value.toDouble()
-        }
-
-        return radians.atLeast(Double.MIN_VALUE).atMost(Double.MAX_VALUE)
-    }
-
-    fun degrees(): Float {
-        return (radians64() * 360.0 / (2.0 * Math.PI)).toFloat()
+        return Math.toRadians(value.toDouble())
     }
 }

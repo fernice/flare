@@ -5,29 +5,49 @@
  */
 package org.fernice.flare.style.value.specified
 
+import fernice.std.Err
+import fernice.std.Ok
+import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
+import kotlin.math.PI
 import org.fernice.flare.style.value.computed.Angle as ComputedAngle
 
+sealed class AngleDimension {
+
+    data class Deg(val value: Float) : AngleDimension()
+
+    data class Grad(val value: Float) : AngleDimension()
+
+    data class Rad(val value: Float) : AngleDimension()
+
+    data class Turn(val value: Float) : AngleDimension()
+}
+
+private const val DEG_PER_RAD = 180.0f / PI.toFloat()
+private const val DEG_PER_GRAD = 180.0f / 200.0f
+private const val DEG_PER_TURN = 360.0f
+
+fun AngleDimension.degrees(): Float {
+    return when (this) {
+        is AngleDimension.Deg -> this.value
+        is AngleDimension.Rad -> this.value * DEG_PER_RAD
+        is AngleDimension.Grad -> this.value * DEG_PER_GRAD
+        is AngleDimension.Turn -> this.value * DEG_PER_TURN
+    }
+}
+
 data class Angle(
-    val value: ComputedAngle,
+    val value: AngleDimension,
     val wasCalc: Boolean
 ) : SpecifiedValue<ComputedAngle> {
 
     override fun toComputedValue(context: Context): ComputedAngle {
-        return value
-    }
-
-    fun radians(): Float {
-        return value.radians()
+        return ComputedAngle(value.degrees())
     }
 
     fun degrees(): Float {
@@ -38,35 +58,35 @@ data class Angle(
 
         fun fromDegree(angle: Float, wasCalc: Boolean): Angle {
             return Angle(
-                ComputedAngle.Deg(angle),
+                AngleDimension.Deg(angle),
                 wasCalc
             )
         }
 
         fun fromGradians(angle: Float, wasCalc: Boolean): Angle {
             return Angle(
-                ComputedAngle.Grad(angle),
+                AngleDimension.Grad(angle),
                 wasCalc
             )
         }
 
         fun fromTurns(angle: Float, wasCalc: Boolean): Angle {
             return Angle(
-                ComputedAngle.Turn(angle),
+                AngleDimension.Turn(angle),
                 wasCalc
             )
         }
 
         fun fromRadians(angle: Float, wasCalc: Boolean): Angle {
             return Angle(
-                ComputedAngle.Rad(angle),
+                AngleDimension.Rad(angle),
                 wasCalc
             )
         }
 
-        fun fromCalc(radians: Float): Angle {
+        fun fromCalc(degrees: Float): Angle {
             return Angle(
-                ComputedAngle.Rad(radians),
+                AngleDimension.Deg(degrees),
                 true
             )
         }
