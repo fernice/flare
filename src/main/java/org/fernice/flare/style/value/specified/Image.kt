@@ -22,8 +22,10 @@ import fernice.std.Result
 import fernice.std.Some
 import fernice.std.unwrapOr
 import fernice.std.unwrapOrElse
+import org.fernice.flare.cssparser.Delimiters
 import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.toCss
+import org.fernice.flare.panic
 import java.io.Writer
 import org.fernice.flare.style.value.computed.Image as ComputedImage
 import org.fernice.flare.style.value.computed.Gradient as ComputedGradient
@@ -223,23 +225,57 @@ sealed class GradientItem : SpecifiedValue<ComputedGradientItem>, ToCss {
     companion object {
         fun parseCommaSeparated(context: ParserContext, input: Parser): Result<List<GradientItem>, ParseError> {
             var seenStop = false
-            val itemsResult = input.parseCommaSeparated parse@{ nestedParser ->
-                if (seenStop) {
-                    val hint = nestedParser.tryParse { parser -> LengthOrPercentage.parse(context, parser) }
+            val items: MutableList<GradientItem> = mutableListOf()
 
-                    if (hint is Ok) {
-                        seenStop = false
-                        return@parse Ok(InterpolationHint(hint.value))
+            loop@
+            while (true) {
+                when (val result = input.parseUntilBefore(Delimiters.Comma) { nestedParser ->
+                    if (seenStop) {
+                        val hint = nestedParser.tryParse { parser -> LengthOrPercentage.parse(context, parser) }
+
+                        if (hint is Ok) {
+                            seenStop = false
+                            items.add(InterpolationHint(hint.value))
+                            return@parseUntilBefore Ok()
+                        }
                     }
+
+                    val stop = when (val result = org.fernice.flare.style.value.specified.ColorStop.parse(context, nestedParser)) {
+                        is Ok -> result.value
+                        is Err -> return@parseUntilBefore result
+                    }
+
+                    val secondPosition = input.tryParse { parser -> LengthOrPercentage.parse(context, parser) }
+
+                    if (secondPosition is Ok) {
+                        items.add(GradientItem.ColorStop(stop))
+                        items.add(
+                            GradientItem.ColorStop(
+                                org.fernice.flare.style.value.specified.ColorStop(
+                                    stop.color,
+                                    Some(secondPosition.value)
+                                )
+                            )
+                        )
+                    } else {
+                        items.add(GradientItem.ColorStop(stop))
+                    }
+
+                    seenStop = true
+                    Ok()
+                }) {
+                    is Err -> return result
                 }
 
-                seenStop = true
-                org.fernice.flare.style.value.specified.ColorStop.parse(context, nestedParser).map(GradientItem::ColorStop)
-            }
-
-            val items = when (itemsResult) {
-                is Ok -> itemsResult.value
-                is Err -> return itemsResult
+                when (val token = input.next()) {
+                    is Ok -> {
+                        when (token.value) {
+                            !is Token.Comma -> panic("unreachable")
+                            else -> continue@loop
+                        }
+                    }
+                    is Err -> break@loop
+                }
             }
 
             if (!seenStop || items.size < 2) {

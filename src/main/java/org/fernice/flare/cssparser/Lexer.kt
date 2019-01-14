@@ -378,6 +378,7 @@ class Lexer(private val reader: Reader) {
                     }
                 }
                 ')' -> {
+                    reader.nextChar()
                     return Token.Url(reader.text())
                 }
                 '\\' -> {
@@ -386,7 +387,7 @@ class Lexer(private val reader: Reader) {
                         reader.putChar(readEscaped(), true)
                     } else {
                         consumeUrlRemnants()
-                        return Token.BadString(reader.text())
+                        return Token.BadUrl(reader.text())
                     }
                 }
                 ' ', '\t' -> {
@@ -398,18 +399,18 @@ class Lexer(private val reader: Reader) {
                         Token.Url(reader.text())
                     } else {
                         consumeUrlRemnants()
-                        Token.BadString(reader.text())
+                        Token.BadUrl(reader.text())
                     }
                 }
                 '"', '\'', '(' -> {
                     consumeUrlRemnants()
-                    Token.BadString(reader.text())
+                    Token.BadUrl(reader.text())
                 }
                 else -> {
                     if (isNonPrintable(reader.c)) {
                         reader.nextChar()
                         consumeUrlRemnants()
-                        Token.BadString(reader.text())
+                        Token.BadUrl(reader.text())
                     }
 
                     reader.putChar()
@@ -621,7 +622,7 @@ class Lexer(private val reader: Reader) {
 
         do {
             reader.putChar()
-        } while (reader.c != '*' && reader.peekChar() != '/' || reader.isEoF)
+        } while ((reader.c != '*' || reader.peekChar() != '/') && !reader.isEoF)
         // also consume the /
         reader.nextChar(2)
 

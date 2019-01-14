@@ -212,11 +212,13 @@ data class Percentage(val value: Float) : ComputedValue, ToCss {
 
     companion object {
 
-        private val hundred: Percentage by lazy { Percentage(1f) }
+        val hundred: Percentage by lazy { Percentage(1f) }
 
         fun hundred(): Percentage {
             return hundred
         }
+
+        val fifty: Percentage by lazy { Percentage(0.5f) }
     }
 }
 
@@ -242,15 +244,12 @@ sealed class LengthOrPercentage : ComputedValue {
 
     companion object {
 
-        private val zero: LengthOrPercentage by lazy { LengthOrPercentage.Length(PixelLength.zero()) }
-        private val fifty: LengthOrPercentage by lazy { LengthOrPercentage.Length(PixelLength(0.5f)) }
+        val zero: LengthOrPercentage by lazy { LengthOrPercentage.Length(PixelLength(0f)) }
+        val fifty: LengthOrPercentage by lazy { LengthOrPercentage.Percentage(org.fernice.flare.style.value.computed.Percentage.fifty) }
+        val Hundred: LengthOrPercentage by lazy { LengthOrPercentage.Percentage(org.fernice.flare.style.value.computed.Percentage.hundred) }
 
         fun zero(): LengthOrPercentage {
             return zero
-        }
-
-        fun fifty(): LengthOrPercentage {
-            return fifty
         }
     }
 }

@@ -232,7 +232,7 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
 
     override fun toComputedValue(context: Context): ComputedLengthOrPercentage {
         return when (this) {
-            is Center -> ComputedLengthOrPercentage.fifty()
+            is Center -> ComputedLengthOrPercentage.fifty
             is Side -> {
                 if (this.length is None) {
                     val percentage = Percentage(
@@ -303,6 +303,13 @@ sealed class X : Side {
         }
     }
 
+    fun opposite(): X {
+        return when (this) {
+            is Left -> Right
+            is Right -> Left
+        }
+    }
+
     companion object : Parse<X> {
 
         override fun parse(context: ParserContext, input: Parser): Result<X, ParseError> {
@@ -343,6 +350,13 @@ sealed class Y : Side {
         when (this) {
             is Y.Top -> writer.write("top")
             is Y.Bottom -> writer.write("bottom")
+        }
+    }
+
+    fun opposite(): Y {
+        return when (this) {
+            is Top -> Bottom
+            is Bottom -> Top
         }
     }
 

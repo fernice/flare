@@ -11,6 +11,7 @@ import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
+import fernice.std.loop
 import org.fernice.flare.std.iter.Iter
 
 /**
@@ -142,7 +143,7 @@ class RuleListParser<A, Q, R, P>(
      * rule. Returns [None] if no more declarations are left to parse in the block.
      */
     fun next(): Option<Result<R, ParseErrorSlice>> {
-        while (true) {
+        loop {
             input.skipWhitespace()
 
             val state = input.state()

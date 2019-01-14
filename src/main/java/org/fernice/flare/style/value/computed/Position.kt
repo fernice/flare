@@ -12,8 +12,8 @@ data class Position(
 
     fun center(): Position {
         return Position(
-                HorizontalPosition.fifty(),
-                VerticalPosition.fifty()
+                HorizontalPosition.fifty,
+                VerticalPosition.fifty
         )
     }
 }

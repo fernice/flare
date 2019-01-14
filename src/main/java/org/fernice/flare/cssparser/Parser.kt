@@ -551,8 +551,13 @@ class Parser private constructor(
     fun <T> parseNestedBlock(parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
         val blockType = takeBlockType().expect("not a nested block")
 
-        val nestedDelimiters = delimiters or Delimiters.from(blockType).bits
-        val nestedParser = Parser(tokenizer.clone(), None, nestedDelimiters)
+        val closingDelimiter = when (blockType) {
+            is BlockType.Brace -> Delimiters.RightBrace
+            is BlockType.Parenthesis -> Delimiters.RightParenthesis
+            is BlockType.Bracket -> Delimiters.RightBracket
+        }
+
+        val nestedParser = Parser(tokenizer.clone(), None, closingDelimiter.bits)
 
         val result = nestedParser.parseEntirely(parse)
 

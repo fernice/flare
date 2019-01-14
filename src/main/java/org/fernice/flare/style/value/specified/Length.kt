@@ -585,7 +585,7 @@ data class Percentage(val value: Float) : SpecifiedValue<ComputedPercentage>, To
         }
 
         /**
-         * Returns a percentage that is det to hundred.
+         * Returns a percentage that is det to Hundred.
          */
         fun hundred(): Percentage {
             return hundred
