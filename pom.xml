@@ -8,7 +8,7 @@
         <version>1.0.6</version>
     </parent>
     <artifactId>fernice-flare</artifactId>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.0.6</version>
 
     <name>Flare</name>
     <description>CSS 3 engine written in Kotlin</description>
@@ -18,7 +18,7 @@
         <connection>scm:git:ssh://git@github.com:fernice/flare.git</connection>
         <developerConnection>scm:git:ssh://git@github.com:fernice/flare.git</developerConnection>
         <url>https://github.com/fernice/flare</url>
-        <tag>HEAD</tag>
+        <tag>fernice-flare-1.0.6</tag>
     </scm>
 
     <dependencies>
