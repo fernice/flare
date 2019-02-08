@@ -228,6 +228,10 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
 
             return Ok(Side(side, lop))
         }
+
+        fun <S: org.fernice.flare.style.value.specified.Side> zero():PositionComponent<S>{
+            return PositionComponent.Length(LengthOrPercentage.Zero)
+        }
     }
 
     override fun toComputedValue(context: Context): ComputedLengthOrPercentage {

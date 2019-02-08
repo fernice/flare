@@ -5,14 +5,6 @@
  */
 package org.fernice.flare.style.value.specified
 
-import org.fernice.flare.style.parser.AllowQuirks
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.value.Context
-import org.fernice.flare.style.value.FontBaseSize
-import org.fernice.flare.style.value.SpecifiedValue
-import org.fernice.flare.style.value.computed.*
-import org.fernice.flare.style.value.computed.NonNegativeLength
-import org.fernice.flare.cssparser.*
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
@@ -23,11 +15,122 @@ import fernice.std.map
 import fernice.std.mapOr
 import fernice.std.unwrap
 import fernice.std.unwrapOr
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.ParseErrorKind
+import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.cssparser.Token
+import org.fernice.flare.cssparser.newUnexpectedTokenError
+import org.fernice.flare.cssparser.toCssJoining
+import org.fernice.flare.std.max
+import org.fernice.flare.std.min
+import org.fernice.flare.style.parser.AllowQuirks
 import org.fernice.flare.style.parser.Parse
 import org.fernice.flare.style.parser.ParseQuirky
+import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.value.Context
+import org.fernice.flare.style.value.FontBaseSize
+import org.fernice.flare.style.value.SpecifiedValue
+import org.fernice.flare.style.value.computed.Au
+import org.fernice.flare.style.value.computed.FontFamilyList
+import org.fernice.flare.style.value.computed.PixelLength
+import org.fernice.flare.style.value.computed.SingleFontFamily
+import org.fernice.flare.style.value.computed.intoNonNegative
+import org.fernice.flare.style.value.computed.NonNegativeLength
 import java.io.Writer
 import org.fernice.flare.style.value.computed.FontFamily as ComputedFontFamily
 import org.fernice.flare.style.value.computed.FontSize as ComputedFontSize
+import org.fernice.flare.style.value.computed.FontWeight as ComputedFontWeight
+
+sealed class FontWeight : SpecifiedValue<ComputedFontWeight> {
+
+    data class Absolute(val value: AbsoluteFontWeight) : FontWeight()
+
+    object Bolder : FontWeight()
+
+    object Lighter : FontWeight()
+
+    final override fun toComputedValue(context: Context): ComputedFontWeight {
+        return when(this){
+            is FontWeight.Absolute -> value.toComputedValue(context)
+            is FontWeight.Bolder -> context.builder.getParentFont().fontWeight.lighter()
+            is FontWeight.Lighter -> context.builder.getParentFont().fontWeight.bolder()
+        }
+    }
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<FontWeight, ParseError> {
+            when (val result = input.tryParse { parser -> AbsoluteFontWeight.parse(context, parser) }) {
+                is Ok -> return Ok(FontWeight.Absolute(result.value))
+            }
+
+            val location = input.sourceLocation()
+            val ident = when (val result = input.expectIdentifier()) {
+                is Ok -> result.value
+                is Err -> return result
+            }
+
+            return Ok(
+                when (ident.toLowerCase()) {
+                    "bolder" -> FontWeight.Bolder
+                    "lighter" -> FontWeight.Lighter
+                    else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
+                }
+            )
+        }
+    }
+}
+
+private const val MIN_FONT_WEIGHT = 1f
+private const val MAX_FONT_WEIGHT = 1000f
+
+sealed class AbsoluteFontWeight : SpecifiedValue<ComputedFontWeight> {
+
+    data class Weight(val value: Number) : AbsoluteFontWeight()
+
+    object Normal : AbsoluteFontWeight()
+
+    object Bold : AbsoluteFontWeight()
+
+    override fun toComputedValue(context: Context): ComputedFontWeight {
+        return when(this){
+            is AbsoluteFontWeight.Weight -> ComputedFontWeight(value.value.max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT))
+            is AbsoluteFontWeight.Normal -> ComputedFontWeight.Normal
+            is AbsoluteFontWeight.Bold -> ComputedFontWeight.Bold
+        }
+    }
+
+    companion object {
+
+        fun parse(context: ParserContext, input: Parser): Result<AbsoluteFontWeight, ParseError> {
+            when (val result = input.tryParse { parser -> Number.parse(context, parser) }) {
+                is Ok -> {
+                    val number = result.value
+
+                    if (!number.wasCalc() && (number.value < MIN_FONT_WEIGHT || number.value > MAX_FONT_WEIGHT)) {
+                        return Err(input.newError(ParseErrorKind.Unspecified))
+                    }
+                    return Ok(AbsoluteFontWeight.Weight(number))
+                }
+            }
+
+            val location = input.sourceLocation()
+            val ident = when (val result = input.expectIdentifier()) {
+                is Ok -> result.value
+                is Err -> return result
+            }
+
+            return Ok(
+                when (ident.toLowerCase()) {
+                    "normal" -> AbsoluteFontWeight.Normal
+                    "bold" -> AbsoluteFontWeight.Bold
+                    else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
+                }
+            )
+        }
+    }
+}
 
 sealed class FontFamily : SpecifiedValue<ComputedFontFamily>, ToCss {
 

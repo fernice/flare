@@ -248,20 +248,13 @@ const val PSEUDO_COUNT = 8
 sealed class PseudoElement : ToCss {
 
     object Before : PseudoElement()
-
     object After : PseudoElement()
-
     object Selection : PseudoElement()
-
     object FirstLetter : PseudoElement()
-
     object FirstLine : PseudoElement()
-
     object Placeholder : PseudoElement()
 
-    object FlareTabArea : PseudoElement()
-
-    object FlareTab : PseudoElement()
+    object Icon : PseudoElement()
 
     fun ordinal(): Int {
         return when (this) {
@@ -272,8 +265,7 @@ sealed class PseudoElement : ToCss {
             is PseudoElement.FirstLine -> 4
             is PseudoElement.Placeholder -> 5
 
-            is PseudoElement.FlareTabArea -> 6
-            is PseudoElement.FlareTab -> 7
+            is PseudoElement.Icon -> 6
         }
     }
 
@@ -286,8 +278,7 @@ sealed class PseudoElement : ToCss {
             is PseudoElement.FirstLine -> "::first-line"
             is PseudoElement.Placeholder -> "::placeholder"
 
-            is PseudoElement.FlareTabArea -> "::flr-tab-area"
-            is PseudoElement.FlareTab -> "::flr-tab"
+            is PseudoElement.Icon -> "::icon"
         }
 
         writer.write(css)
@@ -310,8 +301,7 @@ sealed class PseudoElement : ToCss {
                 4 -> PseudoElement.FirstLine
                 5 -> PseudoElement.Placeholder
 
-                6 -> PseudoElement.FlareTabArea
-                7 -> PseudoElement.FlareTab
+                6 -> PseudoElement.Icon
                 else -> throw IndexOutOfBoundsException()
             }
         }
@@ -325,8 +315,7 @@ sealed class PseudoElement : ToCss {
                 PseudoElement.FirstLine,
                 PseudoElement.Placeholder,
 
-                PseudoElement.FlareTabArea,
-                PseudoElement.FlareTab
+                PseudoElement.Icon
             )
         }
     }

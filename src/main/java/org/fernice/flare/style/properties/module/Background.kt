@@ -17,6 +17,7 @@ import org.fernice.flare.style.properties.longhand.BackgroundOriginId
 import org.fernice.flare.style.properties.longhand.BackgroundPositionXId
 import org.fernice.flare.style.properties.longhand.BackgroundPositionYId
 import org.fernice.flare.style.properties.longhand.BackgroundSizeId
+import org.fernice.flare.style.properties.shorthand.background.BackgroundId
 
 object BackgroundPropertyModule : PropertyModule {
 
@@ -46,5 +47,7 @@ object BackgroundImagePropertyModule : PropertyModule {
         BackgroundOriginId
     )
 
-    override val shorthands: List<ShorthandId> = listOf()
+    override val shorthands: List<ShorthandId> = listOf(
+        BackgroundId
+    )
 }

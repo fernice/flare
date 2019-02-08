@@ -3,44 +3,44 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
 package org.fernice.flare.style.properties.longhand
 
 import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.RGBA
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.value.Context
-import org.fernice.flare.style.value.specified.ColorPropertyValue
+import org.fernice.flare.style.value.specified.Fill
 import java.io.Writer
-import org.fernice.flare.style.value.specified.Color as ComputedColor
+import org.fernice.flare.style.value.computed.Fill as ComputedFill
 
-object ColorId : LonghandId() {
+object FillId : LonghandId() {
 
-    override val name: String = "color"
+    override val name: String = "fill"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return ColorPropertyValue.parse(context, input).map(::ColorDeclaration)
+        return Fill.parse(input).map(::FillDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is ColorDeclaration -> {
-                val color = declaration.color.toComputedValue(context)
+            is FillDeclaration -> {
+                val fill = declaration.fill.toComputedValue(context)
 
-                context.builder.setColor(color)
+                context.builder.setFill(fill)
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
                     CssWideKeyword.Initial -> {
-                        context.builder.resetColor()
+                        context.builder.resetFill()
                     }
                     CssWideKeyword.Unset,
                     CssWideKeyword.Inherit -> {
-                        context.builder.inheritColor()
+                        context.builder.inheritFill()
                     }
                 }
             }
@@ -53,15 +53,15 @@ object ColorId : LonghandId() {
     }
 }
 
-class ColorDeclaration(val color: ColorPropertyValue) : PropertyDeclaration() {
+class FillDeclaration(val fill: Fill) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return ColorId
+        return FillId
     }
 
-    override fun toCssInternally(writer: Writer) = color.toCss(writer)
+    override fun toCssInternally(writer: Writer) {}
 
     companion object {
 
-        val InitialValue by lazy { RGBA(0, 0, 0, 255) }
+        val InitialValue by lazy { ComputedFill.None }
     }
 }

@@ -5,6 +5,8 @@
  */
 package org.fernice.flare.style
 
+import fernice.std.Option
+import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.RGBA
 import org.fernice.flare.dom.Device
 import org.fernice.flare.font.WritingMode
@@ -26,17 +28,17 @@ import org.fernice.flare.style.properties.stylestruct.Padding
 import org.fernice.flare.style.value.computed.BackgroundRepeat
 import org.fernice.flare.style.value.computed.BackgroundSize
 import org.fernice.flare.style.value.computed.BorderCornerRadius
+import org.fernice.flare.style.value.computed.Fill
 import org.fernice.flare.style.value.computed.FontFamily
 import org.fernice.flare.style.value.computed.FontSize
+import org.fernice.flare.style.value.computed.FontWeight
 import org.fernice.flare.style.value.computed.HorizontalPosition
-import org.fernice.flare.style.value.computed.Image
+import org.fernice.flare.style.value.computed.ImageLayer
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto
 import org.fernice.flare.style.value.computed.NonNegativeLength
 import org.fernice.flare.style.value.computed.NonNegativeLengthOrPercentage
 import org.fernice.flare.style.value.computed.Style
 import org.fernice.flare.style.value.computed.VerticalPosition
-import fernice.std.Option
-import fernice.std.unwrapOr
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 
 interface StyleStruct<T : MutStyleStruct> {
@@ -261,6 +263,24 @@ class StyleBuilder(
         font.mutate().fontSize = resetStruct.fontSize
     }
 
+    // font-weight
+
+    fun setFontWeight(fontWeight: FontWeight) {
+        font.mutate().fontWeight = fontWeight
+    }
+
+    fun inheritFontWeight() {
+        val inheritStruct = inheritStyle.font
+
+        font.mutate().fontWeight = inheritStruct.fontWeight
+    }
+
+    fun resetFontWeight() {
+        val resetStruct = resetStyle.font
+
+        font.mutate().fontWeight = resetStruct.fontWeight
+    }
+
     // *****************************************************
     // Color
     // *****************************************************
@@ -289,6 +309,24 @@ class StyleBuilder(
         val resetStruct = resetStyle.color
 
         this.color.mutate().color = resetStruct.color
+    }
+
+    // fill
+
+    fun setFill(fill: Fill) {
+        this.color.mutate().fill = fill
+    }
+
+    fun inheritFill() {
+        val inheritStruct = inheritStyle.color
+
+        this.color.mutate().fill = inheritStruct.fill
+    }
+
+    fun resetFill() {
+        val resetStruct = resetStyle.color
+
+        this.color.mutate().fill = resetStruct.fill
     }
 
     // *****************************************************
@@ -323,7 +361,7 @@ class StyleBuilder(
 
     // background-image
 
-    fun setBackgroundImage(image: List<Image>) {
+    fun setBackgroundImage(image: List<ImageLayer>) {
         background.mutate().image = image
     }
 

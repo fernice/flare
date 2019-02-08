@@ -5,10 +5,9 @@
     <parent>
         <groupId>org.fernice</groupId>
         <artifactId>fernice-maven</artifactId>
-        <version>1.0.6</version>
+        <version>1.0.7-SNAPSHOT</version>
     </parent>
     <artifactId>fernice-flare</artifactId>
-    <version>1.0.7-SNAPSHOT</version>
 
     <name>Flare</name>
     <description>CSS 3 engine written in Kotlin</description>
@@ -25,7 +24,7 @@
         <dependency>
             <groupId>org.fernice</groupId>
             <artifactId>fernice-stdlib</artifactId>
-            <version>1.0.6</version>
+            <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
 </project>

@@ -16,8 +16,12 @@ import org.fernice.flare.style.parser.QuirksMode
 
 class Engine(
     val device: Device,
-    val shared: SharedEngine
+    private val shared: SharedEngine
 ) {
+    fun createEngineContext(): EngineContext {
+        return shared.createEngineContext(device)
+    }
+
     fun style(element: Element) {
         shared.style(device, element)
     }
@@ -29,7 +33,7 @@ class Engine(
 
 class SharedEngine(
     val stylist: Stylist,
-    val fontMetricsProvider: FontMetricsProvider
+    private val fontMetricsProvider: FontMetricsProvider
 ) {
 
     companion object {
@@ -39,6 +43,16 @@ class SharedEngine(
                 fontMetricsProvider
             )
         }
+    }
+
+    fun createEngineContext(device: Device): EngineContext {
+        return EngineContext(
+            StyleContext.new(
+                device,
+                stylist,
+                fontMetricsProvider
+            )
+        )
     }
 
     fun style(device: Device, element: Element) {

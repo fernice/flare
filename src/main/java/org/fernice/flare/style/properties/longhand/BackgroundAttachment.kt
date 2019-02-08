@@ -69,6 +69,7 @@ class BackgroundAttachmentDeclaration(val attachment: List<Attachment>) : Proper
     companion object {
 
         val initialValue: List<Attachment> by lazy { listOf(Attachment.Scroll) }
+        val InitialSingleValue by lazy { Attachment.Scroll }
     }
 }
 

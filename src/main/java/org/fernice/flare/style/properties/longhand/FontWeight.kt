@@ -3,49 +3,44 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
 package org.fernice.flare.style.properties.longhand
 
 import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.toCssJoining
-import org.fernice.flare.style.parser.AllowQuirks
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.value.Context
-import org.fernice.flare.style.value.specified.BackgroundRepeat
-import org.fernice.flare.style.value.specified.HorizontalPosition
-import org.fernice.flare.style.value.specified.X
-import org.fernice.flare.style.value.toComputedValue
+import org.fernice.flare.style.value.specified.FontWeight
 import java.io.Writer
-import org.fernice.flare.style.value.computed.BackgroundRepeat as ComputedBackgroundRepeat
+import org.fernice.flare.style.value.computed.FontWeight as ComputedFontWeight
 
-object BackgroundRepeatId : LonghandId() {
+object FontWeightId : LonghandId() {
 
-    override val name: String = "background-repeat"
+    override val name: String = "font-weight"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { HorizontalPosition.parseQuirky(context, it, AllowQuirks.Yes, X.Companion) }
-            .map(::BackgroundPositionXDeclaration)
+        return FontWeight.parse(context, input).map(::FontWeightDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
         when (declaration) {
-            is BackgroundRepeatDeclaration -> {
-                val computed = declaration.repeat.toComputedValue(context)
+            is FontWeightDeclaration -> {
+                val fontWeight = declaration.fontWeight.toComputedValue(context)
 
-                context.builder.setBackgroundRepeat(computed)
+                context.builder.setFontWeight(fontWeight)
             }
             is PropertyDeclaration.CssWideKeyword -> {
                 when (declaration.keyword) {
-                    CssWideKeyword.Unset,
                     CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundRepeat()
+                        context.builder.resetFontWeight()
                     }
+                    CssWideKeyword.Unset,
                     CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundRepeat()
+                        context.builder.inheritFontWeight()
                     }
                 }
             }
@@ -54,24 +49,23 @@ object BackgroundRepeatId : LonghandId() {
     }
 
     override fun isEarlyProperty(): Boolean {
-        return false
+        return true
     }
 }
 
-class BackgroundRepeatDeclaration(val repeat: List<BackgroundRepeat>) : PropertyDeclaration() {
-
+class FontWeightDeclaration(val fontWeight: FontWeight) : PropertyDeclaration() {
     override fun id(): LonghandId {
-        return BackgroundRepeatId
+        return FontWeightId
     }
 
     override fun toCssInternally(writer: Writer) {
-        repeat.toCssJoining(writer, ", ")
+
     }
 
     companion object {
 
-        val initialValue: List<ComputedBackgroundRepeat> by lazy { listOf(ComputedBackgroundRepeat.repeat()) }
-        val InitialSingleValue: BackgroundRepeat by lazy { BackgroundRepeat.Repeat }
-
+        val InitialValue: ComputedFontWeight by lazy {
+            ComputedFontWeight.Normal
+        }
     }
 }

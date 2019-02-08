@@ -31,6 +31,7 @@ import org.fernice.flare.style.value.FontBaseSize
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.computed.PixelLength
 import java.io.Writer
+import kotlin.Number
 import org.fernice.flare.style.value.computed.CalcLengthOrPercentage as ComputedCalcLengthOrPercentage
 import org.fernice.flare.style.value.computed.Percentage as ComputedPercentage
 

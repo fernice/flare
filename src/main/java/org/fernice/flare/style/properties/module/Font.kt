@@ -11,6 +11,7 @@ import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.ShorthandId
 import org.fernice.flare.style.properties.longhand.FontFamilyId
 import org.fernice.flare.style.properties.longhand.FontSizeId
+import org.fernice.flare.style.properties.longhand.FontWeightId
 
 object FontPropertyModule : PropertyModule {
 
@@ -18,7 +19,8 @@ object FontPropertyModule : PropertyModule {
 
     override val longhands: List<LonghandId> = listOf(
         FontSizeId,
-        FontFamilyId
+        FontFamilyId,
+        FontWeightId
     )
 
     override val shorthands: List<ShorthandId> = listOf()

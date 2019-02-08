@@ -5,6 +5,7 @@
  */
 package org.fernice.flare.style.properties.stylestruct
 
+import org.fernice.flare.std.Second
 import org.fernice.flare.style.MutStyleStruct
 import org.fernice.flare.style.StyleStruct
 import org.fernice.flare.style.properties.longhand.Attachment
@@ -24,12 +25,13 @@ import org.fernice.flare.style.value.computed.BackgroundSize
 import org.fernice.flare.style.value.computed.Color
 import org.fernice.flare.style.value.computed.HorizontalPosition
 import org.fernice.flare.style.value.computed.Image
+import org.fernice.flare.style.value.computed.ImageLayer
 import org.fernice.flare.style.value.computed.VerticalPosition
 
 interface Background : StyleStruct<MutBackground> {
 
     val color: Color
-    val image: List<Image>
+    val image: List<ImageLayer>
     val attachment: List<Attachment>
     val positionX: List<HorizontalPosition>
     val positionY: List<VerticalPosition>
@@ -42,8 +44,12 @@ interface Background : StyleStruct<MutBackground> {
         return clip.hashCode()
     }
 
-    fun reversedImageLayerIterator(): Iterator<ImageLayer> {
-        return ImageLayerIterator(this)
+    fun imageLayerIterator(): Iterator<BackgroundImageLayer> {
+        return ImageLayerIterator.new(this)
+    }
+
+    fun reversedImageLayerIterator(): Iterator<BackgroundImageLayer> {
+        return ImageLayerIterator.new(this)
     }
 
     companion object {
@@ -66,7 +72,7 @@ interface Background : StyleStruct<MutBackground> {
 
 private class StaticBackground(
     override val color: Color,
-    override val image: List<Image>,
+    override val image: List<ImageLayer>,
     override val attachment: List<Attachment>,
     override val positionX: List<HorizontalPosition>,
     override val positionY: List<VerticalPosition>,
@@ -93,7 +99,7 @@ private class StaticBackground(
 
 data class MutBackground(
     override var color: Color,
-    override var image: List<Image>,
+    override var image: List<ImageLayer>,
     override var attachment: List<Attachment>,
     override var positionX: List<HorizontalPosition>,
     override var positionY: List<VerticalPosition>,
@@ -118,7 +124,7 @@ data class MutBackground(
     }
 }
 
-class ImageLayer(
+class BackgroundImageLayer(
     val image: Image,
     val attachment: Attachment,
     val positionX: HorizontalPosition,
@@ -128,18 +134,30 @@ class ImageLayer(
     val origin: Origin
 )
 
-class ImageLayerIterator(private val background: Background) : Iterator<ImageLayer> {
+class ImageLayerIterator(private val background: Background, private val indices: Array<Int>) : Iterator<BackgroundImageLayer> {
+
+    companion object {
+
+        fun new(background: Background): ImageLayerIterator {
+            val indices = background.image.withIndex()
+                .filter { (_, layer) -> layer is Second }
+                .map { (index, _) -> index }
+                .toTypedArray()
+
+            return ImageLayerIterator(background, indices)
+        }
+    }
 
     private var index: Int = 0
 
     override fun hasNext(): Boolean {
-        return index < background.image.size
+        return index < indices.size
     }
 
-    override fun next(): ImageLayer {
-        val i = index++
+    override fun next(): BackgroundImageLayer {
+        val i = indices[index++]
 
-        val image = background.image[i]
+        val image = (background.image[i] as Second).value
         val attachment = background.attachment.drag(i)
         val positionX = background.positionX.drag(i)
         val positionY = background.positionY.drag(i)
@@ -147,7 +165,7 @@ class ImageLayerIterator(private val background: Background) : Iterator<ImageLay
         val repeat = background.repeat.drag(i)
         val origin = background.origin.drag(i)
 
-        return ImageLayer(
+        return BackgroundImageLayer(
             image,
             attachment,
             positionX,

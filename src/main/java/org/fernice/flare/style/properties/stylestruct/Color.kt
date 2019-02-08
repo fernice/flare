@@ -8,27 +8,39 @@ package org.fernice.flare.style.properties.stylestruct
 import org.fernice.flare.cssparser.RGBA
 import org.fernice.flare.style.MutStyleStruct
 import org.fernice.flare.style.StyleStruct
+import org.fernice.flare.style.properties.longhand.ColorDeclaration
+import org.fernice.flare.style.properties.longhand.FillDeclaration
+import org.fernice.flare.style.value.computed.Fill
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 
 interface Color : StyleStruct<MutColor> {
 
     val color: RGBA
+    val fill: Fill
 
     override fun clone(): MutColor {
         return MutColor(
-            color
+            color,
+            fill
         )
     }
 
     companion object {
         val initial: Color by lazy {
             StaticColor(
-                RGBA(0, 0, 0, 255)
+                ColorDeclaration.InitialValue,
+                FillDeclaration.InitialValue
             )
         }
     }
 }
 
-class StaticColor(override val color: RGBA) : Color
+data class StaticColor(
+    override val color: RGBA,
+    override val fill: Fill
+) : Color
 
-class MutColor(override var color: RGBA) : Color, MutStyleStruct
+data class MutColor(
+    override var color: RGBA,
+    override var fill: Fill
+) : Color, MutStyleStruct

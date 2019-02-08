@@ -10,6 +10,9 @@ import org.fernice.flare.style.value.specified.ShapeExtend
 import org.fernice.flare.style.value.specified.X
 import org.fernice.flare.style.value.specified.Y
 import fernice.std.Option
+import org.fernice.flare.std.Either
+
+typealias ImageLayer = Either<Unit, Image>
 
 sealed class Image : ComputedValue {
 
@@ -23,9 +26,9 @@ private typealias ImageGradient = Gradient
 typealias Repeating = Boolean
 
 data class Gradient(
-        val items: List<GradientItem>,
-        val repeating: Repeating,
-        val kind: GradientKind
+    val items: List<GradientItem>,
+    val repeating: Repeating,
+    val kind: GradientKind
 ) : ComputedValue
 
 sealed class GradientItem : ComputedValue {
@@ -38,8 +41,8 @@ sealed class GradientItem : ComputedValue {
 private typealias ComputedColorStop = ColorStop
 
 data class ColorStop(
-        val color: RGBAColor,
-        val position: Option<LengthOrPercentage>
+    val color: RGBAColor,
+    val position: Option<LengthOrPercentage>
 ) : ComputedValue
 
 sealed class GradientKind : ComputedValue {

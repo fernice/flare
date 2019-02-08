@@ -366,6 +366,8 @@ sealed class NoCalcLength : SpecifiedValue<PixelLength>, ToCss {
                 else -> Err()
             }
         }
+
+        val Zero by lazy { NoCalcLength.Absolute(AbsoluteLength.Px(0f)) }
     }
 }
 
@@ -732,6 +734,8 @@ sealed class LengthOrPercentage : SpecifiedValue<ComputedLengthOrPercentage>, To
 
             }
         }
+
+        val Zero by lazy { LengthOrPercentage.Length(NoCalcLength.Zero) }
     }
 }
 

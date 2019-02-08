@@ -625,8 +625,7 @@ private fun parsePseudoElement(location: SourceLocation, name: String): Result<P
         "first-letter" -> Ok(PseudoElement.FirstLetter)
         "first-line" -> Ok(PseudoElement.FirstLine)
         "placeholder" -> Ok(PseudoElement.Placeholder)
-        "-flr-tab-area" -> Ok(PseudoElement.FlareTabArea)
-        "-flr-tab" -> Ok(PseudoElement.FlareTab)
+        "icon" -> Ok(PseudoElement.Icon)
         else -> Err(location.newUnexpectedTokenError(Token.Identifier(name)))
     }
 }

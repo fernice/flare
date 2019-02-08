@@ -70,6 +70,7 @@ class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration() {
     companion object {
 
         val initialValue: Clip by lazy { Clip.BorderBox }
+        val InitialSingleValue by lazy { Clip.BorderBox }
     }
 }
 

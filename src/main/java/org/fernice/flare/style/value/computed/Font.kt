@@ -5,16 +5,43 @@
  */
 package org.fernice.flare.style.value.computed
 
-import org.fernice.flare.style.value.ComputedValue
-import org.fernice.flare.style.value.specified.KeywordInfo
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.Parser
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Option
 import fernice.std.Result
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.std.max
+import org.fernice.flare.std.min
+import org.fernice.flare.style.value.ComputedValue
+import org.fernice.flare.style.value.specified.KeywordInfo
 import java.io.Writer
+
+data class FontWeight(val value: Float) {
+
+    fun bolder(): FontWeight {
+        return when {
+            value < 350 -> FontWeight(400f)
+            value < 550 -> FontWeight(700f)
+            else -> FontWeight(value.max(900f))
+        }
+    }
+
+    fun lighter():FontWeight {
+        return when {
+            value < 550 -> FontWeight(value.min(100f))
+            value < 750 -> FontWeight(400f)
+            else -> FontWeight(value.max(700f))
+        }
+    }
+
+    companion object {
+
+        val Normal by lazy { FontWeight(400f) }
+        val Bold by lazy { FontWeight(700f) }
+    }
+}
 
 data class FontFamily(val values: FontFamilyList) : ComputedValue
 
@@ -106,7 +133,7 @@ sealed class SingleFontFamily : ToCss {
 
 data class FontFamilyList(private val values: List<SingleFontFamily>) : Iterable<SingleFontFamily> {
 
-    override fun iterator(): Iterator<SingleFontFamily> = values.asReversed().iterator()
+    override fun iterator(): Iterator<SingleFontFamily> = values.iterator()
 }
 
 data class FamilyName(val value: String) : ToCss {

@@ -5,15 +5,6 @@
  */
 package org.fernice.flare.style.value.specified
 
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.ParseErrorKind
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.value.Context
-import org.fernice.flare.style.value.SpecifiedValue
-import org.fernice.flare.style.value.toComputedValue
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
@@ -23,19 +14,31 @@ import fernice.std.Some
 import fernice.std.unwrapOr
 import fernice.std.unwrapOrElse
 import org.fernice.flare.cssparser.Delimiters
+import org.fernice.flare.cssparser.ParseError
+import org.fernice.flare.cssparser.ParseErrorKind
+import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
+import org.fernice.flare.cssparser.Token
+import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.cssparser.toCss
 import org.fernice.flare.panic
+import org.fernice.flare.std.Either
+import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.value.Context
+import org.fernice.flare.style.value.SpecifiedValue
+import org.fernice.flare.style.value.toComputedValue
 import java.io.Writer
-import org.fernice.flare.style.value.computed.Image as ComputedImage
+import org.fernice.flare.style.value.computed.Circle as ComputedCircle
+import org.fernice.flare.style.value.computed.ColorStop as ComputedColorStop
+import org.fernice.flare.style.value.computed.Ellipse as ComputedEllipse
+import org.fernice.flare.style.value.computed.EndingShape as ComputedEndingShape
 import org.fernice.flare.style.value.computed.Gradient as ComputedGradient
 import org.fernice.flare.style.value.computed.GradientItem as ComputedGradientItem
 import org.fernice.flare.style.value.computed.GradientKind as ComputedGradientKind
-import org.fernice.flare.style.value.computed.ColorStop as ComputedColorStop
+import org.fernice.flare.style.value.computed.Image as ComputedImage
 import org.fernice.flare.style.value.computed.LineDirection as ComputedLineDirection
-import org.fernice.flare.style.value.computed.EndingShape as ComputedEndingShape
-import org.fernice.flare.style.value.computed.Circle as ComputedCircle
-import org.fernice.flare.style.value.computed.Ellipse as ComputedEllipse
+
+typealias ImageLayer = Either<Unit, Image>
 
 sealed class Image : SpecifiedValue<ComputedImage>, ToCss {
 

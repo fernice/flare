@@ -663,4 +663,6 @@ abstract class ParseErrorKind {
     object UnsupportedFeature : ParseErrorKind()
 
     object Unknown : ParseErrorKind()
+
+    object Unspecified : ParseErrorKind()
 }

@@ -9,13 +9,15 @@ package org.fernice.flare.style.properties.module
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.ShorthandId
 import org.fernice.flare.style.properties.longhand.ColorId
+import org.fernice.flare.style.properties.longhand.FillId
 
 object ColorPropertyModule : PropertyModule {
 
     override val name: String = "color"
 
     override val longhands: List<LonghandId> = listOf(
-        ColorId
+        ColorId,
+        FillId
     )
 
     override val shorthands: List<ShorthandId> = listOf()

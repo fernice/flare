@@ -14,7 +14,6 @@ import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.cssparser.toCssJoining
-import org.fernice.flare.style.parser.Parse
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId
@@ -27,7 +26,7 @@ object BackgroundOriginId : LonghandId() {
     override val name: String = "background-origin"
 
     override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { Origin.parse(context, it) }.map(::BackgroundOriginDeclaration)
+        return input.parseCommaSeparated { Origin.parse(it) }.map(::BackgroundOriginDeclaration)
     }
 
     override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
@@ -69,31 +68,30 @@ class BackgroundOriginDeclaration(val origin: List<Origin>) : PropertyDeclaratio
 
     companion object {
 
-        val initialValue: List<Origin> by lazy { listOf(Origin.Scroll) }
+        val initialValue: List<Origin> by lazy { listOf(Origin.BorderBox) }
+        val InitialSingleValue by lazy { Origin.BorderBox }
     }
 }
 
 sealed class Origin : ToCss {
 
-    object Scroll : Origin()
-
-    object Fixed : Origin()
-
-    object Local : Origin()
+    object BorderBox : Origin()
+    object PaddingBox : Origin()
+    object ContentBox : Origin()
 
     override fun toCss(writer: Writer) {
         writer.append(
             when (this) {
-                is Origin.Scroll -> "scroll"
-                is Origin.Fixed -> "fixed"
-                is Origin.Local -> "local"
+                BorderBox -> "border-box"
+                PaddingBox -> "padding-box"
+                ContentBox -> "content-box"
             }
         )
     }
 
-    companion object : Parse<Origin> {
+    companion object {
 
-        override fun parse(context: ParserContext, input: Parser): Result<Origin, ParseError> {
+        fun parse(input: Parser): Result<Origin, ParseError> {
             val location = input.sourceLocation()
             val identifierResult = input.expectIdentifier()
 
@@ -103,9 +101,9 @@ sealed class Origin : ToCss {
             }
 
             return when (identifier.toLowerCase()) {
-                "scroll" -> Ok(Scroll)
-                "fixed" -> Ok(Fixed)
-                "local" -> Ok(Local)
+                "border-box" -> Ok(BorderBox)
+                "padding-box" -> Ok(PaddingBox)
+                "content-box" -> Ok(ContentBox)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }

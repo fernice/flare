@@ -7,7 +7,6 @@ package org.fernice.flare.style.value.specified
 
 import fernice.std.Err
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
 import fernice.std.unwrapOr
@@ -16,7 +15,6 @@ import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.cssparser.toCss
 import org.fernice.flare.style.parser.Parse
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
@@ -95,7 +93,7 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss 
 
     object RepeatX : BackgroundRepeat()
     object RepeatY : BackgroundRepeat()
-    data class Keywords(val horizontal: BackgroundRepeatKeyword, val vertical: Option<BackgroundRepeatKeyword>) : BackgroundRepeat()
+    data class Keywords(val horizontal: BackgroundRepeatKeyword, val vertical: BackgroundRepeatKeyword) : BackgroundRepeat()
 
     final override fun toComputedValue(context: Context): ComputedBackgroundRepeat {
         return when (this) {
@@ -114,7 +112,7 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss 
             is BackgroundRepeat.Keywords -> {
                 ComputedBackgroundRepeat(
                     horizontal,
-                    vertical.unwrapOr(horizontal)
+                    vertical
                 )
             }
         }
@@ -127,10 +125,8 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss 
             is BackgroundRepeat.Keywords -> {
                 horizontal.toCss(writer)
 
-                if (vertical is Some) {
-                    writer.append(' ')
-                    vertical.toCss(writer)
-                }
+                writer.append(' ')
+                vertical.toCss(writer)
             }
         }
     }
@@ -159,8 +155,10 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss 
 
             val vertical = input.tryParse(BackgroundRepeatKeyword.Companion::parse).ok()
 
-            return Ok(Keywords(horizontal, vertical))
+            return Ok(Keywords(horizontal, vertical.unwrapOr(horizontal)))
         }
+
+        val Repeat by lazy { BackgroundRepeat.Keywords(BackgroundRepeatKeyword.Repeat, BackgroundRepeatKeyword.Repeat) }
     }
 }
 
