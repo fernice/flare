@@ -27,7 +27,7 @@ interface Element {
 
     fun hasID(id: String): Boolean
 
-    fun classes(): List<String>
+    fun classes(): Set<String>
 
     fun hasClass(styleClass: String): Boolean
 

@@ -8,9 +8,9 @@ package org.fernice.flare.selector
 import org.fernice.flare.debugAssert
 import org.fernice.flare.std.iter.Iter
 import org.fernice.flare.std.iter.iter
-import org.fernice.flare.std.atMost
 import fernice.std.None
 import fernice.std.Some
+import org.fernice.flare.std.min
 
 class SelectorBuilder {
 
@@ -87,9 +87,9 @@ private class Specificity {
 private const val MAX_10_BIT = (1 shl 10) - 1
 
 private fun Specificity.into(): Int {
-    return (this.idSelectors.atMost(MAX_10_BIT) shl 20) or
-            (this.classSelectors.atMost(MAX_10_BIT) shl 10) or
-            (this.elementSelectors.atMost(MAX_10_BIT))
+    return (this.idSelectors.min(MAX_10_BIT) shl 20) or
+            (this.classSelectors.min(MAX_10_BIT) shl 10) or
+            (this.elementSelectors.min(MAX_10_BIT))
 }
 
 private fun specificity(iter: Iter<Component>): Int {
@@ -97,7 +97,8 @@ private fun specificity(iter: Iter<Component>): Int {
         when (simpleSelector) {
             is Component.Combinator -> throw IllegalStateException("unreachable")
 
-            is Component.LocalName, is Component.PseudoElement -> {
+            is Component.LocalName,
+            is Component.PseudoElement -> {
                 specificity.elementSelectors += 1
             }
 
