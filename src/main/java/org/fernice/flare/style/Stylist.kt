@@ -268,12 +268,16 @@ class ElementAndPseudoRules(
     }
 }
 
-class CascadeData(private val normalRules: ElementAndPseudoRules) {
+class CascadeData(
+    private val normalRules: ElementAndPseudoRules,
+    private var rulesSourceOrder: Int
+) {
 
     companion object {
         fun new(): CascadeData {
             return CascadeData(
-                ElementAndPseudoRules.new()
+                normalRules = ElementAndPseudoRules.new(),
+                rulesSourceOrder = 0
             )
         }
     }
@@ -287,7 +291,6 @@ class CascadeData(private val normalRules: ElementAndPseudoRules) {
     }
 
     fun insertStylesheet(stylesheet: Stylesheet, quirksMode: QuirksMode) {
-        var sourceOrder = 0
         for (rule in stylesheet.rules) {
             when (rule) {
                 is CssRule.Style -> {
@@ -299,13 +302,13 @@ class CascadeData(private val normalRules: ElementAndPseudoRules) {
                         val indexedRule = Rule(
                             selector,
                             AncestorHashes.new(selector, quirksMode),
-                            sourceOrder,
+                            rulesSourceOrder,
                             styleRule
                         )
 
                         normalRules.insert(indexedRule, pseudoElement, quirksMode)
                     }
-                    sourceOrder++
+                    rulesSourceOrder++
                 }
                 else -> {
                 }
@@ -315,6 +318,7 @@ class CascadeData(private val normalRules: ElementAndPseudoRules) {
 
     fun clear() {
         normalRules.clear()
+        rulesSourceOrder = 0
     }
 
     fun normalRules(pseudoElement: Option<PseudoElement>): Option<SelectorMap> {

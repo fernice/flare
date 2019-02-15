@@ -15,6 +15,7 @@ import fernice.std.Option
 import fernice.std.Some
 import fernice.std.ifLet
 import fernice.std.into
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * An optimized implementation of a Map that tries to accelerate the lookup of [Rule] for an [Element]
@@ -26,7 +27,7 @@ class SelectorMap {
     private val idHash = RuleMap.new()
     private val classHash = RuleMap.new()
     private val localNameHash = RuleMap.new()
-    private val other = mutableListOf<Rule>()
+    private val other = CopyOnWriteArrayList<Rule>()
     private var count = 0
 
     fun getAllMatchingRules(element: Element,
@@ -200,7 +201,7 @@ class RuleMap {
     private val map = mutableMapOf<String, MutableList<Rule>>()
 
     fun entry(key: String): MutableList<Rule> {
-        return map.computeIfAbsent(key) { mutableListOf() }
+        return map.computeIfAbsent(key) { CopyOnWriteArrayList() }
     }
 
     fun get(key: String, quirksMode: QuirksMode): Option<List<Rule>> {
