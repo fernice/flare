@@ -8,8 +8,8 @@ package org.fernice.flare.style.properties.module
 
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.ShorthandId
-import org.fernice.flare.style.properties.longhand.ColorId
-import org.fernice.flare.style.properties.longhand.FillId
+import org.fernice.flare.style.properties.longhand.color.ColorId
+import org.fernice.flare.style.properties.longhand.color.FillId
 
 object ColorPropertyModule : PropertyModule {
 

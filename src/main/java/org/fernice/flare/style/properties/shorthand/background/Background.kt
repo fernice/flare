@@ -21,27 +21,27 @@ import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.properties.ShorthandId
-import org.fernice.flare.style.properties.longhand.Attachment
-import org.fernice.flare.style.properties.longhand.BackgroundAttachmentDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundAttachmentId
-import org.fernice.flare.style.properties.longhand.BackgroundClipDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundClipId
-import org.fernice.flare.style.properties.longhand.BackgroundColorDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundColorId
-import org.fernice.flare.style.properties.longhand.BackgroundImageDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundImageId
-import org.fernice.flare.style.properties.longhand.BackgroundOriginDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundOriginId
-import org.fernice.flare.style.properties.longhand.BackgroundPositionXDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundPositionXId
-import org.fernice.flare.style.properties.longhand.BackgroundPositionYDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundPositionYId
-import org.fernice.flare.style.properties.longhand.BackgroundRepeatDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundRepeatId
-import org.fernice.flare.style.properties.longhand.BackgroundSizeDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundSizeId
-import org.fernice.flare.style.properties.longhand.Clip
-import org.fernice.flare.style.properties.longhand.Origin
+import org.fernice.flare.style.properties.longhand.background.Attachment
+import org.fernice.flare.style.properties.longhand.background.BackgroundAttachmentDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundAttachmentId
+import org.fernice.flare.style.properties.longhand.background.BackgroundClipDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundClipId
+import org.fernice.flare.style.properties.longhand.background.BackgroundColorDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundColorId
+import org.fernice.flare.style.properties.longhand.background.BackgroundImageDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundImageId
+import org.fernice.flare.style.properties.longhand.background.BackgroundOriginDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundOriginId
+import org.fernice.flare.style.properties.longhand.background.BackgroundPositionXDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundPositionXId
+import org.fernice.flare.style.properties.longhand.background.BackgroundPositionYDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundPositionYId
+import org.fernice.flare.style.properties.longhand.background.BackgroundRepeatDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundRepeatId
+import org.fernice.flare.style.properties.longhand.background.BackgroundSizeDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundSizeId
+import org.fernice.flare.style.properties.longhand.background.Clip
+import org.fernice.flare.style.properties.longhand.background.Origin
 import org.fernice.flare.style.value.specified.BackgroundRepeat
 import org.fernice.flare.style.value.specified.BackgroundSize
 import org.fernice.flare.style.value.specified.Color
@@ -173,6 +173,7 @@ private fun parse(context: ParserContext, input: Parser): Result<Longhands, Pars
                 || attachment.isSome()
                 || origin.isSome()
                 || clip.isSome()
+                || backgroundColor.isSome()
 
         if (any) {
             if (position is Some) {

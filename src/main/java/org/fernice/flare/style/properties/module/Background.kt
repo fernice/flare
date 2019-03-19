@@ -9,14 +9,14 @@ package org.fernice.flare.style.properties.module
 import org.fernice.flare.Experimental
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.ShorthandId
-import org.fernice.flare.style.properties.longhand.BackgroundAttachmentId
-import org.fernice.flare.style.properties.longhand.BackgroundClipId
-import org.fernice.flare.style.properties.longhand.BackgroundColorId
-import org.fernice.flare.style.properties.longhand.BackgroundImageId
-import org.fernice.flare.style.properties.longhand.BackgroundOriginId
-import org.fernice.flare.style.properties.longhand.BackgroundPositionXId
-import org.fernice.flare.style.properties.longhand.BackgroundPositionYId
-import org.fernice.flare.style.properties.longhand.BackgroundSizeId
+import org.fernice.flare.style.properties.longhand.background.BackgroundAttachmentId
+import org.fernice.flare.style.properties.longhand.background.BackgroundClipId
+import org.fernice.flare.style.properties.longhand.background.BackgroundColorId
+import org.fernice.flare.style.properties.longhand.background.BackgroundImageId
+import org.fernice.flare.style.properties.longhand.background.BackgroundOriginId
+import org.fernice.flare.style.properties.longhand.background.BackgroundPositionXId
+import org.fernice.flare.style.properties.longhand.background.BackgroundPositionYId
+import org.fernice.flare.style.properties.longhand.background.BackgroundSizeId
 import org.fernice.flare.style.properties.shorthand.background.BackgroundId
 
 object BackgroundPropertyModule : PropertyModule {

@@ -9,9 +9,9 @@ package org.fernice.flare.style.properties.module
 import org.fernice.flare.Experimental
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.ShorthandId
-import org.fernice.flare.style.properties.longhand.FontFamilyId
-import org.fernice.flare.style.properties.longhand.FontSizeId
-import org.fernice.flare.style.properties.longhand.FontWeightId
+import org.fernice.flare.style.properties.longhand.font.FontFamilyId
+import org.fernice.flare.style.properties.longhand.font.FontSizeId
+import org.fernice.flare.style.properties.longhand.font.FontWeightId
 
 object FontPropertyModule : PropertyModule {
 

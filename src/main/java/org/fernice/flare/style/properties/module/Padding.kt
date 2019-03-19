@@ -8,11 +8,11 @@ package org.fernice.flare.style.properties.module
 
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.ShorthandId
-import org.fernice.flare.style.properties.longhand.PaddingBottomId
-import org.fernice.flare.style.properties.longhand.PaddingLeftId
-import org.fernice.flare.style.properties.longhand.PaddingRightId
-import org.fernice.flare.style.properties.longhand.PaddingTopId
-import org.fernice.flare.style.properties.shorthand.PaddingId
+import org.fernice.flare.style.properties.longhand.padding.PaddingBottomId
+import org.fernice.flare.style.properties.longhand.padding.PaddingLeftId
+import org.fernice.flare.style.properties.longhand.padding.PaddingRightId
+import org.fernice.flare.style.properties.longhand.padding.PaddingTopId
+import org.fernice.flare.style.properties.shorthand.padding.PaddingId
 
 object PaddingPropertyModule : PropertyModule {
 

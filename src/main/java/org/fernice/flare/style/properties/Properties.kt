@@ -28,10 +28,10 @@ import org.fernice.flare.std.iter.iter
 import org.fernice.flare.style.ComputedValues
 import org.fernice.flare.style.StyleBuilder
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.longhand.FontFamilyDeclaration
-import org.fernice.flare.style.properties.longhand.FontFamilyId
-import org.fernice.flare.style.properties.longhand.FontSizeDeclaration
-import org.fernice.flare.style.properties.longhand.FontSizeId
+import org.fernice.flare.style.properties.longhand.font.FontFamilyDeclaration
+import org.fernice.flare.style.properties.longhand.font.FontFamilyId
+import org.fernice.flare.style.properties.longhand.font.FontSizeDeclaration
+import org.fernice.flare.style.properties.longhand.font.FontSizeId
 import org.fernice.flare.style.properties.module.PropertyModule
 import org.fernice.flare.style.ruletree.CascadeLevel
 import org.fernice.flare.style.ruletree.RuleNode

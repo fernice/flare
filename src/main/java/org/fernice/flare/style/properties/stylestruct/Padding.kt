@@ -7,10 +7,10 @@ package org.fernice.flare.style.properties.stylestruct
 
 import org.fernice.flare.style.MutStyleStruct
 import org.fernice.flare.style.StyleStruct
-import org.fernice.flare.style.properties.longhand.PaddingBottomDeclaration
-import org.fernice.flare.style.properties.longhand.PaddingLeftDeclaration
-import org.fernice.flare.style.properties.longhand.PaddingRightDeclaration
-import org.fernice.flare.style.properties.longhand.PaddingTopDeclaration
+import org.fernice.flare.style.properties.longhand.padding.PaddingBottomDeclaration
+import org.fernice.flare.style.properties.longhand.padding.PaddingLeftDeclaration
+import org.fernice.flare.style.properties.longhand.padding.PaddingRightDeclaration
+import org.fernice.flare.style.properties.longhand.padding.PaddingTopDeclaration
 import org.fernice.flare.style.value.computed.NonNegativeLengthOrPercentage
 
 interface Padding : StyleStruct<MutPadding> {
@@ -42,14 +42,14 @@ interface Padding : StyleStruct<MutPadding> {
     }
 }
 
-class StaticPadding(
+data class StaticPadding(
     override val top: NonNegativeLengthOrPercentage,
     override val right: NonNegativeLengthOrPercentage,
     override val bottom: NonNegativeLengthOrPercentage,
     override val left: NonNegativeLengthOrPercentage
 ) : Padding
 
-class MutPadding(
+data class MutPadding(
     override var top: NonNegativeLengthOrPercentage,
     override var right: NonNegativeLengthOrPercentage,
     override var bottom: NonNegativeLengthOrPercentage,

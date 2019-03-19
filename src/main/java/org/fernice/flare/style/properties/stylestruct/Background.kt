@@ -8,18 +8,18 @@ package org.fernice.flare.style.properties.stylestruct
 import org.fernice.flare.std.Second
 import org.fernice.flare.style.MutStyleStruct
 import org.fernice.flare.style.StyleStruct
-import org.fernice.flare.style.properties.longhand.Attachment
-import org.fernice.flare.style.properties.longhand.BackgroundAttachmentDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundClipDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundColorDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundImageDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundOriginDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundPositionXDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundPositionYDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundRepeatDeclaration
-import org.fernice.flare.style.properties.longhand.BackgroundSizeDeclaration
-import org.fernice.flare.style.properties.longhand.Clip
-import org.fernice.flare.style.properties.longhand.Origin
+import org.fernice.flare.style.properties.longhand.background.Attachment
+import org.fernice.flare.style.properties.longhand.background.BackgroundAttachmentDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundClipDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundColorDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundImageDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundOriginDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundPositionXDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundPositionYDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundRepeatDeclaration
+import org.fernice.flare.style.properties.longhand.background.BackgroundSizeDeclaration
+import org.fernice.flare.style.properties.longhand.background.Clip
+import org.fernice.flare.style.properties.longhand.background.Origin
 import org.fernice.flare.style.value.computed.BackgroundRepeat
 import org.fernice.flare.style.value.computed.BackgroundSize
 import org.fernice.flare.style.value.computed.Color
@@ -54,7 +54,7 @@ interface Background : StyleStruct<MutBackground> {
 
     companion object {
 
-        val initial: Background by lazy {
+        val Initial: Background by lazy {
             StaticBackground(
                 BackgroundColorDeclaration.initialValue,
                 BackgroundImageDeclaration.initialValue,
@@ -70,7 +70,7 @@ interface Background : StyleStruct<MutBackground> {
     }
 }
 
-private class StaticBackground(
+private data class StaticBackground(
     override val color: Color,
     override val image: List<ImageLayer>,
     override val attachment: List<Attachment>,

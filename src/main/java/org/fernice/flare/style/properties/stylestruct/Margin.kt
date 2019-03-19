@@ -7,10 +7,10 @@ package org.fernice.flare.style.properties.stylestruct
 
 import org.fernice.flare.style.MutStyleStruct
 import org.fernice.flare.style.StyleStruct
-import org.fernice.flare.style.properties.longhand.MarginBottomDeclaration
-import org.fernice.flare.style.properties.longhand.MarginLeftDeclaration
-import org.fernice.flare.style.properties.longhand.MarginRightDeclaration
-import org.fernice.flare.style.properties.longhand.MarginTopDeclaration
+import org.fernice.flare.style.properties.longhand.margin.MarginBottomDeclaration
+import org.fernice.flare.style.properties.longhand.margin.MarginLeftDeclaration
+import org.fernice.flare.style.properties.longhand.margin.MarginRightDeclaration
+import org.fernice.flare.style.properties.longhand.margin.MarginTopDeclaration
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto
 
 interface Margin : StyleStruct<MutMargin> {
@@ -42,14 +42,14 @@ interface Margin : StyleStruct<MutMargin> {
     }
 }
 
-class StaticMargin(
+data class StaticMargin(
     override val top: LengthOrPercentageOrAuto,
     override val right: LengthOrPercentageOrAuto,
     override val bottom: LengthOrPercentageOrAuto,
     override val left: LengthOrPercentageOrAuto
 ) : Margin
 
-class MutMargin(
+data class MutMargin(
     override var top: LengthOrPercentageOrAuto,
     override var right: LengthOrPercentageOrAuto,
     override var bottom: LengthOrPercentageOrAuto,

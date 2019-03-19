@@ -16,28 +16,13 @@ data class ComputedValues(
     val padding: Padding
 ) {
 
-    fun borderShapeHash(): Int {
-        var hash = background.shapeHash() * 31
-        hash *= margin.hashCode()
-        hash *= padding.hashCode()
-        return hash
-    }
-
-    fun backgroundShapeHash(): Int {
-        var hash = background.shapeHash() * 31
-        hash *= border.shapeHash()
-        hash *= margin.hashCode()
-        hash *= padding.hashCode()
-        return hash
-    }
-
     companion object {
 
         val initial: ComputedValues by lazy {
             ComputedValues(
                 Font.initial,
-                Color.initial,
-                Background.initial,
+                Color.Initial,
+                Background.Initial,
                 Border.initial,
                 Margin.initial,
                 Padding.initial

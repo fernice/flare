@@ -8,11 +8,11 @@ package org.fernice.flare.style.properties.module
 
 import org.fernice.flare.style.properties.LonghandId
 import org.fernice.flare.style.properties.ShorthandId
-import org.fernice.flare.style.properties.longhand.MarginBottomId
-import org.fernice.flare.style.properties.longhand.MarginLeftId
-import org.fernice.flare.style.properties.longhand.MarginRightId
-import org.fernice.flare.style.properties.longhand.MarginTopId
-import org.fernice.flare.style.properties.shorthand.MarginId
+import org.fernice.flare.style.properties.longhand.margin.MarginBottomId
+import org.fernice.flare.style.properties.longhand.margin.MarginLeftId
+import org.fernice.flare.style.properties.longhand.margin.MarginRightId
+import org.fernice.flare.style.properties.longhand.margin.MarginTopId
+import org.fernice.flare.style.properties.shorthand.margin.MarginId
 
 object MarginPropertyModule : PropertyModule {
 

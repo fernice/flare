@@ -58,7 +58,7 @@ class Tokenizer private constructor(
 
                 println("${iter.token} ${iter.sourceLocation}")
 
-                iter = when (val next = state.next) {
+                iter = when (val next = iter.next) {
                     is None -> {
                         val nextState = State.next(lexer)
                         state.next = Some(nextState)

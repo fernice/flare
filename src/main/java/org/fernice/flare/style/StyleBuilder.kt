@@ -10,9 +10,9 @@ import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.RGBA
 import org.fernice.flare.dom.Device
 import org.fernice.flare.font.WritingMode
-import org.fernice.flare.style.properties.longhand.Attachment
-import org.fernice.flare.style.properties.longhand.Clip
-import org.fernice.flare.style.properties.longhand.Origin
+import org.fernice.flare.style.properties.longhand.background.Attachment
+import org.fernice.flare.style.properties.longhand.background.Clip
+import org.fernice.flare.style.properties.longhand.background.Origin
 import org.fernice.flare.style.properties.stylestruct.Background
 import org.fernice.flare.style.properties.stylestruct.Border
 import org.fernice.flare.style.properties.stylestruct.Color

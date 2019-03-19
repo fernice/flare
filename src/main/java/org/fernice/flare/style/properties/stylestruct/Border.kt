@@ -7,22 +7,22 @@ package org.fernice.flare.style.properties.stylestruct
 
 import org.fernice.flare.style.MutStyleStruct
 import org.fernice.flare.style.StyleStruct
-import org.fernice.flare.style.properties.longhand.BorderBottomColorDeclaration
-import org.fernice.flare.style.properties.longhand.BorderBottomLeftRadiusDeclaration
-import org.fernice.flare.style.properties.longhand.BorderBottomRightRadiusDeclaration
-import org.fernice.flare.style.properties.longhand.BorderBottomStyleDeclaration
-import org.fernice.flare.style.properties.longhand.BorderBottomWidthDeclaration
-import org.fernice.flare.style.properties.longhand.BorderLeftColorDeclaration
-import org.fernice.flare.style.properties.longhand.BorderLeftStyleDeclaration
-import org.fernice.flare.style.properties.longhand.BorderLeftWidthDeclaration
-import org.fernice.flare.style.properties.longhand.BorderRightColorDeclaration
-import org.fernice.flare.style.properties.longhand.BorderRightStyleDeclaration
-import org.fernice.flare.style.properties.longhand.BorderRightWidthDeclaration
-import org.fernice.flare.style.properties.longhand.BorderTopColorDeclaration
-import org.fernice.flare.style.properties.longhand.BorderTopLeftRadiusDeclaration
-import org.fernice.flare.style.properties.longhand.BorderTopRightRadiusDeclaration
-import org.fernice.flare.style.properties.longhand.BorderTopStyleDeclaration
-import org.fernice.flare.style.properties.longhand.BorderTopWidthDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderBottomColorDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderBottomLeftRadiusDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderBottomRightRadiusDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderBottomStyleDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderBottomWidthDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderLeftColorDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderLeftStyleDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderLeftWidthDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderRightColorDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderRightStyleDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderRightWidthDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderTopColorDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderTopLeftRadiusDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderTopRightRadiusDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderTopStyleDeclaration
+import org.fernice.flare.style.properties.longhand.border.BorderTopWidthDeclaration
 import org.fernice.flare.style.value.computed.BorderCornerRadius
 import org.fernice.flare.style.value.computed.NonNegativeLength
 import org.fernice.flare.style.value.computed.Style
@@ -120,7 +120,7 @@ interface Border : StyleStruct<MutBorder> {
     }
 }
 
-private class StaticBorder(
+private data class StaticBorder(
     override val topWidth: NonNegativeLength,
     override val topColor: ComputedColor,
     override val topStyle: Style,

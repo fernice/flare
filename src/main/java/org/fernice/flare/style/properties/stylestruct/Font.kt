@@ -7,9 +7,9 @@ package org.fernice.flare.style.properties.stylestruct
 
 import org.fernice.flare.style.MutStyleStruct
 import org.fernice.flare.style.StyleStruct
-import org.fernice.flare.style.properties.longhand.FontFamilyDeclaration
-import org.fernice.flare.style.properties.longhand.FontSizeDeclaration
-import org.fernice.flare.style.properties.longhand.FontWeightDeclaration
+import org.fernice.flare.style.properties.longhand.font.FontFamilyDeclaration
+import org.fernice.flare.style.properties.longhand.font.FontSizeDeclaration
+import org.fernice.flare.style.properties.longhand.font.FontWeightDeclaration
 import org.fernice.flare.style.value.computed.FontFamily
 import org.fernice.flare.style.value.computed.FontSize
 import org.fernice.flare.style.value.computed.FontWeight
