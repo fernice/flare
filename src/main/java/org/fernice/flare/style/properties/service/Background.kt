@@ -4,11 +4,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package org.fernice.flare.style.properties.module
+package org.fernice.flare.style.properties.service
 
-import org.fernice.flare.Experimental
-import org.fernice.flare.style.properties.LonghandId
-import org.fernice.flare.style.properties.ShorthandId
+import org.fernice.flare.style.properties.PropertyContainer
+import org.fernice.flare.style.properties.PropertyContainerContributor
 import org.fernice.flare.style.properties.longhand.background.BackgroundAttachmentId
 import org.fernice.flare.style.properties.longhand.background.BackgroundClipId
 import org.fernice.flare.style.properties.longhand.background.BackgroundColorId
@@ -19,35 +18,23 @@ import org.fernice.flare.style.properties.longhand.background.BackgroundPosition
 import org.fernice.flare.style.properties.longhand.background.BackgroundSizeId
 import org.fernice.flare.style.properties.shorthand.background.BackgroundId
 
-object BackgroundPropertyModule : PropertyModule {
+class BackgroundPropertyContainerContributor : PropertyContainerContributor {
 
-    override val name: String = "background"
+    override fun contribute(container: PropertyContainer) {
+        container.registerLonghands(
+            BackgroundColorId,
 
-    override val longhands: List<LonghandId> = listOf(
-        BackgroundColorId
-    )
+            BackgroundImageId,
 
-    override val shorthands: List<ShorthandId> = listOf()
-}
+            BackgroundPositionXId,
+            BackgroundPositionYId,
+            BackgroundSizeId,
 
-@Experimental
-object BackgroundImagePropertyModule : PropertyModule {
+            BackgroundAttachmentId,
+            BackgroundClipId,
+            BackgroundOriginId
+        )
 
-    override val name: String = "background-image"
-
-    override val longhands: List<LonghandId> = listOf(
-        BackgroundImageId,
-
-        BackgroundPositionXId,
-        BackgroundPositionYId,
-        BackgroundSizeId,
-
-        BackgroundAttachmentId,
-        BackgroundClipId,
-        BackgroundOriginId
-    )
-
-    override val shorthands: List<ShorthandId> = listOf(
-        BackgroundId
-    )
+        container.registerShorthand(BackgroundId)
+    }
 }

@@ -4,28 +4,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package org.fernice.flare.style.properties.module
+package org.fernice.flare.style.properties.service
 
-import org.fernice.flare.style.properties.LonghandId
-import org.fernice.flare.style.properties.ShorthandId
+import org.fernice.flare.style.properties.PropertyContainer
+import org.fernice.flare.style.properties.PropertyContainerContributor
 import org.fernice.flare.style.properties.longhand.margin.MarginBottomId
 import org.fernice.flare.style.properties.longhand.margin.MarginLeftId
 import org.fernice.flare.style.properties.longhand.margin.MarginRightId
 import org.fernice.flare.style.properties.longhand.margin.MarginTopId
 import org.fernice.flare.style.properties.shorthand.margin.MarginId
 
-object MarginPropertyModule : PropertyModule {
+class MarginPropertyContainerContributor : PropertyContainerContributor {
 
-    override val name: String = "margin"
+    override fun contribute(container: PropertyContainer) {
+        container.registerLonghands(
+            MarginTopId,
+            MarginRightId,
+            MarginBottomId,
+            MarginLeftId
+        )
 
-    override val longhands: List<LonghandId> = listOf(
-        MarginTopId,
-        MarginRightId,
-        MarginBottomId,
-        MarginLeftId
-    )
-
-    override val shorthands: List<ShorthandId> = listOf(
-        MarginId
-    )
+        container.registerShorthands(
+            MarginId
+        )
+    }
 }

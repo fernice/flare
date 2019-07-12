@@ -1,0 +1,6 @@
+org.fernice.flare.style.properties.service.BackgroundPropertyContainerContributor
+org.fernice.flare.style.properties.service.BorderPropertyContainerContributor
+org.fernice.flare.style.properties.service.ColorPropertyContainerContributor
+org.fernice.flare.style.properties.service.FontPropertyContainerContributor
+org.fernice.flare.style.properties.service.MarginPropertyContainerContributor
+org.fernice.flare.style.properties.service.PaddingPropertyContainerContributor

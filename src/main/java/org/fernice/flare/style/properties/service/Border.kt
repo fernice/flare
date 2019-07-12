@@ -4,11 +4,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package org.fernice.flare.style.properties.module
+package org.fernice.flare.style.properties.service
 
-import org.fernice.flare.Experimental
-import org.fernice.flare.style.properties.LonghandId
-import org.fernice.flare.style.properties.ShorthandId
+import org.fernice.flare.style.properties.PropertyContainer
+import org.fernice.flare.style.properties.PropertyContainerContributor
 import org.fernice.flare.style.properties.longhand.border.BorderBottomColorId
 import org.fernice.flare.style.properties.longhand.border.BorderBottomLeftRadiusId
 import org.fernice.flare.style.properties.longhand.border.BorderBottomRightRadiusId
@@ -35,55 +34,45 @@ import org.fernice.flare.style.properties.shorthand.border.BorderStyleId
 import org.fernice.flare.style.properties.shorthand.border.BorderTopId
 import org.fernice.flare.style.properties.shorthand.border.BorderWidthId
 
-object BorderPropertyModule : PropertyModule {
+class BorderPropertyContainerContributor : PropertyContainerContributor {
 
-    override val name: String = "border"
+    override fun contribute(container: PropertyContainer) {
+        container.registerLonghands(
+            BorderTopWidthId,
+            BorderTopColorId,
+            BorderTopStyleId,
 
-    override val longhands: List<LonghandId> = listOf(
-        BorderTopWidthId,
-        BorderTopColorId,
-        BorderTopStyleId,
+            BorderTopLeftRadiusId,
+            BorderTopRightRadiusId,
 
-        BorderTopLeftRadiusId,
-        BorderTopRightRadiusId,
+            BorderRightWidthId,
+            BorderRightColorId,
+            BorderRightStyleId,
 
-        BorderRightWidthId,
-        BorderRightColorId,
-        BorderRightStyleId,
+            BorderBottomWidthId,
+            BorderBottomColorId,
+            BorderBottomStyleId,
 
-        BorderBottomWidthId,
-        BorderBottomColorId,
-        BorderBottomStyleId,
+            BorderBottomRightRadiusId,
+            BorderBottomLeftRadiusId,
 
-        BorderBottomRightRadiusId,
-        BorderBottomLeftRadiusId,
+            BorderLeftWidthId,
+            BorderLeftColorId,
+            BorderLeftStyleId
+        )
 
-        BorderLeftWidthId,
-        BorderLeftColorId,
-        BorderLeftStyleId
-    )
+        container.registerShorthands(
+            BorderId,
 
-    override val shorthands: List<ShorthandId> = listOf(
-        BorderId,
+            BorderWidthId,
+            BorderColorId,
+            BorderStyleId,
+            BorderRadiusId,
 
-        BorderWidthId,
-        BorderColorId,
-        BorderStyleId,
-        BorderRadiusId,
-
-        BorderTopId,
-        BorderRightId,
-        BorderBottomId,
-        BorderLeftId
-    )
-}
-
-@Experimental
-object BorderImagePropertyModule : PropertyModule {
-
-    override val name: String = "border-image"
-
-    override val longhands: List<LonghandId> = listOf()
-
-    override val shorthands: List<ShorthandId> = listOf()
+            BorderTopId,
+            BorderRightId,
+            BorderBottomId,
+            BorderLeftId
+        )
+    }
 }

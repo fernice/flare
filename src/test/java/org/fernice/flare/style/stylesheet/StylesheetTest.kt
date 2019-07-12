@@ -5,9 +5,6 @@
  */
 package org.fernice.flare.style.stylesheet
 
-import org.fernice.flare.style.properties.module.BackgroundImagePropertyModule
-import org.fernice.flare.style.properties.module.BackgroundPropertyModule
-import org.fernice.flare.style.properties.register
 import org.junit.BeforeClass
 import org.junit.Test
 
@@ -18,7 +15,7 @@ class StylesheetParseTest {
         @JvmStatic
         @BeforeClass
         fun init() {
-            register(BackgroundPropertyModule, BackgroundImagePropertyModule)
+            //register(BackgroundPropertyModule, BackgroundImagePropertyModule)
         }
     }
 

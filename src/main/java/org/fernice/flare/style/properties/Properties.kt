@@ -12,7 +12,6 @@ import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
 import mu.KotlinLogging
-import org.fernice.flare.Experimental
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
@@ -32,11 +31,11 @@ import org.fernice.flare.style.properties.longhand.font.FontFamilyDeclaration
 import org.fernice.flare.style.properties.longhand.font.FontFamilyId
 import org.fernice.flare.style.properties.longhand.font.FontSizeDeclaration
 import org.fernice.flare.style.properties.longhand.font.FontSizeId
-import org.fernice.flare.style.properties.module.PropertyModule
 import org.fernice.flare.style.ruletree.CascadeLevel
 import org.fernice.flare.style.ruletree.RuleNode
 import org.fernice.flare.style.value.Context
 import java.io.Writer
+import java.util.ServiceLoader
 
 private val LOG = KotlinLogging.logger { }
 
@@ -78,44 +77,18 @@ abstract class PropertyDeclaration : ToCss {
     }
 }
 
-private val REGISTERED_PROPERTIES: MutableMap<String, PropertyId> = mutableMapOf()
+private val REGISTERED_PROPERTIES: MutableMap<String, PropertyId> by lazy {
+    val propertyRegistryContainer = PropertyContainer()
 
-fun register(vararg modules: PropertyModule) {
-    for (module in modules) {
-        register(module)
+    val containerContributorLoader = ServiceLoader.load(PropertyContainerContributor::class.java)
+
+    for (containerContributor in containerContributorLoader) {
+        containerContributor.contribute(propertyRegistryContainer)
     }
+
+    propertyRegistryContainer.getRegisteredProperties()
 }
 
-fun register(module: PropertyModule) {
-    val experimental = module::class.java.isAnnotationPresent(Experimental::class.java)
-    val hint = if (experimental) " experimental" else ""
-
-    LOG.info { "loading$hint property module: ${module.name}" }
-
-    for (longhand in module.longhands) {
-        val property = PropertyId.Longhand(longhand)
-
-        if (REGISTERED_PROPERTIES.containsKey(longhand.name)) {
-            throw IllegalStateException("Property '${longhand.name}' has already been registered")
-        }
-
-        LOG.debug { "${longhand.name.padEnd(30)} Longhand ${longhand::class.qualifiedName}" }
-
-        REGISTERED_PROPERTIES[longhand.name] = property
-    }
-
-    for (shorthand in module.shorthands) {
-        val property = PropertyId.Shorthand(shorthand)
-
-        if (REGISTERED_PROPERTIES.containsKey(shorthand.name)) {
-            throw IllegalStateException("Property '${shorthand.name}' has already been registered")
-        }
-
-        LOG.debug { "${shorthand.name.padEnd(30)} Shorthand ${shorthand::class.qualifiedName}" }
-
-        REGISTERED_PROPERTIES[shorthand.name] = property
-    }
-}
 
 abstract class LonghandId {
 
