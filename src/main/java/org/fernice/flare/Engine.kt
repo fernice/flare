@@ -46,7 +46,7 @@ class SharedEngine(
     }
 
     fun createEngineContext(device: Device): EngineContext {
-        return EngineContext(
+        return EngineContextImpl(
             StyleContext.new(
                 device,
                 stylist,
@@ -56,7 +56,7 @@ class SharedEngine(
     }
 
     fun style(device: Device, element: Element) {
-        val context = EngineContext(
+        val context = EngineContextImpl(
             StyleContext.new(
                 device,
                 stylist,
@@ -88,7 +88,7 @@ class SharedEngine(
     }
 
     fun matchStyle(device: Device, element: Element): MatchingResult {
-        val context = EngineContext(
+        val context = EngineContextImpl(
             StyleContext.new(
                 device,
                 stylist,
@@ -104,6 +104,10 @@ class SharedEngine(
     }
 }
 
-class EngineContext(
+interface EngineContext {
     val styleContext: StyleContext
-)
+}
+
+private class EngineContextImpl(
+    override val styleContext: StyleContext
+) : EngineContext
