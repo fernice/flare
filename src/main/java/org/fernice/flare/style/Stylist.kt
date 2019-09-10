@@ -24,11 +24,6 @@ import org.fernice.flare.style.stylesheet.CssRule
 import org.fernice.flare.style.stylesheet.Origin
 import org.fernice.flare.style.stylesheet.StyleRule
 import org.fernice.flare.style.stylesheet.Stylesheet
-import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
-import fernice.std.ifLet
-import fernice.std.unwrapOr
 
 class Rule(
     val selector: Selector,
@@ -71,43 +66,37 @@ class Stylist(
 
     fun pushApplicableDeclarations(
         element: Element,
-        pseudoElement: Option<PseudoElement>,
-        styleAttribute: Option<PropertyDeclarationBlock>,
+        pseudoElement: PseudoElement?,
+        styleAttribute: PropertyDeclarationBlock?,
         applicableDeclarations: MutableList<ApplicableDeclarationBlock>,
         context: MatchingContext
     ) {
 
-        cascadeData.userAgent.normalRules(pseudoElement).ifLet { map ->
-            map.getAllMatchingRules(
-                element,
-                applicableDeclarations,
-                context,
-                CascadeLevel.USER_AGENT_NORMAL
-            )
-        }
+        cascadeData.userAgent.normalRules(pseudoElement)?.getAllMatchingRules(
+            element,
+            applicableDeclarations,
+            context,
+            CascadeLevel.USER_AGENT_NORMAL
+        )
 
-        cascadeData.user.normalRules(pseudoElement).ifLet { map ->
-            map.getAllMatchingRules(
-                element,
-                applicableDeclarations,
-                context,
-                CascadeLevel.USER_NORMAL
-            )
-        }
+        cascadeData.user.normalRules(pseudoElement)?.getAllMatchingRules(
+            element,
+            applicableDeclarations,
+            context,
+            CascadeLevel.USER_NORMAL
+        )
 
-        cascadeData.author.normalRules(pseudoElement).ifLet { map ->
-            map.getAllMatchingRules(
-                element,
-                applicableDeclarations,
-                context,
-                CascadeLevel.AUTHOR_NORMAL
-            )
-        }
+        cascadeData.author.normalRules(pseudoElement)?.getAllMatchingRules(
+            element,
+            applicableDeclarations,
+            context,
+            CascadeLevel.AUTHOR_NORMAL
+        )
 
-        styleAttribute.ifLet { block ->
+        if (styleAttribute != null) {
             applicableDeclarations.add(
                 ApplicableDeclarationBlock.fromDeclarations(
-                    block,
+                    styleAttribute,
                     CascadeLevel.STYLE_ATTRIBUTE_NORMAL
                 )
             )
@@ -116,19 +105,19 @@ class Stylist(
 
     fun cascadeStyleAndVisited(
         device: Device,
-        element: Option<Element>,
-        pseudoElement: Option<PseudoElement>,
+        element: Element?,
+        pseudoElement: PseudoElement?,
         inputs: CascadeInputs,
-        parentStyle: Option<ComputedValues>,
-        parentStyleIgnoringFirstLine: Option<ComputedValues>,
-        layoutStyle: Option<ComputedValues>,
+        parentStyle: ComputedValues?,
+        parentStyleIgnoringFirstLine: ComputedValues?,
+        layoutStyle: ComputedValues?,
         fontMetricsProvider: FontMetricsProvider
     ): ComputedValues {
         return cascade(
             device,
             element,
             pseudoElement,
-            inputs.rules.unwrapOr(ruleTree.root()),
+            inputs.rules ?: ruleTree.root(),
             parentStyle,
             parentStyleIgnoringFirstLine,
             layoutStyle,
@@ -242,10 +231,11 @@ class ElementAndPseudoRules(
         }
     }
 
-    fun insert(rule: Rule, pseudoElement: Option<PseudoElement>, quirksMode: QuirksMode) {
-        val map = when (pseudoElement) {
-            is Some -> pseudoMap.computeIfAbsent(pseudoElement.value) { SelectorMap() }
-            is None -> elementMap
+    fun insert(rule: Rule, pseudoElement: PseudoElement?, quirksMode: QuirksMode) {
+        val map = if (pseudoElement != null) {
+            pseudoMap.computeIfAbsent(pseudoElement) { SelectorMap() }
+        } else {
+            elementMap
         }
 
         map.insert(rule)
@@ -253,17 +243,16 @@ class ElementAndPseudoRules(
 
     fun clear() {
         elementMap.clear()
-        for (map in pseudoMap.iter()) {
-            if (map is Some) {
-                map.value.clear()
-            }
+        for (map in pseudoMap.iterator()) {
+            map?.clear()
         }
     }
 
-    fun rules(pseudoElement: Option<PseudoElement>): Option<SelectorMap> {
-        return when (pseudoElement) {
-            is Some -> pseudoMap.get(pseudoElement.value)
-            is None -> Some(elementMap)
+    fun rules(pseudoElement: PseudoElement?): SelectorMap? {
+        return if (pseudoElement != null) {
+            pseudoMap.get(pseudoElement)
+        } else {
+            elementMap
         }
     }
 }
@@ -321,7 +310,7 @@ class CascadeData(
         rulesSourceOrder = 0
     }
 
-    fun normalRules(pseudoElement: Option<PseudoElement>): Option<SelectorMap> {
+    fun normalRules(pseudoElement: PseudoElement?): SelectorMap? {
         return normalRules.rules(pseudoElement)
     }
 }

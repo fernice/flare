@@ -6,11 +6,8 @@
 package org.fernice.flare.style.properties
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
 import mu.KotlinLogging
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
@@ -22,8 +19,6 @@ import org.fernice.flare.dom.Element
 import org.fernice.flare.font.FontMetricsProvider
 import org.fernice.flare.font.WritingMode
 import org.fernice.flare.selector.PseudoElement
-import org.fernice.flare.std.iter.Iter
-import org.fernice.flare.std.iter.iter
 import org.fernice.flare.style.ComputedValues
 import org.fernice.flare.style.StyleBuilder
 import org.fernice.flare.style.parser.ParserContext
@@ -213,9 +208,9 @@ sealed class CssWideKeyword : ToCss {
     override fun toCss(writer: Writer) {
         writer.write(
             when (this) {
-                CssWideKeyword.Unset -> "unset"
-                CssWideKeyword.Initial -> "initial"
-                CssWideKeyword.Inherit -> "inherit"
+                Unset -> "unset"
+                Initial -> "initial"
+                Inherit -> "inherit"
             }
         )
     }
@@ -231,9 +226,9 @@ sealed class CssWideKeyword : ToCss {
             }
 
             return when (identifier.toLowerCase()) {
-                "unset" -> Ok(CssWideKeyword.Unset)
-                "initial" -> Ok(CssWideKeyword.Initial)
-                "inherit" -> Ok(CssWideKeyword.Inherit)
+                "unset" -> Ok(Unset)
+                "initial" -> Ok(Initial)
+                "inherit" -> Ok(Inherit)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }
@@ -244,41 +239,34 @@ data class DeclarationAndCascadeLevel(val declaration: PropertyDeclaration, val 
 
 fun cascade(
     device: Device,
-    element: Option<Element>,
-    pseudoElement: Option<PseudoElement>,
+    element: Element?,
+    pseudoElement: PseudoElement?,
     ruleNode: RuleNode,
-    parentStyle: Option<ComputedValues>,
-    parentStyleIgnoringFirstLine: Option<ComputedValues>,
-    layoutStyle: Option<ComputedValues>,
+    parentStyle: ComputedValues?,
+    parentStyleIgnoringFirstLine: ComputedValues?,
+    layoutStyle: ComputedValues?,
     fontMetricsProvider: FontMetricsProvider
 ): ComputedValues {
 
-    val iter = {
-        ruleNode.selfAndAncestors().flatMap { node ->
-            val level = node.cascadeLevel()
+    val sequence = ruleNode.selfAndAncestors().flatMap { node ->
+        val level = node.cascadeLevel()
 
-            val declarations = when (val source = node.styleSource()) {
-                is Some -> source.value.declarations().reversedDeclarationImportanceIter()
-                else -> DeclarationImportanceIter(listOf<DeclarationAndImportance>().iter())
-            }
-
-            val nodeImportance = node.importance()
-
-            declarations.filterMap { (declaration, importance) ->
-                if (importance == nodeImportance) {
-                    Some(DeclarationAndCascadeLevel(declaration, level))
-                } else {
-                    None
-                }
-            }
+        val declarations = when (val source = node.source) {
+            null -> DeclarationImportanceSequence(emptySequence())
+            else -> source.declarations().reversedDeclarationImportanceSequence()
         }
+
+        val nodeImportance = node.importance()
+
+        declarations.filter { (_, importance) -> importance == nodeImportance }
+            .map { (declaration, _) -> DeclarationAndCascadeLevel(declaration, level) }
     }
 
     return applyDeclarations(
         device,
         element,
         pseudoElement,
-        iter,
+        sequence,
         parentStyle,
         parentStyleIgnoringFirstLine,
         layoutStyle,
@@ -288,12 +276,12 @@ fun cascade(
 
 fun applyDeclarations(
     device: Device,
-    element: Option<Element>,
-    pseudoElement: Option<PseudoElement>,
-    declarations: () -> Iter<DeclarationAndCascadeLevel>,
-    parentStyle: Option<ComputedValues>,
-    parentStyleIgnoringFirstLine: Option<ComputedValues>,
-    layoutStyle: Option<ComputedValues>,
+    element: Element?,
+    pseudoElement: PseudoElement?,
+    declarations: Sequence<DeclarationAndCascadeLevel>,
+    parentStyle: ComputedValues?,
+    parentStyleIgnoringFirstLine: ComputedValues?,
+    layoutStyle: ComputedValues?,
     fontMetricsProvider: FontMetricsProvider
 ): ComputedValues {
     val context = Context(
@@ -310,10 +298,10 @@ fun applyDeclarations(
 
     val seen = mutableSetOf<LonghandId>()
 
-    var fontFamily: Option<FontFamilyDeclaration> = None
-    var fontSize: Option<FontSizeDeclaration> = None
+    var fontFamily: FontFamilyDeclaration? = null
+    var fontSize: FontSizeDeclaration? = null
 
-    for ((declaration, _) in declarations()) {
+    for ((declaration, _) in declarations) {
         val longhandId = declaration.id()
 
         if (!longhandId.isEarlyProperty()) {
@@ -325,31 +313,31 @@ fun applyDeclarations(
         }
 
         if (longhandId is FontFamilyId) {
-            fontFamily = Some(declaration as FontFamilyDeclaration)
+            fontFamily = declaration as FontFamilyDeclaration
             continue
         }
 
         if (longhandId is FontSizeId) {
-            fontSize = Some(declaration as FontSizeDeclaration)
+            fontSize = declaration as FontSizeDeclaration
             continue
         }
 
         longhandId.cascadeProperty(declaration, context)
     }
 
-    if (fontFamily is Some) {
+    if (fontFamily != null) {
         val longhandId = FontFamilyId
 
-        longhandId.cascadeProperty(fontFamily.value, context)
+        longhandId.cascadeProperty(fontFamily, context)
     }
 
-    if (fontSize is Some) {
+    if (fontSize != null) {
         val longhandId = FontSizeId
 
-        longhandId.cascadeProperty(fontSize.value, context)
+        longhandId.cascadeProperty(fontSize, context)
     }
 
-    for ((declaration, _) in declarations()) {
+    for ((declaration, _) in declarations) {
         val longhandId = declaration.id()
 
         if (longhandId.isEarlyProperty()) {

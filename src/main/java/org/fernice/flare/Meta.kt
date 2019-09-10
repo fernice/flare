@@ -5,6 +5,8 @@
  */
 package org.fernice.flare
 
+import java.lang.Error
+
 annotation class Experimental
 
 private const val debug = true
@@ -35,5 +37,7 @@ inline fun assert(assert: () -> Boolean, message: String = "Assert failed") {
 }
 
 fun panic(message: String): Nothing {
-    throw IllegalStateException(message)
+    throw Panic(message)
 }
+
+class Panic(message: String) : Error(message)

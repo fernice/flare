@@ -19,6 +19,7 @@ import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.flare.debugAssert
+import org.fernice.flare.panic
 import org.fernice.flare.std.iter.Iter
 import org.fernice.flare.std.iter.drain
 import org.fernice.flare.std.iter.iter
@@ -415,19 +416,18 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         return header.specificity()
     }
 
-    fun pseudoElement(): Option<PseudoElement> {
+    fun pseudoElement(): PseudoElement? {
         if (!header.hasPseudoElement()) {
-            return None
+            return null
         }
 
         for (component in components) {
             if (component is Component.PseudoElement) {
-                return Some(component.pseudoElement)
+                return component.pseudoElement
             }
         }
 
-        debugAssert(false, "something went terribly wrong")
-        return None
+        panic("header.hasPseudoElement() resulted in true, but pseudoElement was not found")
     }
 
     /**
