@@ -8,11 +8,8 @@ package org.fernice.flare.std
 import java.security.AccessController
 import java.security.PrivilegedAction
 
-fun getBooleanProperty(key: String): Boolean {
-    return getBooleanProperty(key, false)
-}
 
-fun getBooleanProperty(key: String, default: Boolean): Boolean {
+fun systemFlag(key: String, default: Boolean = false): Boolean {
     return AccessController.doPrivileged(PrivilegedAction<Boolean> {
         val value = System.getProperty(key)
 
