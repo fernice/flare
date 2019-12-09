@@ -191,12 +191,12 @@ class StyleBuilder(
         fun new(
             device: Device,
             writingMode: WritingMode,
-            parentStyle: Option<ComputedValues>,
-            parentStyleIgnoringFirstLine: Option<ComputedValues>
+            parentStyle: ComputedValues?,
+            parentStyleIgnoringFirstLine: ComputedValues?
         ): StyleBuilder {
             val resetStyle = device.defaultComputedValues()
-            val inheritStyle = parentStyle.unwrapOr(resetStyle)
-            val inheritStyleIgnoringFirstList = parentStyleIgnoringFirstLine.unwrapOr(resetStyle)
+            val inheritStyle = parentStyle ?: resetStyle
+            val inheritStyleIgnoringFirstList = parentStyleIgnoringFirstLine ?: resetStyle
 
             return StyleBuilder(
                 device,

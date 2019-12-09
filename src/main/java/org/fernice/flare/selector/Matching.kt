@@ -43,7 +43,7 @@ fun matchesSelector(
  * requirement for them to match. This optimization does only work for selector that do have a parental combinator.
  */
 private fun mayMatch(hashes: AncestorHashes, bloomFilter: BloomFilter): Boolean {
-    for (i in 0..3) {
+    for (i in 0 until 3) {
         val hash = hashes.packedHashes[i]
         if (hash == 0) {
             return true

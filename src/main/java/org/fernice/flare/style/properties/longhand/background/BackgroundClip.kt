@@ -74,11 +74,11 @@ class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration() {
     }
 }
 
-sealed class Clip : ToCss {
+enum class Clip : ToCss {
 
-    object BorderBox : Clip()
-    object PaddingBox : Clip()
-    object ContentBox : Clip()
+    BorderBox,
+    PaddingBox,
+    ContentBox;
 
     override fun toCss(writer: Writer) {
         writer.append(

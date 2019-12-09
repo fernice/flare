@@ -5,7 +5,12 @@
  */
 package org.fernice.flare.style
 
-import org.fernice.flare.style.properties.stylestruct.*
+import org.fernice.flare.style.properties.stylestruct.Background
+import org.fernice.flare.style.properties.stylestruct.Border
+import org.fernice.flare.style.properties.stylestruct.Color
+import org.fernice.flare.style.properties.stylestruct.Font
+import org.fernice.flare.style.properties.stylestruct.Margin
+import org.fernice.flare.style.properties.stylestruct.Padding
 
 data class ComputedValues(
     val font: Font,

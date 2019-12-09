@@ -5,6 +5,12 @@
  */
 package org.fernice.flare.style.ruletree
 
+import fernice.std.None
+import fernice.std.Option
+import fernice.std.Some
+import fernice.std.ifLet
+import fernice.std.into
+import fernice.std.map
 import org.fernice.flare.ApplicableDeclarationBlock
 import org.fernice.flare.RuleTreeValues
 import org.fernice.flare.debugAssert
@@ -16,13 +22,6 @@ import org.fernice.flare.std.iter.iter
 import org.fernice.flare.style.properties.Importance
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
 import org.fernice.flare.style.stylesheet.StyleRule
-import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
-import fernice.std.ifLet
-import fernice.std.into
-import fernice.std.map
-import fernice.std.unwrap
 import java.util.concurrent.atomic.AtomicReference
 
 enum class CascadeLevel {
@@ -157,9 +156,9 @@ class RuleTree(private val root: RuleNode) {
 }
 
 class RuleNode(
-    private val root: Option<RuleNode>,
-    private val parent: Option<RuleNode>,
-    val source: Option<StyleSource>,
+    private val root: RuleNode?,
+    val parent: RuleNode?,
+    val source: StyleSource?,
     val level: CascadeLevel,
     private val firstChild: AtomicReference<RuleNode?>,
     private val nextSibling: AtomicReference<RuleNode?>,
@@ -174,25 +173,25 @@ class RuleNode(
             cascadeLevel: CascadeLevel
         ): RuleNode {
             return RuleNode(
-                Some(root),
-                Some(parent),
-                Some(source),
-                cascadeLevel,
-                AtomicReference(),
-                AtomicReference(),
-                AtomicReference()
+                root = root,
+                parent = parent,
+                source = source,
+                level = cascadeLevel,
+                firstChild = AtomicReference(),
+                nextSibling = AtomicReference(),
+                previous = AtomicReference()
             )
         }
 
         fun root(): RuleNode {
             return RuleNode(
-                None,
-                None,
-                None,
-                CascadeLevel.USER_AGENT_NORMAL,
-                AtomicReference(),
-                AtomicReference(),
-                AtomicReference()
+                root = null,
+                parent = null,
+                source = null,
+                level = CascadeLevel.USER_AGENT_NORMAL,
+                firstChild = AtomicReference(),
+                nextSibling = AtomicReference(),
+                previous = AtomicReference()
             )
         }
     }
@@ -205,7 +204,7 @@ class RuleNode(
         var last: Option<RuleNode> = None
 
         for (child in iterChildren()) {
-            if (child.level == level && child.source.unwrap() == source) {
+            if (child.level == level && child.source == source) {
                 return child
             }
             last = Some(child)
@@ -232,7 +231,7 @@ class RuleNode(
 
             val next = nextSibling.get()!!
 
-            if (next.source.unwrap() === source) {
+            if (next.source === source) {
                 return next
             }
 
@@ -241,7 +240,7 @@ class RuleNode(
     }
 
     fun styleSource(): Option<StyleSource> {
-        return source
+        return source.into()
     }
 
     fun cascadeLevel(): CascadeLevel {
@@ -257,7 +256,7 @@ class RuleNode(
     }
 
     fun parent(): Option<RuleNode> {
-        return parent
+        return parent.into()
     }
 
     fun nextSibling(): Option<RuleNode> {
@@ -269,7 +268,7 @@ class RuleNode(
     }
 
     fun selfAndAncestors(): SelfAndAncestors {
-        return SelfAndAncestors(Some(this))
+        return SelfAndAncestors(this)
     }
 
     fun iterChildren(): Iter<RuleNode> {
@@ -284,18 +283,21 @@ class RuleNode(
     }
 }
 
-class SelfAndAncestors(private var current: Option<RuleNode>) : Iter<RuleNode> {
+class SelfAndAncestors(private val current: RuleNode) : Sequence<RuleNode> {
 
-    override fun next(): Option<RuleNode> {
-        return current.map { head ->
-            this.current = head.parent()
-
-            head
-        }
+    override fun iterator(): Iterator<RuleNode> {
+        return SelfAndAncestorsIterator(current)
     }
 
-    override fun clone(): SelfAndAncestors {
-        return SelfAndAncestors(current)
+    inner class SelfAndAncestorsIterator(private var current: RuleNode?) : Iterator<RuleNode> {
+
+        override fun hasNext(): Boolean = current != null
+
+        override fun next(): RuleNode {
+            val next = current ?: error("no more rule nodes left")
+            current = next.parent
+            return next
+        }
     }
 }
 

@@ -25,7 +25,7 @@ import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentageOrNo
  * Computed representation of [AbsoluteLength], [FontRelativeLength], [ViewportPercentageLength], [NoCalcLength]
  * and [Length].
  */
-data class PixelLength(val value: Float) : ComputedValue {
+inline class PixelLength(val value: Float) : ComputedValue {
 
     fun px(): Float {
         return value

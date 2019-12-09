@@ -12,14 +12,14 @@ import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
 import fernice.std.unwrap
-import org.fernice.flare.std.getBooleanProperty
+import org.fernice.flare.std.systemFlag
 import java.util.Stack
 
 /**
  * VM parameter flag for processing the input completely on tokenizer creation and printing all generated
  * token to stdout.
  */
-private val print_token: Boolean by lazy { getBooleanProperty("flare.print_token") }
+private val print_token: Boolean by lazy { systemFlag("fernice.flare.printToken") }
 
 /**
  * Represents a resettable stream of tokens, that also provides special methods for advanced stream advancing,

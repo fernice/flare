@@ -5,6 +5,11 @@
  */
 package org.fernice.flare.style.properties
 
+import fernice.std.Err
+import fernice.std.None
+import fernice.std.Ok
+import fernice.std.Result
+import fernice.std.Some
 import org.fernice.flare.cssparser.AtRuleParser
 import org.fernice.flare.cssparser.DeclarationListParser
 import org.fernice.flare.cssparser.DeclarationParser
@@ -13,16 +18,8 @@ import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.parseImportant
-import org.fernice.flare.std.iter.Iter
-import org.fernice.flare.std.iter.iter
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.stylesheet.AtRulePrelude
-import fernice.std.Err
-import fernice.std.None
-import fernice.std.Ok
-import fernice.std.Option
-import fernice.std.Result
-import fernice.std.Some
 import java.util.BitSet
 import java.util.stream.Stream
 
@@ -58,67 +55,36 @@ data class PropertyDeclarationBlock(
         return declarations.reversed().stream()
     }
 
-    fun reversedDeclarationImportanceIter(): DeclarationImportanceIter {
-        return DeclarationImportanceIter.reversed(declarations, importance)
+    fun reversedDeclarationImportanceSequence(): DeclarationImportanceSequence {
+        return DeclarationImportanceSequence.reversed(declarations, importance)
     }
 
-    fun declarationImportanceIter(): DeclarationImportanceIter {
-        return DeclarationImportanceIter.new(declarations, importance)
+    fun declarationImportanceSequence(): DeclarationImportanceSequence {
+        return DeclarationImportanceSequence.new(declarations, importance)
     }
 }
 
-class DeclarationImportanceIter(val iter: Iter<DeclarationAndImportance>) : Iter<DeclarationAndImportance> {
+class DeclarationImportanceSequence(private val sequence: Sequence<DeclarationAndImportance>) : Sequence<DeclarationAndImportance> by sequence {
 
     companion object {
-        fun new(declarations: List<PropertyDeclaration>, importances: BitSet): DeclarationImportanceIter {
-            val items = mutableListOf<DeclarationAndImportance>()
+        fun new(declarations: List<PropertyDeclaration>, importances: BitSet): DeclarationImportanceSequence {
+            val sequence = declarations.withIndex()
+                .map { (index, declaration) -> DeclarationAndImportance(declaration, importances.toImportance(index)) }
+                .asSequence()
 
-            for (i in 0 until declarations.size) {
-                val importance = if (importances.get(i)) {
-                    Importance.IMPORTANT
-                } else {
-                    Importance.NORMAL
-                }
-
-                items.add(
-                    DeclarationAndImportance(
-                        declarations[i],
-                        importance
-                    )
-                )
-            }
-
-            return DeclarationImportanceIter(items.iter())
+            return DeclarationImportanceSequence(sequence)
         }
 
-        fun reversed(declarations: List<PropertyDeclaration>, importances: BitSet): DeclarationImportanceIter {
-            val reversed = mutableListOf<DeclarationAndImportance>()
+        fun reversed(declarations: List<PropertyDeclaration>, importances: BitSet): DeclarationImportanceSequence {
+            val sequence = declarations.withIndex()
+                .reversed()
+                .map { (index, declaration) -> DeclarationAndImportance(declaration, importances.toImportance(index)) }
+                .asSequence()
 
-            for (i in (declarations.size - 1) downTo 0) {
-                val importance = if (importances.get(i)) {
-                    Importance.IMPORTANT
-                } else {
-                    Importance.NORMAL
-                }
-
-                reversed.add(
-                    DeclarationAndImportance(
-                        declarations[i],
-                        importance
-                    )
-                )
-            }
-
-            return DeclarationImportanceIter(reversed.iter())
+            return DeclarationImportanceSequence(sequence)
         }
-    }
 
-    override fun next(): Option<DeclarationAndImportance> {
-        return iter.next()
-    }
-
-    override fun clone(): Iter<DeclarationAndImportance> {
-        return DeclarationImportanceIter(iter.clone())
+        private fun BitSet.toImportance(index: Int): Importance = if (get(index)) Importance.IMPORTANT else Importance.NORMAL
     }
 }
 
