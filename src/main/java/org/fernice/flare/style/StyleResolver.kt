@@ -5,8 +5,6 @@
  */
 package org.fernice.flare.style
 
-import fernice.std.None
-import fernice.std.Option
 import fernice.std.Some
 import org.fernice.flare.ApplicableDeclarationBlock
 import org.fernice.flare.dom.Element
@@ -35,7 +33,7 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
 
     inline fun <R> withDefaultParentStyles(run: (ComputedValues?, ComputedValues?) -> R): R {
         val parentElement = element.inheritanceParent
-        val parentData = parentElement?.getData()
+        val parentData = parentElement?.getDataOrNull()
         val parentStyle = parentData?.styles?.primary()
 
         return run(parentStyle, parentStyle)
@@ -59,8 +57,8 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
                 primaryStyle.style()
             )
 
-            if (pseudoStyle is Some) {
-                pseudoElements.set(pseudo, pseudoStyle.value.style)
+            if (pseudoStyle != null) {
+                pseudoElements.set(pseudo, pseudoStyle.style)
             }
         }
 
@@ -128,25 +126,20 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
         pseudo: PseudoElement,
         primaryStyle: PrimaryStyle,
         layoutParentStyle: ComputedValues?
-    ): Option<ResolvedStyle> {
-        val style = when (val matchedStyle = matchPseudo(pseudo)) {
-            is Some -> matchedStyle.value
-            is None -> return None
-        }
-
-        return Some(
-            cascadeStyleAndVisited(
-                CascadeInputs(
-                    style
-                ),
-                primaryStyle.style(),
-                layoutParentStyle,
-                pseudo
-            )
+    ): ResolvedStyle? {
+        val style = matchPseudo(pseudo) ?: return null
+        return cascadeStyleAndVisited(
+            CascadeInputs(
+                style
+            ),
+            primaryStyle.style(),
+            layoutParentStyle,
+            pseudo
         )
+
     }
 
-    fun matchPseudo(pseudo: PseudoElement): Option<RuleNode> {
+    fun matchPseudo(pseudo: PseudoElement): RuleNode? {
         val declarations = mutableListOf<ApplicableDeclarationBlock>()
 
         val bloomFilter = context.bloomFilter.filter()
@@ -166,12 +159,10 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
         )
 
         if (declarations.isEmpty()) {
-            return None
+            return null
         }
 
-        val ruleNode = stylist.ruleTree.computedRuleNode(declarations)
-
-        return Some(ruleNode)
+        return stylist.ruleTree.computedRuleNode(declarations)
     }
 
     fun cascadeStyleAndVisited(

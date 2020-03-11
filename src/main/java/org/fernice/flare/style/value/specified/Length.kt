@@ -220,7 +220,7 @@ sealed class FontRelativeLength : ToCss {
                 val referencedSize = if (context.isRootElement()) {
                     baseSize.resolve(context)
                 } else {
-                    context.device().rootFontSize()
+                    context.device().rootFontSize
                 }
 
                 Pair(referencedSize, value)

@@ -114,12 +114,9 @@ private fun matchesComplexSelectorInternal(
     var nextElement = nextElementForCombinator(element, combinator)
 
     while (true) {
-        val innerElement = when (nextElement) {
-            is Some -> nextElement.value
-            is None -> return candidateNotFound
-        }
+        if (nextElement == null) return candidateNotFound
 
-        val result = matchesComplexSelectorInternal(iter.clone(), innerElement, context)
+        val result = matchesComplexSelectorInternal(iter.clone(), nextElement, context)
 
         when {
             result == MatchResult.MATCHED ||
@@ -137,20 +134,20 @@ private fun matchesComplexSelectorInternal(
             }
         }
 
-        nextElement = nextElementForCombinator(innerElement, combinator)
+        nextElement = nextElementForCombinator(nextElement, combinator)
     }
 }
 
-private fun nextElementForCombinator(element: Element, combinator: Combinator): Option<Element> {
+private fun nextElementForCombinator(element: Element, combinator: Combinator): Element? {
     return when (combinator) {
-        is Combinator.NextSibling, is Combinator.LaterSibling -> element.previousSibling()
-        is Combinator.Child, is Combinator.Descendant -> element.parent()
-        is Combinator.PseudoElement -> element.owner()
+        is Combinator.NextSibling, is Combinator.LaterSibling -> element.previousSibling
+        is Combinator.Child, is Combinator.Descendant -> element.parent
+        is Combinator.PseudoElement -> element.owner
     }
 }
 
 private fun matchesLocalName(element: Element, localName: String, localNameLower: String): Boolean {
-    return element.localName() == localName
+    return element.localName == localName
 }
 
 private fun matchesCompoundSelector(iter: SelectorIter, element: Element, context: MatchingContext): Boolean {
@@ -222,82 +219,44 @@ private fun matchesCompoundSelector(iter: SelectorIter, element: Element, contex
 private fun matchesSimpleSelector(selector: Component, element: Element, context: MatchingContext): Boolean {
     return when (selector) {
         is Component.Combinator -> throw IllegalStateException("unreachable")
-        is Component.PseudoElement -> {
-            element.matchPseudoElement(selector.pseudoElement)
-        }
-        is Component.LocalName -> {
-            matchesLocalName(element, selector.localName, selector.localNameLower)
-        }
+        is Component.PseudoElement -> element.matchPseudoElement(selector.pseudoElement)
+        is Component.LocalName -> matchesLocalName(element, selector.localName, selector.localNameLower)
         is Component.ExplicitUniversalType, is Component.ExplicitAnyNamespace -> true
-        is Component.DefaultNamespace -> {
-            val namespace = element.namespace()
-            when (namespace) {
-                is Some -> namespace.value == selector.namespace
-                is None -> false
-            }
-        }
-        is Component.Namespace -> {
-            val namespace = element.namespace()
-            when (namespace) {
-                is Some -> namespace.value == selector.namespace
-                is None -> false
-            }
-        }
-        is Component.ExplicitNoNamespace -> {
-            element.namespace().isNone()
-        }
-        is Component.ID -> {
-            element.hasID(selector.id)
-        }
-        is Component.Class -> {
-            element.hasClass(selector.styleClass)
-        }
+        is Component.DefaultNamespace -> element.namespace == selector.namespace
+        is Component.Namespace -> element.namespace == selector.namespace
+        is Component.ExplicitNoNamespace -> element.namespace == null
+        is Component.ID -> element.hasID(selector.id)
+        is Component.Class -> element.hasClass(selector.styleClass)
         is Component.AttributeOther,
         is Component.AttributeInNoNamespaceExists,
-        is Component.AttributeInNoNamespace -> throw IllegalStateException("unsupported")
-        is Component.NonTSPseudoClass -> {
-            element.matchNonTSPseudoClass(selector.pseudoClass)
-        }
-        is Component.FirstChild -> {
-            matchesFirstChild(element)
-        }
-        is Component.LastChild -> {
-            matchesLastChild(element)
-        }
-        is Component.OnlyChild -> {
-            matchesOnlyChild(element)
-        }
-        is Component.Root -> {
-            element.isRoot()
-        }
-        is Component.Empty -> {
-            element.isEmpty()
-        }
+        is Component.AttributeInNoNamespace -> false
+        is Component.NonTSPseudoClass -> element.matchNonTSPseudoClass(selector.pseudoClass)
+        is Component.FirstChild -> matchesFirstChild(element)
+        is Component.LastChild -> matchesLastChild(element)
+        is Component.OnlyChild -> matchesOnlyChild(element)
+        is Component.Root -> element.isRoot()
+        is Component.Empty -> element.isEmpty()
         is Component.Host,
-        is Component.Scope -> {
-            throw IllegalStateException("unsupported")
-        }
-        is Component.NthChild -> {
-            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, false, false)
-        }
+        is Component.Scope -> false
+        is Component.NthChild -> matchesGenericNthChild(element, selector.nth.a, selector.nth.b, ofType = false, fromEnd = false)
         is Component.NthLastChild -> {
-            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, false, true)
+            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, ofType = false, fromEnd = true)
         }
         is Component.NthOfType -> {
-            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, true, false)
+            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, ofType = true, fromEnd = false)
         }
         is Component.NthLastOfType -> {
-            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, true, true)
+            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, ofType = true, fromEnd = true)
         }
         is Component.FirstOfType -> {
-            matchesGenericNthChild(element, 1, 0, true, false)
+            matchesGenericNthChild(element, 1, 0, ofType = true, fromEnd = false)
         }
         is Component.LastOfType -> {
-            matchesGenericNthChild(element, 1, 0, true, true)
+            matchesGenericNthChild(element, 1, 0, ofType = true, fromEnd = true)
         }
         is Component.OnlyOfType -> {
-            matchesGenericNthChild(element, 0, 1, true, false) &&
-                    matchesGenericNthChild(element, 0, 1, true, true)
+            matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = false) &&
+                    matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = true)
         }
         is Component.Negation -> {
             val iter = selector.iter()
@@ -342,11 +301,11 @@ private fun matchesGenericNthChild(element: Element, a: Int, b: Int, ofType: Boo
 }
 
 private fun nthChildIndex(element: Element, ofType: Boolean, fromEnd: Boolean): Int {
-    fun next(element: Element): Option<Element> {
+    fun next(element: Element): Element? {
         return if (fromEnd) {
-            element.nextSibling()
+            element.nextSibling
         } else {
-            element.previousSibling()
+            element.previousSibling
         }
     }
 
@@ -355,12 +314,7 @@ private fun nthChildIndex(element: Element, ofType: Boolean, fromEnd: Boolean): 
 
     loop@
     while (true) {
-        val next = next(current)
-
-        current = when (next) {
-            is Some -> next.value
-            is None -> break@loop
-        }
+        current = next(current) ?: break
 
         if (!ofType || isSameType(element, current)) {
             index++
@@ -371,17 +325,17 @@ private fun nthChildIndex(element: Element, ofType: Boolean, fromEnd: Boolean): 
 }
 
 private fun isSameType(element: Element, other: Element): Boolean {
-    return element.localName() == other.localName() && element.namespace() == other.namespace()
+    return element.localName == other.localName && element.namespace == other.namespace
 }
 
 private fun matchesFirstChild(element: Element): Boolean {
-    return element.previousSibling().isNone()
+    return element.previousSibling == null
 }
 
 private fun matchesLastChild(element: Element): Boolean {
-    return element.nextSibling().isNone()
+    return element.nextSibling == null
 }
 
 private fun matchesOnlyChild(element: Element): Boolean {
-    return element.previousSibling().isNone() && element.nextSibling().isNone()
+    return element.previousSibling == null && element.nextSibling == null
 }
