@@ -25,7 +25,7 @@ class Context(
     }
 
     fun viewportSizeForViewportUnitResolution(): Size2D<Au> {
-        return builder.device.viewportSize()
+        return builder.device.viewportSize
     }
 
     fun device(): Device {

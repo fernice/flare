@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.dom
 
-import fernice.std.Option
 import org.fernice.flare.selector.NamespaceUrl
 import org.fernice.flare.selector.NonTSPseudoClass
 import org.fernice.flare.selector.PseudoElement
@@ -22,11 +21,6 @@ interface Element {
     val id: String?
     val classes: Set<String>
 
-    fun namespace(): Option<NamespaceUrl>
-    fun localName(): String
-    fun id(): Option<String>
-    fun classes(): Set<String>
-
     fun hasID(id: String): Boolean
     fun hasClass(styleClass: String): Boolean
 
@@ -36,45 +30,25 @@ interface Element {
     fun isRoot(): Boolean
     fun isEmpty(): Boolean
 
+    /**
+     * Returns the owner of this element. This is the case for pseudos elements.
+     */
     val owner: Element?
 
     val parent: Element?
     val traversalParent: Element?
     val inheritanceParent: Element?
 
-    @Deprecated(message = "use parent instead", replaceWith = ReplaceWith("parent"))
-    fun parent(): Option<Element>
-
-    /**
-     * Returns the owner of this element. This is the case for pseudos elements.
-     */
-    @Deprecated(message = "use owner instead", replaceWith = ReplaceWith("owner"))
-    fun owner(): Option<Element>
-
-    @Deprecated(message = "use traversalParent instead", replaceWith = ReplaceWith("traversalParent"))
-    fun traversalParent(): Option<Element>
-
-    @Deprecated(message = "use inheritanceParent instead", replaceWith = ReplaceWith("inheritanceParent"))
-    fun inheritanceParent(): Option<Element>
-
-    fun previousSibling(): Option<Element>
-
-    fun nextSibling(): Option<Element>
-
-    fun children(): List<Element>
-
-    @Deprecated(message = "use styleAttribute instead", replaceWith = ReplaceWith("styleAttribute"))
-    fun styleAttribute(): Option<PropertyDeclarationBlock>
-
-    @Deprecated(message = "use pseudoElement instead", replaceWith = ReplaceWith("pseudoElement"))
-    fun pseudoElement(): Option<PseudoElement>
+    val previousSibling: Element?
+    val nextSibling: Element?
+    val children: List<Element>
 
     val styleAttribute: PropertyDeclarationBlock?
     val pseudoElement: PseudoElement?
 
-    fun ensureData(): ElementData
+    fun getData(): ElementData
 
-    fun getData(): ElementData?
+    fun getDataOrNull(): ElementData?
 
     fun clearData()
 

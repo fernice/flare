@@ -332,7 +332,7 @@ sealed class NonTSPseudoClass : ToCss {
     object Fullscreen : NonTSPseudoClass()
     object Hover : NonTSPseudoClass()
     object Indeterminate : NonTSPseudoClass()
-    class Lang(val language: String) : NonTSPseudoClass()
+    data class Lang(val language: String) : NonTSPseudoClass()
     object Link : NonTSPseudoClass()
     object PlaceholderShown : NonTSPseudoClass()
     object ReadWrite : NonTSPseudoClass()

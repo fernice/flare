@@ -70,7 +70,7 @@ class SharedEngine(
     private fun style(element: Element, context: EngineContext) {
         styleInternal(element, context)
 
-        for (child in element.children()) {
+        for (child in element.children) {
             style(child, context)
         }
     }
@@ -79,10 +79,9 @@ class SharedEngine(
         context.styleContext.bloomFilter.insertParent(element)
 
         val styleResolver = ElementStyleResolver(element, context.styleContext)
-
         val styles = styleResolver.resolvePrimaryStyleWithDefaultParentStyles()
 
-        val data = element.ensureData()
+        val data = element.getData()
 
         element.finishRestyle(context.styleContext, data, styles)
     }

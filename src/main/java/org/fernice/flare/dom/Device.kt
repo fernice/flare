@@ -15,11 +15,8 @@ interface Device {
         return ComputedValues.initial
     }
 
-    fun viewportSize(): Size2D<Au>
-
-    fun rootFontSize(): Au
-
-    fun setRootFontSize(size: Au)
+    val viewportSize: Size2D<Au>
+    var rootFontSize: Au
 
     fun invalidate()
 }

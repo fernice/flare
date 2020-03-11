@@ -5,16 +5,14 @@
  */
 package org.fernice.flare.selector
 
+import fernice.std.None
+import fernice.std.Option
+import fernice.std.Some
 import org.fernice.flare.ApplicableDeclarationBlock
 import org.fernice.flare.dom.Element
 import org.fernice.flare.style.Rule
 import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.flare.style.ruletree.CascadeLevel
-import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
-import fernice.std.ifLet
-import fernice.std.into
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -30,10 +28,12 @@ class SelectorMap {
     private val other = CopyOnWriteArrayList<Rule>()
     private var count = 0
 
-    fun getAllMatchingRules(element: Element,
-                            matchingRules: MutableList<ApplicableDeclarationBlock>,
-                            context: MatchingContext,
-                            cascadeLevel: CascadeLevel) {
+    fun getAllMatchingRules(
+        element: Element,
+        matchingRules: MutableList<ApplicableDeclarationBlock>,
+        context: MatchingContext,
+        cascadeLevel: CascadeLevel
+    ) {
 
         if (isEmpty()) {
             return
@@ -43,57 +43,59 @@ class SelectorMap {
 
         val quirksMode = context.quirksMode()
 
-        element.id().ifLet { id ->
-            idHash.get(id, quirksMode).ifLet { rules ->
+        element.id?.let { id ->
+            idHash.get(id, quirksMode)?.let { rules ->
                 getMatchingRules(
-                        element,
-                        rules,
-                        matchingRules,
-                        context,
-                        cascadeLevel
-                )
-            }
-        }
-
-        element.classes().forEach { styleClass ->
-            classHash.get(styleClass, quirksMode).ifLet { rules ->
-                getMatchingRules(
-                        element,
-                        rules,
-                        matchingRules,
-                        context,
-                        cascadeLevel
-                )
-            }
-        }
-
-        localNameHash.get(element.localName(), quirksMode).ifLet { rules ->
-            getMatchingRules(
                     element,
                     rules,
                     matchingRules,
                     context,
                     cascadeLevel
+                )
+            }
+        }
+
+        element.classes.forEach { styleClass ->
+            classHash.get(styleClass, quirksMode)?.let { rules ->
+                getMatchingRules(
+                    element,
+                    rules,
+                    matchingRules,
+                    context,
+                    cascadeLevel
+                )
+            }
+        }
+
+        localNameHash.get(element.localName, quirksMode)?.let { rules ->
+            getMatchingRules(
+                element,
+                rules,
+                matchingRules,
+                context,
+                cascadeLevel
             )
         }
 
         getMatchingRules(
-                element,
-                other,
-                matchingRules,
-                context,
-                cascadeLevel
+            element,
+            other,
+            matchingRules,
+            context,
+            cascadeLevel
         )
 
         matchingRules.subList(originalLength, matchingRules.size)
-                .sortWith(RuleComparator.instance)
+            .sortWith(RuleComparator.instance)
     }
 
-    private fun getMatchingRules(element: Element,
-                                 rules: List<Rule>,
-                                 matchingRules: MutableList<ApplicableDeclarationBlock>,
-                                 context: MatchingContext,
-                                 cascadeLevel: CascadeLevel) {
+    private fun getMatchingRules(
+        element: Element,
+        rules: List<Rule>,
+        matchingRules: MutableList<ApplicableDeclarationBlock>,
+        context: MatchingContext,
+        cascadeLevel: CascadeLevel
+    ) {
         for (rule in rules) {
             if (matchesSelector(rule.selector, Some(rule.hashes), element, context)) {
                 matchingRules.add(rule.toApplicableDeclaration(cascadeLevel))
@@ -204,11 +206,11 @@ class RuleMap {
         return map.computeIfAbsent(key) { CopyOnWriteArrayList() }
     }
 
-    fun get(key: String, quirksMode: QuirksMode): Option<List<Rule>> {
+    fun get(key: String, quirksMode: QuirksMode): List<Rule>? {
         return if (quirksMode == QuirksMode.QUIRKS) {
-            map[key.toLowerCase()].into()
+            map[key.toLowerCase()]
         } else {
-            map[key].into()
+            map[key]
         }
     }
 

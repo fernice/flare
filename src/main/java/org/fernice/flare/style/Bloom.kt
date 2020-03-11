@@ -5,14 +5,13 @@
  */
 package org.fernice.flare.style
 
-import org.fernice.flare.dom.Element
-import org.fernice.flare.selector.BloomFilter
-import org.fernice.flare.selector.CountingBloomFilter
 import fernice.std.None
 import fernice.std.Option
 import fernice.std.Some
-import fernice.std.ifLet
 import fernice.std.unwrap
+import org.fernice.flare.dom.Element
+import org.fernice.flare.selector.BloomFilter
+import org.fernice.flare.selector.CountingBloomFilter
 import java.util.Stack
 
 class StyleBloom(
@@ -36,17 +35,17 @@ class StyleBloom(
     }
 
     private fun forEachHash(element: Element, function: (Int) -> Unit) {
-        element.namespace().ifLet { namespace ->
+        element.namespace?.let { namespace ->
             function(namespace.hashCode())
         }
 
-        function(element.localName().hashCode())
+        function(element.localName.hashCode())
 
-        element.id().ifLet { id ->
+        element.id?.let { id ->
             function(id.hashCode())
         }
 
-        for (styleClass in element.classes()) {
+        for (styleClass in element.classes) {
             function(styleClass.hashCode())
         }
     }
@@ -90,14 +89,9 @@ class StyleBloom(
 
         loop@
         while (true) {
-            when (val parent = current.traversalParent()) {
-                is Some -> {
-                    parentsReversed.add(0, parent.value)
+            current = current.traversalParent ?: break
 
-                    current = parent.value
-                }
-                is None -> break@loop
-            }
+            parentsReversed.add(0, current)
         }
 
         for (parent in parentsReversed) {
@@ -112,18 +106,11 @@ class StyleBloom(
 
         loop@
         while (true) {
-            when (val parent = current.traversalParent()) {
-                is Some -> {
-                    parentsReversed.add(0, parent.value)
+            current = current.traversalParent ?: break
 
-                    if (destination == parent.value) {
-                        break@loop
-                    } else {
-                        current = parent.value
-                    }
-                }
-                is None -> break@loop
-            }
+            parentsReversed.add(0, current)
+
+            if (destination === current) break
         }
 
         for (parent in parentsReversed) {
@@ -145,13 +132,7 @@ class StyleBloom(
             return
         }
 
-        val traversalParent = when (val traversalParentOption = element.traversalParent()) {
-            is Some -> traversalParentOption.value
-            is None -> {
-                clear()
-                return
-            }
-        }
+        val traversalParent = element.traversalParent ?: return clear()
 
         // Current parent is present as stack is not empty
         if (currentParent().unwrap() == traversalParent) {
