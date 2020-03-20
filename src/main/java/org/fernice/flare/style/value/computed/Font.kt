@@ -7,7 +7,6 @@ package org.fernice.flare.style.value.computed
 
 import fernice.std.Err
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
@@ -28,7 +27,7 @@ data class FontWeight(val value: Float) {
         }
     }
 
-    fun lighter():FontWeight {
+    fun lighter(): FontWeight {
         return when {
             value < 550 -> FontWeight(value.min(100f))
             value < 750 -> FontWeight(400f)
@@ -53,8 +52,8 @@ sealed class SingleFontFamily : ToCss {
 
     final override fun toCss(writer: Writer) {
         when (this) {
-            is SingleFontFamily.FamilyName -> name.toCss(writer)
-            is SingleFontFamily.Generic -> writer.append(name)
+            is FamilyName -> name.toCss(writer)
+            is Generic -> writer.append(name)
         }
     }
 
@@ -73,9 +72,7 @@ sealed class SingleFontFamily : ToCss {
                 )
             }
 
-            val identifierResult = input.expectIdentifier()
-
-            val identifier = when (identifierResult) {
+            val identifier = when (val identifierResult = input.expectIdentifier()) {
                 is Ok -> identifierResult.value
                 is Err -> return identifierResult
             }
@@ -98,9 +95,7 @@ sealed class SingleFontFamily : ToCss {
             var value = identifier
 
             if (cssWideKeyword) {
-                val followupResult = input.expectIdentifier()
-
-                val followup = when (followupResult) {
+                val followup = when (val followupResult = input.expectIdentifier()) {
                     is Ok -> followupResult.value
                     is Err -> return followupResult
                 }
@@ -110,9 +105,7 @@ sealed class SingleFontFamily : ToCss {
 
             loop@
             while (true) {
-                val nextResult = input.tryParse(Parser::expectIdentifier)
-
-                val next = when (nextResult) {
+                val next = when (val nextResult = input.tryParse(Parser::expectIdentifier)) {
                     is Ok -> nextResult.value
                     is Err -> break@loop
                 }
@@ -145,7 +138,7 @@ data class FamilyName(val value: String) : ToCss {
 
 data class FontSize(
     val size: NonNegativeLength,
-    val keywordInfo: Option<KeywordInfo>
+    val keywordInfo: KeywordInfo?
 ) : ComputedValue {
 
     fun size(): Au {

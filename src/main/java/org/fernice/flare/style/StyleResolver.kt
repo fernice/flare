@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.style
 
-import fernice.std.Some
 import org.fernice.flare.ApplicableDeclarationBlock
 import org.fernice.flare.dom.Element
 import org.fernice.flare.selector.MatchingContext
@@ -88,7 +87,7 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
 
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
-            Some(bloomFilter),
+            bloomFilter,
             QuirksMode.NO_QUIRKS
         )
 
@@ -144,7 +143,7 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
 
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
-            Some(bloomFilter),
+            bloomFilter,
             QuirksMode.NO_QUIRKS
         )
 

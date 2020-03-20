@@ -18,6 +18,8 @@ import org.fernice.flare.style.properties.parsePropertyDeclarationList
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
+import org.fernice.flare.cssparser.toCssString
+import java.net.URI
 
 class AtRulePrelude
 
@@ -27,14 +29,27 @@ sealed class CssRule {
 
     class AtRule : CssRule()
 
-    class Style(val styleRule: StyleRule) : CssRule()
+    data class Style(val styleRule: StyleRule) : CssRule()
+
+    override fun toString(): String {
+        return when(this){
+            is AtRule -> "CssRule::AtRule"
+            is Style -> "CssRule::Style($styleRule)"
+        }
+    }
 }
 
 class StyleRule(
     val selectors: SelectorList,
     val declarations: PropertyDeclarationBlock,
-    val location: SourceLocation
-)
+    val location: SourceLocation,
+    val source: URI?
+) {
+
+    override fun toString(): String {
+        return "StyleRule(${selectors.toCssString()}, ${declarations.count} declarations, location: $location source: $source)"
+    }
+}
 
 class TopLevelRuleParser(private val context: ParserContext) : AtRuleParser<AtRulePrelude, CssRule>, QualifiedRuleParser<QualifiedRulePrelude, CssRule> {
 
@@ -73,7 +88,8 @@ class NestedRuleParser(private val context: ParserContext) : AtRuleParser<AtRule
                 StyleRule(
                     prelude.selectors,
                     declarations,
-                    prelude.location
+                    prelude.location,
+                    context.source
                 )
             )
         )

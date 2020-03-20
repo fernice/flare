@@ -249,14 +249,14 @@ fun cascade(
 ): ComputedValues {
 
     val sequence = ruleNode.selfAndAncestors().flatMap { node ->
-        val level = node.cascadeLevel()
+        val level = node.level
 
         val declarations = when (val source = node.source) {
             null -> DeclarationImportanceSequence(emptySequence())
             else -> source.declarations().reversedDeclarationImportanceSequence()
         }
 
-        val nodeImportance = node.importance()
+        val nodeImportance = node.importance
 
         declarations.filter { (_, importance) -> importance == nodeImportance }
             .map { (declaration, _) -> DeclarationAndCascadeLevel(declaration, level) }

@@ -57,21 +57,21 @@ class PerOrigin<E>(
         }
     }
 
-    fun iterator(): PerOriginIter<E> {
+    fun iterator(): PerOriginIterator<E> {
         val indices = Origin.values().indices
-        return PerOriginIter(this, indices.iterator())
+        return PerOriginIterator(this, indices.iterator())
     }
 
-    fun reversedIterator(): PerOriginIter<E> {
+    fun reversedIterator(): PerOriginIterator<E> {
         val indices = Origin.values().indices.reversed()
-        return PerOriginIter(
+        return PerOriginIterator(
             this,
             indices.iterator()
         )
     }
 }
 
-class PerOriginIter<E>(
+class PerOriginIterator<E>(
     private val perOrigin: PerOrigin<E>,
     private val iterator: Iterator<Int>
 ) : Iterator<E> {

@@ -10,6 +10,7 @@ import fernice.std.None
 import fernice.std.Ok
 import fernice.std.Result
 import fernice.std.Some
+import mu.KotlinLogging
 import org.fernice.flare.cssparser.AtRuleParser
 import org.fernice.flare.cssparser.DeclarationListParser
 import org.fernice.flare.cssparser.DeclarationParser
@@ -21,7 +22,6 @@ import org.fernice.flare.cssparser.parseImportant
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.stylesheet.AtRulePrelude
 import java.util.BitSet
-import java.util.stream.Stream
 
 enum class Importance {
 
@@ -51,10 +51,6 @@ data class PropertyDeclarationBlock(
         return !importance.isEmpty
     }
 
-    fun stream(): Stream<PropertyDeclaration> {
-        return declarations.reversed().stream()
-    }
-
     fun reversedDeclarationImportanceSequence(): DeclarationImportanceSequence {
         return DeclarationImportanceSequence.reversed(declarations, importance)
     }
@@ -62,6 +58,8 @@ data class PropertyDeclarationBlock(
     fun declarationImportanceSequence(): DeclarationImportanceSequence {
         return DeclarationImportanceSequence.new(declarations, importance)
     }
+
+    val count: Int get() = declarations.size
 }
 
 class DeclarationImportanceSequence(private val sequence: Sequence<DeclarationAndImportance>) : Sequence<DeclarationAndImportance> by sequence {
@@ -106,12 +104,8 @@ fun parsePropertyDeclarationList(context: ParserContext, input: Parser): Propert
         }
 
         when (result) {
-            is Ok -> {
-                block.expand(declarations, result.value)
-            }
-            is Err -> {
-                println("declaration parse error: ${result.value.error} '${result.value.slice}'")
-            }
+            is Ok -> block.expand(declarations, result.value)
+            is Err -> LOG.warn("declaration parse error: ${result.value.error} '${result.value.slice}'")
         }
 
         declarations.clear()
@@ -156,3 +150,5 @@ class PropertyDeclarationParser(private val context: ParserContext, private val 
         return Ok(importance)
     }
 }
+
+private val LOG = KotlinLogging.logger { }

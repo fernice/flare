@@ -12,6 +12,7 @@ import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
 import fernice.std.unwrap
+import mu.KotlinLogging
 import org.fernice.flare.std.systemFlag
 import java.util.Stack
 
@@ -31,22 +32,6 @@ class Tokenizer private constructor(
     private var state: State
 ) {
 
-    companion object {
-
-        /**
-         * Create a new Tokenizer using the specified [text] as the input for the token stream.
-         */
-        fun new(text: String): Tokenizer {
-            val lexer = Lexer(Reader(text))
-
-            return Tokenizer(
-                text,
-                lexer,
-                State.next(lexer)
-            )
-        }
-    }
-
     init {
         if (print_token) {
             var iter = state
@@ -56,7 +41,7 @@ class Tokenizer private constructor(
                     break
                 }
 
-                println("${iter.token} ${iter.sourceLocation}")
+                LOG.trace("${iter.token} ${iter.sourceLocation}")
 
                 iter = when (val next = iter.next) {
                     is None -> {
@@ -230,6 +215,25 @@ class Tokenizer private constructor(
 
     override fun toString(): String {
         return "Tokenizer($state)"
+    }
+
+
+    companion object {
+
+        /**
+         * Create a new Tokenizer using the specified [text] as the input for the token stream.
+         */
+        fun new(text: String): Tokenizer {
+            val lexer = Lexer(Reader(text))
+
+            return Tokenizer(
+                text,
+                lexer,
+                State.next(lexer)
+            )
+        }
+
+        private val LOG = KotlinLogging.logger { }
     }
 }
 

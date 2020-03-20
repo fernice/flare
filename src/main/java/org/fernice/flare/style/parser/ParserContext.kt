@@ -9,11 +9,13 @@ import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.url.Url
 import fernice.std.Result
+import java.net.URI
 
 class ParserContext(
     val parseMode: ParseMode,
     val quirksMode: QuirksMode,
-    val baseUrl: Url
+    val baseUrl: Url,
+    val source: URI? = null
 )
 
 interface Parse<T> {

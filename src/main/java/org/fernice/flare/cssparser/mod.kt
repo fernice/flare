@@ -20,19 +20,19 @@ interface ToCss {
      * possible into the [writer].
      */
     fun toCss(writer: Writer)
+}
 
-    /**
-     * Returns a representation of the object in a valid CSS syntax as true to original parsed text as
-     * possible.
-     *
-     * This is a convenience method and should not be overridden. See [toCss] for the actual
-     * implementation.
-     */
-    fun toCssString(): String {
-        val writer = StringWriter()
-        toCss(writer)
-        return writer.toString()
-    }
+/**
+ * Returns a representation of the object in a valid CSS syntax as true to original parsed text as
+ * possible.
+ *
+ * This is a convenience method and should not be overridden. See [toCss] for the actual
+ * implementation.
+ */
+fun ToCss.toCssString(): String {
+    val writer = StringWriter()
+    toCss(writer)
+    return writer.toString()
 }
 
 /**
@@ -40,6 +40,21 @@ interface ToCss {
  * [ToCss.toCss] method for each element while separating the output using the specified [separator].
  */
 fun <T : ToCss> Iterable<T>.toCssJoining(writer: Writer, separator: String = "") {
+    var later = false
+    for (element in this) {
+        if (later) {
+            writer.append(separator)
+        }
+        later = true
+        element.toCss(writer)
+    }
+}
+
+/**
+ * Assistance method to write a list of [ToCss] marked objects into a [writer] by invoking the
+ * [ToCss.toCss] method for each element while separating the output using the specified [separator].
+ */
+fun <T : ToCss> Iterator<T>.toCssJoining(writer: Writer, separator: String = "") {
     var later = false
     for (element in this) {
         if (later) {

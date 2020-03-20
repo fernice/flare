@@ -6,12 +6,9 @@
 package org.fernice.flare.style.value.specified
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
-import fernice.std.map
 import fernice.std.mapOr
 import fernice.std.unwrap
 import fernice.std.unwrapOr
@@ -33,10 +30,10 @@ import org.fernice.flare.style.value.FontBaseSize
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.computed.Au
 import org.fernice.flare.style.value.computed.FontFamilyList
+import org.fernice.flare.style.value.computed.NonNegativeLength
 import org.fernice.flare.style.value.computed.PixelLength
 import org.fernice.flare.style.value.computed.SingleFontFamily
 import org.fernice.flare.style.value.computed.intoNonNegative
-import org.fernice.flare.style.value.computed.NonNegativeLength
 import java.io.Writer
 import org.fernice.flare.style.value.computed.FontFamily as ComputedFontFamily
 import org.fernice.flare.style.value.computed.FontSize as ComputedFontSize
@@ -51,10 +48,10 @@ sealed class FontWeight : SpecifiedValue<ComputedFontWeight> {
     object Lighter : FontWeight()
 
     final override fun toComputedValue(context: Context): ComputedFontWeight {
-        return when(this){
-            is FontWeight.Absolute -> value.toComputedValue(context)
-            is FontWeight.Bolder -> context.builder.getParentFont().fontWeight.lighter()
-            is FontWeight.Lighter -> context.builder.getParentFont().fontWeight.bolder()
+        return when (this) {
+            is Absolute -> value.toComputedValue(context)
+            is Bolder -> context.builder.getParentFont().fontWeight.lighter()
+            is Lighter -> context.builder.getParentFont().fontWeight.bolder()
         }
     }
 
@@ -62,7 +59,7 @@ sealed class FontWeight : SpecifiedValue<ComputedFontWeight> {
 
         fun parse(context: ParserContext, input: Parser): Result<FontWeight, ParseError> {
             when (val result = input.tryParse { parser -> AbsoluteFontWeight.parse(context, parser) }) {
-                is Ok -> return Ok(FontWeight.Absolute(result.value))
+                is Ok -> return Ok(Absolute(result.value))
             }
 
             val location = input.sourceLocation()
@@ -73,8 +70,8 @@ sealed class FontWeight : SpecifiedValue<ComputedFontWeight> {
 
             return Ok(
                 when (ident.toLowerCase()) {
-                    "bolder" -> FontWeight.Bolder
-                    "lighter" -> FontWeight.Lighter
+                    "bolder" -> Bolder
+                    "lighter" -> Lighter
                     else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
                 }
             )
@@ -94,10 +91,10 @@ sealed class AbsoluteFontWeight : SpecifiedValue<ComputedFontWeight> {
     object Bold : AbsoluteFontWeight()
 
     override fun toComputedValue(context: Context): ComputedFontWeight {
-        return when(this){
-            is AbsoluteFontWeight.Weight -> ComputedFontWeight(value.value.max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT))
-            is AbsoluteFontWeight.Normal -> ComputedFontWeight.Normal
-            is AbsoluteFontWeight.Bold -> ComputedFontWeight.Bold
+        return when (this) {
+            is Weight -> ComputedFontWeight(value.value.max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT))
+            is Normal -> ComputedFontWeight.Normal
+            is Bold -> ComputedFontWeight.Bold
         }
     }
 
@@ -111,7 +108,7 @@ sealed class AbsoluteFontWeight : SpecifiedValue<ComputedFontWeight> {
                     if (!number.wasCalc() && (number.value < MIN_FONT_WEIGHT || number.value > MAX_FONT_WEIGHT)) {
                         return Err(input.newError(ParseErrorKind.Unspecified))
                     }
-                    return Ok(AbsoluteFontWeight.Weight(number))
+                    return Ok(Weight(number))
                 }
             }
 
@@ -123,8 +120,8 @@ sealed class AbsoluteFontWeight : SpecifiedValue<ComputedFontWeight> {
 
             return Ok(
                 when (ident.toLowerCase()) {
-                    "normal" -> AbsoluteFontWeight.Normal
-                    "bold" -> AbsoluteFontWeight.Bold
+                    "normal" -> Normal
+                    "bold" -> Bold
                     else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
                 }
             )
@@ -138,13 +135,13 @@ sealed class FontFamily : SpecifiedValue<ComputedFontFamily>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedFontFamily {
         return when (this) {
-            is FontFamily.Values -> ComputedFontFamily(values)
+            is Values -> ComputedFontFamily(values)
         }
     }
 
     override fun toCss(writer: Writer) {
         when (this) {
-            is FontFamily.Values -> values.toCssJoining(writer, ", ")
+            is Values -> values.toCssJoining(writer, ", ")
         }
     }
 
@@ -152,7 +149,7 @@ sealed class FontFamily : SpecifiedValue<ComputedFontFamily>, ToCss {
 
         fun parse(input: Parser): Result<FontFamily, ParseError> {
             return input.parseCommaSeparated(SingleFontFamily.Contract::parse)
-                .map { values -> FontFamily.Values(FontFamilyList(values)) }
+                .map { values -> Values(FontFamilyList(values)) }
         }
     }
 }
@@ -168,18 +165,18 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
     object Larger : FontSize()
 
     fun toComputedValueAgainst(context: Context, baseSize: FontBaseSize): ComputedFontSize {
-        fun composeKeyword(context: Context, factor: Float): Option<KeywordInfo> {
+        fun composeKeyword(context: Context, factor: Float): KeywordInfo? {
             return context
                 .style()
                 .getParentFont()
                 .fontSize
                 .keywordInfo
-                .map { info -> info.compose(factor, Au(0).intoNonNegative()) }
+                ?.compose(factor, Au(0).intoNonNegative())
         }
 
         return when (this) {
-            is FontSize.Length -> {
-                var info: Option<KeywordInfo> = None
+            is Length -> {
+                var info: KeywordInfo? = null
 
                 val size = when (lop) {
                     is LengthOrPercentage.Length -> {
@@ -204,14 +201,14 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
                         val calc = lop.calc
                         val parent = context.style().getParentFont().fontSize
 
-                        if (calc.em.isSome() || calc.percentage.isSome() && parent.keywordInfo.isSome()) {
+                        if (calc.em.isSome() || calc.percentage.isSome() && parent.keywordInfo != null) {
                             val ratio = calc.em.unwrapOr(0f) + calc.percentage.mapOr({ p -> p.value }, 0f)
 
                             val abs = calc.toComputedValue(context, FontBaseSize.InheritStyleButStripEmUnits)
                                 .lengthComponent()
                                 .intoNonNegative()
 
-                            info = parent.keywordInfo.map { i -> i.compose(ratio, abs) }
+                            info = parent.keywordInfo?.compose(ratio, abs)
                         }
 
                         val computed = calc.toComputedValue(context, baseSize)
@@ -226,13 +223,13 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
                     info
                 )
             }
-            is FontSize.Keyword -> {
+            is Keyword -> {
                 ComputedFontSize(
                     keyword.toComputedValue(context),
-                    Some(keyword)
+                    keyword
                 )
             }
-            is FontSize.Smaller -> {
+            is Smaller -> {
                 ComputedFontSize(
                     FontRelativeLength.Em(1f / LARGE_FONT_SIZE_RATION)
                         .toComputedValue(context, baseSize)
@@ -240,7 +237,7 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
                     composeKeyword(context, 1f / LARGE_FONT_SIZE_RATION)
                 )
             }
-            is FontSize.Larger -> ComputedFontSize(
+            is Larger -> ComputedFontSize(
                 FontRelativeLength.Em(LARGE_FONT_SIZE_RATION)
                     .toComputedValue(context, baseSize)
                     .intoNonNegative(),
@@ -255,10 +252,10 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
 
     final override fun toCss(writer: Writer) {
         when (this) {
-            is FontSize.Length -> lop.toCss(writer)
-            is FontSize.Keyword -> keyword.toCss(writer)
-            is FontSize.Larger -> writer.append("larger")
-            is FontSize.Smaller -> writer.append("smaller")
+            is Length -> lop.toCss(writer)
+            is Keyword -> keyword.toCss(writer)
+            is Larger -> writer.append("larger")
+            is Smaller -> writer.append("smaller")
         }
     }
 
@@ -364,13 +361,13 @@ sealed class KeywordSize : SpecifiedValue<NonNegativeLength>, ToCss {
     final override fun toCss(writer: Writer) {
         writer.append(
             when (this) {
-                is KeywordSize.XXSmall -> "xx-small"
-                is KeywordSize.XSmall -> "x-small"
-                is KeywordSize.Small -> "small"
-                is KeywordSize.Medium -> "medium"
-                is KeywordSize.Large -> "large"
-                is KeywordSize.XLarge -> "x-large"
-                is KeywordSize.XXLarge -> "xx-large"
+                is XXSmall -> "xx-small"
+                is XSmall -> "x-small"
+                is Small -> "small"
+                is Medium -> "medium"
+                is Large -> "large"
+                is XLarge -> "x-large"
+                is XXLarge -> "xx-large"
             }
         )
     }

@@ -14,7 +14,6 @@ import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newError
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.cssparser.parseNth
-import org.fernice.flare.std.iter.Iter
 import org.fernice.flare.style.parser.QuirksMode
 import fernice.std.Err
 import fernice.std.None
@@ -23,7 +22,6 @@ import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
 import fernice.std.let
-import fernice.std.mapOr
 
 /**
  * The selector specific error kinds
@@ -68,9 +66,7 @@ fun parseSelector(context: SelectorParserContext, input: Parser): Result<Selecto
 
     outer@
     while (true) {
-        val compoundResult = parseCompoundSelector(context, input, builder)
-
-        val compoundOption = when (compoundResult) {
+        val compoundOption = when (val compoundResult = parseCompoundSelector(context, input, builder)) {
             is Ok -> compoundResult.value
             is Err -> return compoundResult
         }
@@ -146,9 +142,7 @@ private fun parseCompoundSelector(
     var empty = true
     var pseudo = false
 
-    val typeSelectorResult = parseTypeSelector(context, input, builder::pushSimpleSelector)
-
-    when (typeSelectorResult) {
+    when (val typeSelectorResult = parseTypeSelector(context, input, builder::pushSimpleSelector)) {
         is Ok -> {
             if (!typeSelectorResult.value) {
                 context.defaultNamespace().let {
@@ -303,8 +297,7 @@ private fun parseTypeSelector(
                     sink(Component.ExplicitNoNamespace)
                 }
                 is QualifiedNamePrefix.ExplicitAnyNamespace -> {
-                    val defaultNamespace = context.defaultNamespace()
-                    when (defaultNamespace) {
+                    when (val defaultNamespace = context.defaultNamespace()) {
                         is Some -> {
                             sink(Component.DefaultNamespace(defaultNamespace.value))
                         }
@@ -537,9 +530,7 @@ private fun parseOneSimpleSelector(
             }
         }
         is Token.LBracket -> {
-            val attributeSelector = input.parseNestedBlock { parseAttributeSelector(context, it) }
-
-            return when (attributeSelector) {
+            return when (val attributeSelector = input.parseNestedBlock { parseAttributeSelector(context, it) }) {
                 is Ok -> Ok(Some(SimpleSelectorParseResult.SimpleSelector(attributeSelector.value)))
                 is Err -> attributeSelector
             }
@@ -654,9 +645,7 @@ private fun parseFunctionalPseudoClass(
 }
 
 private fun parseNthPseudoClass(input: Parser, wrapper: (Nth) -> Component): Result<Component, ParseError> {
-    val nthResult = parseNth(input)
-
-    return when (nthResult) {
+    return when (val nthResult = parseNth(input)) {
         is Ok -> Ok(wrapper(nthResult.value))
         is Err -> nthResult
     }
@@ -733,9 +722,7 @@ private fun parseNegation(context: SelectorParserContext, input: Parser): Result
     if (!parsed) {
         val selector = when (val selector = parseOneSimpleSelector(context, input, true)) {
             is Ok -> {
-                val option = selector.value
-
-                when (option) {
+                when (val option = selector.value) {
                     is Some -> option.value
                     is None -> return Err(input.newError(SelectorParseErrorKind.EmptyNegation))
                 }
@@ -850,9 +837,7 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
         is AttributeSelectorOperator.Suffix -> value.isEmpty()
     }
 
-    val flagResult = parseAttributeSelectorFlags(input)
-
-    val caseSensitive = when (flagResult) {
+    val caseSensitive = when (val flagResult = parseAttributeSelectorFlags(input)) {
         is Ok -> flagResult.value
         is Err -> return flagResult
     }
@@ -913,24 +898,16 @@ class AncestorHashes(val packedHashes: IntArray) {
 
     companion object {
 
-        fun new(selector: Selector, quirksMode: QuirksMode): AncestorHashes {
-            return fromIter(selector.iter(), quirksMode)
-        }
-
-        private fun fromIter(selector: SelectorIter, quirksMode: QuirksMode): AncestorHashes {
-            val iter = AncestorIter.new(selector).filterMap { component -> component.ancestorHash(quirksMode) }
-
+        fun fromSelector(selector: Selector, quirksMode: QuirksMode): AncestorHashes {
+            // compute the ancestor hashes lazily to prevent overhead
             val hashes = IntArray(4)
+            AncestorIterator.fromSelector(selector)
+                .asSequence()
+                .mapNotNull { component -> component.ancestorHash(quirksMode) }
+                .take(4)
+                .forEachIndexed { index, ancestorHash -> hashes[index] = ancestorHash and HASH_BLOOM_MASK }
 
-            loop@
-            for (i in 0..4) {
-                val hash = iter.next()
-                when (hash) {
-                    is Some -> hashes[i] = hash.value and HASH_BLOOM_MASK
-                    is None -> break@loop
-                }
-            }
-
+            // pack the fourth hash into the upper bytes of the first three
             val fourth = hashes[3]
             if (fourth != 0) {
                 hashes[0] = hashes[0] or ((fourth and 0x000000ff) shl 24)
@@ -944,7 +921,6 @@ class AncestorHashes(val packedHashes: IntArray) {
         }
     }
 
-
     fun fourthHash(): Int {
         return ((packedHashes[0] and UPPER_EIGHT_BIT_MASK) ushr 24) or
                 ((packedHashes[0] and UPPER_EIGHT_BIT_MASK) ushr 16) or
@@ -956,51 +932,46 @@ internal fun hashString(string: String): Int {
     return string.hashCode()
 }
 
-class AncestorIter private constructor(private val iter: SelectorIter) : Iter<Component> {
+class AncestorIterator private constructor(private val iterator: SelectorIterator) : Iterator<Component> {
 
     companion object {
-        fun new(selector: SelectorIter): AncestorIter {
-            val iter = AncestorIter(selector)
-            iter.skipUntilAncestor()
-            return iter
-        }
-    }
 
-    private fun skipUntilAncestor() {
-        while (true) {
-            while (iter.next().isSome()) {
-            }
-
-            val ancestor = iter.nextSequence().mapOr({ combinator ->
-                combinator is Combinator.Child || combinator is Combinator.Descendant
-            }, true)
-
-            if (ancestor) {
-                break
-            }
-        }
-    }
-
-    override fun next(): Option<Component> {
-        val next = iter.next()
-        if (next is Some) {
-            return next
+        fun fromSelector(selector: Selector): AncestorIterator {
+            val iterator = selector.iterator()
+            skipUntilAncestor(iterator)
+            return AncestorIterator(iterator)
         }
 
-        val combinator = iter.nextSequence()
-        if (combinator is Some) {
-            when (combinator.value) {
-                is Combinator.Child,
-                is Combinator.Descendant -> skipUntilAncestor()
-                else -> {
+        private fun skipUntilAncestor(iterator: SelectorIterator) {
+            while (true) {
+                // skip all component of this compound selector
+                while (iterator.hasNext()) {
+                    iterator.next()
                 }
+
+                // check whether there are any more compound selectors
+                if (!iterator.hasNextSequence()) break
+
+                val combinator = iterator.nextSequence()
+
+                // stop if as soon as we reach an ancestor compound selector
+                if (combinator is Combinator.Child || combinator is Combinator.Descendant) break
             }
         }
-
-        return iter.next()
     }
 
-    override fun clone(): Iter<Component> {
-        return AncestorIter(iter.clone())
+    override fun hasNext(): Boolean {
+        // evaluate if there are any remaining components in compound selector
+        if (iterator.hasNext()) return true
+
+        // advance the sequence and skip all sibling compound selectors
+        if (!iterator.hasNextSequence()) return false
+        val combinator = iterator.nextSequence()
+        if (combinator !is Combinator.Child || combinator !is Combinator.Descendant) skipUntilAncestor(iterator)
+
+        // reevaluate if there are any remaining components in compound selector
+        return iterator.hasNext()
     }
+
+    override fun next(): Component = iterator.next()
 }
