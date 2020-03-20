@@ -5,9 +5,6 @@
  */
 package org.fernice.flare.selector
 
-import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
 import org.fernice.flare.ApplicableDeclarationBlock
 import org.fernice.flare.dom.Element
 import org.fernice.flare.style.Rule
@@ -97,63 +94,49 @@ class SelectorMap {
         cascadeLevel: CascadeLevel
     ) {
         for (rule in rules) {
-            if (matchesSelector(rule.selector, Some(rule.hashes), element, context)) {
+            if (matchesSelector(rule.selector, rule.hashes, element, context)) {
                 matchingRules.add(rule.toApplicableDeclaration(cascadeLevel))
             }
         }
     }
 
     fun insert(rule: Rule) {
-        val bucket = findBucket(rule.selector.iter())
-
-        val list = when (bucket) {
-            is Some -> {
-                when (val component = bucket.value) {
-                    is Component.ID -> idHash.entry(component.id)
-                    is Component.Class -> classHash.entry(component.styleClass)
-                    is Component.LocalName -> {
-                        if (component.localName != component.localNameLower) {
-                            localNameHash.entry(component.localNameLower)
-                        } else {
-                            localNameHash.entry(component.localName)
-                        }
-                    }
-                    else -> throw IllegalStateException("unreachable")
+        val list = when (val bucket = findBucket(rule.selector.iterator())) {
+            is Component.ID -> idHash.entry(bucket.id)
+            is Component.Class -> classHash.entry(bucket.styleClass)
+            is Component.LocalName -> {
+                if (bucket.localName != bucket.localNameLower) {
+                    localNameHash.entry(bucket.localNameLower)
+                } else {
+                    localNameHash.entry(bucket.localName)
                 }
             }
-            is None -> {
-                other
-            }
+            null -> other
+            else -> error("unsupported bucket type: ${bucket::class.java.name}")
         }
 
         list.add(rule)
         count++
     }
 
-    private fun findBucket(iter: SelectorIter): Option<Component> {
-        var bucket: Option<Component> = None
+    private fun findBucket(iterator: SelectorIterator): Component? {
+        var bucket: Component? = null
         while (true) {
-            for (component in iter) {
+            for (component in iterator) {
                 when (component) {
-                    is Component.ID -> return Some(component)
-                    is Component.Class -> bucket = Some(component)
-                    is Component.LocalName -> {
-                        if (bucket.isNone()) {
-                            bucket = Some(component)
-                        }
-                    }
-                    is Component.Negation -> findBucket(component.iter())
+                    is Component.ID -> return component
+                    is Component.Class -> bucket = component
+                    is Component.LocalName -> if (bucket == null) bucket = component
+                    is Component.Negation -> if (bucket == null) bucket = findBucket(component.iterator())
                     else -> {
                     }
                 }
             }
 
-            val next = iter.nextSequence()
-            if (next.isNone() || next is Some && next.value !is Combinator.PseudoElement) {
-                break
-            }
+            if (!iterator.hasNextSequence()) break
+            val combinator = iterator.nextSequence()
+            if (combinator !is Combinator.PseudoElement) break
         }
-
         return bucket
     }
 

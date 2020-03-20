@@ -5,18 +5,17 @@
  */
 package org.fernice.flare.style.value.specified
 
+import fernice.std.Err
+import fernice.std.Ok
+import fernice.std.Result
+import fernice.std.toNullable
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.RGBA
+import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Option
-import fernice.std.Result
-import fernice.std.Some
-import org.fernice.flare.cssparser.ToCss
 import java.io.Writer
 import org.fernice.flare.cssparser.Color as ParserColor
 import org.fernice.flare.style.value.computed.Color as ComputedColor
@@ -24,26 +23,26 @@ import org.fernice.flare.style.value.computed.RGBAColor as ComputedColorProperty
 
 sealed class Color : SpecifiedValue<ComputedColor>, ToCss {
 
-    data class RGBA(val rgba: org.fernice.flare.cssparser.RGBA, val keyword: Option<String>) : Color()
+    data class RGBA(val rgba: org.fernice.flare.cssparser.RGBA, val keyword: String?) : Color()
     object CurrentColor : Color()
 
     final override fun toComputedValue(context: Context): ComputedColor {
         return when (this) {
-            is Color.RGBA -> ComputedColor.RGBA(rgba)
-            is Color.CurrentColor -> ComputedColor.CurrentColor
+            is RGBA -> ComputedColor.RGBA(rgba)
+            is CurrentColor -> ComputedColor.CurrentColor
         }
     }
 
     override fun toCss(writer: Writer) {
         when (this) {
-            is Color.RGBA -> {
-                if (keyword is Some) {
-                    writer.append(keyword.value)
+            is RGBA -> {
+                if (keyword != null) {
+                    writer.append(keyword)
                 } else {
                     rgba.toCss(writer)
                 }
             }
-            is Color.CurrentColor -> writer.append("currentcolor")
+            is CurrentColor -> writer.append("currentcolor")
         }
     }
 
@@ -60,15 +59,15 @@ sealed class Color : SpecifiedValue<ComputedColor>, ToCss {
             }
 
             return when (color) {
-                is ParserColor.RGBA -> Ok(RGBA(color.rgba, keyword))
+                is ParserColor.RGBA -> Ok(RGBA(color.rgba, keyword.toNullable()))
                 is ParserColor.CurrentColor -> Ok(CurrentColor)
             }
         }
 
         private val transparent: Color by lazy {
-            Color.RGBA(
-                org.fernice.flare.cssparser.RGBA(0, 0, 0, 0),
-                Some("transparent")
+            RGBA(
+                RGBA(0, 0, 0, 0),
+                "transparent"
             )
         }
 

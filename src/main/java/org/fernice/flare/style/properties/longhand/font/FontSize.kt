@@ -6,7 +6,6 @@
 package org.fernice.flare.style.properties.longhand.font
 
 import fernice.std.Result
-import fernice.std.Some
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
@@ -68,12 +67,10 @@ class FontSizeDeclaration(val fontSize: FontSize) : PropertyDeclaration() {
         val initialValue: ComputedFontSize by lazy {
             ComputedFontSize(
                 NonNegativeLength.new(16f),
-                Some(
-                    KeywordInfo(
-                        KeywordSize.Medium,
-                        1f,
-                        NonNegativeLength.new(0f)
-                    )
+                KeywordInfo(
+                    KeywordSize.Medium,
+                    1f,
+                    NonNegativeLength.new(0f)
                 )
             )
         }

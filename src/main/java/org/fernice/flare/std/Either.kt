@@ -7,6 +7,16 @@ package org.fernice.flare.std
 
 sealed class Either<out A, out B>
 
-data class First<A>(val value: A) : Either<A, Nothing>()
+data class First<A>(val value: A) : Either<A, Nothing>() {
 
-data class Second<B>(val value: B) : Either<Nothing, B>()
+    override fun toString(): String {
+        return "First<$value>"
+    }
+}
+
+data class Second<B>(val value: B) : Either<Nothing, B>() {
+
+    override fun toString(): String {
+        return "Second<$value>"
+    }
+}

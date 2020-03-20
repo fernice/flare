@@ -6,7 +6,6 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.debugAssert
-import org.fernice.flare.std.iter.Iter
 import org.fernice.flare.std.iter.iter
 import fernice.std.None
 import fernice.std.Some
@@ -35,14 +34,14 @@ class SelectorBuilder {
     }
 
     fun hasDanglingCombinator(): Boolean {
-        return !combinators.isEmpty() && currentLength == 0
+        return combinators.isNotEmpty() && currentLength == 0
     }
 
     fun build(hasPseudoElement: Boolean): Selector {
         val specificity = if (hasPseudoElement) {
-            specificity(simpleSelectors.iter()) or PSEUDO_ELEMENT_BIT
+            specificity(simpleSelectors.iterator()) or PSEUDO_ELEMENT_BIT
         } else {
-            specificity(simpleSelectors.iter()) and PSEUDO_ELEMENT_BIT.inv()
+            specificity(simpleSelectors.iterator()) and PSEUDO_ELEMENT_BIT.inv()
         }
 
         return buildWithSpecificityAndFlags(SpecificityAndFlags(specificity))
@@ -92,7 +91,7 @@ private fun Specificity.into(): Int {
             (this.elementSelectors.min(MAX_10_BIT))
 }
 
-private fun specificity(iter: Iter<Component>): Int {
+private fun specificity(iterator: Iterator<Component>): Int {
     fun simpleSelectorSpecificity(simpleSelector: Component, specificity: Specificity) {
         when (simpleSelector) {
             is Component.Combinator -> throw IllegalStateException("unreachable")
@@ -129,7 +128,7 @@ private fun specificity(iter: Iter<Component>): Int {
             }
 
             is Component.Negation -> {
-                for (selector in simpleSelector.iter()) {
+                for (selector in simpleSelector.simpleSelector) {
                     simpleSelectorSpecificity(selector, specificity)
                 }
             }
@@ -140,7 +139,7 @@ private fun specificity(iter: Iter<Component>): Int {
     }
 
     val specificity = Specificity()
-    for (simpleSelector in iter) {
+    for (simpleSelector in iterator) {
         simpleSelectorSpecificity(simpleSelector, specificity)
     }
     return specificity.into()

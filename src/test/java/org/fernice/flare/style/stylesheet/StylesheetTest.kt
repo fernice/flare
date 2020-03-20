@@ -7,6 +7,7 @@ package org.fernice.flare.style.stylesheet
 
 import org.junit.BeforeClass
 import org.junit.Test
+import java.net.URI
 
 class StylesheetParseTest {
 
@@ -21,7 +22,7 @@ class StylesheetParseTest {
 
     @Test
     fun block() {
-        val stylesheet = Stylesheet.from("element > .p {\n background-attachment: fixed !important; background-color: #FFE }", Origin.AUTHOR)
+        val stylesheet = Stylesheet.from("element > .p {\n background-attachment: fixed !important; background-color: #FFE }", Origin.AUTHOR, URI("test"))
 
         println(stylesheet)
     }

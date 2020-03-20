@@ -6,11 +6,6 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.dom.Element
-import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
-import fernice.std.ifLet
-import fernice.std.unwrap
 
 /**
  * Checks if the [selector] matches the [element]. Performs a fast reject if both the [AncestorHashes]
@@ -19,20 +14,20 @@ import fernice.std.unwrap
  */
 fun matchesSelector(
     selector: Selector,
-    hashes: Option<AncestorHashes>,
+    hashes: AncestorHashes?,
     element: Element,
     context: MatchingContext
 ): Boolean {
 
-    hashes.ifLet { h ->
-        context.bloomFilter.ifLet { bf ->
-            if (!mayMatch(h, bf)) {
+    if (hashes != null) {
+        context.bloomFilter?.let { bloomFilter ->
+            if (!mayMatch(hashes, bloomFilter)) {
                 return false
             }
         }
     }
 
-    return matchesComplexSelector(selector.iter(), element, context)
+    return matchesComplexSelector(selector.iterator(), element, context)
 }
 
 /**
@@ -70,45 +65,34 @@ private enum class MatchResult {
 }
 
 private fun matchesComplexSelector(
-    iter: SelectorIter,
+    iterator: SelectorIterator,
     element: Element,
     context: MatchingContext
 ): Boolean {
-    val result = matchesComplexSelectorInternal(iter, element, context)
-
-    return when (result) {
+    return when (matchesComplexSelectorInternal(iterator, element, context)) {
         MatchResult.MATCHED -> true
         else -> false
     }
 }
 
 private fun matchesComplexSelectorInternal(
-    iter: SelectorIter,
+    iterator: SelectorIterator,
     element: Element,
     context: MatchingContext
 ): MatchResult {
-    val matchesCompoundSelector = matchesCompoundSelector(iter, element, context)
+    val matchesCompoundSelector = matchesCompoundSelector(iterator, element, context)
 
-    if (!matchesCompoundSelector) {
-        return MatchResult.NOT_MATCHED_RESTART_FROM_CLOSET_LATER_SIBLING
-    }
+    if (!matchesCompoundSelector) return MatchResult.NOT_MATCHED_RESTART_FROM_CLOSET_LATER_SIBLING
 
-
-    val combinator = when (val combinator = iter.nextSequence()) {
-        is Some -> combinator.value
-        is None -> return MatchResult.MATCHED
-    }
+    if (!iterator.hasNextSequence()) return MatchResult.MATCHED
+    val combinator = iterator.nextSequence()
 
     val candidateNotFound = when (combinator) {
         is Combinator.NextSibling,
-        is Combinator.LaterSibling -> {
-            MatchResult.NOT_MATCHED_RESTART_FROM_CLOSEST_DESCENDANT
-        }
+        is Combinator.LaterSibling -> MatchResult.NOT_MATCHED_RESTART_FROM_CLOSEST_DESCENDANT
         is Combinator.Descendant,
         is Combinator.Child,
-        is Combinator.PseudoElement -> {
-            MatchResult.NOT_MATCHED_GLOBALLY
-        }
+        is Combinator.PseudoElement -> MatchResult.NOT_MATCHED_GLOBALLY
     }
 
     var nextElement = nextElementForCombinator(element, combinator)
@@ -116,7 +100,7 @@ private fun matchesComplexSelectorInternal(
     while (true) {
         if (nextElement == null) return candidateNotFound
 
-        val result = matchesComplexSelectorInternal(iter.clone(), nextElement, context)
+        val result = matchesComplexSelectorInternal(iterator.clone(), nextElement, context)
 
         when {
             result == MatchResult.MATCHED ||
@@ -150,69 +134,35 @@ private fun matchesLocalName(element: Element, localName: String, localNameLower
     return element.localName == localName
 }
 
-private fun matchesCompoundSelector(iter: SelectorIter, element: Element, context: MatchingContext): Boolean {
-    var nextSelector = iter.next()
+private fun matchesCompoundSelector(iterator: SelectorIterator, element: Element, context: MatchingContext): Boolean {
+    var nextSelector = iterator.nextOrNull() ?: return true
 
-    nextSelector.ifLet { s ->
-        if (s is Component.LocalName) {
-            if (!matchesLocalName(element, s.localName, s.localNameLower)) {
-                return false
-            }
+    if (nextSelector is Component.LocalName) {
+        if (!matchesLocalName(element, nextSelector.localName, nextSelector.localNameLower)) return false
 
-            nextSelector = iter.next()
-        }
+        nextSelector = iterator.nextOrNull() ?: return true
     }
 
-    nextSelector.ifLet { s ->
-        if (s is Component.ID) {
-            if (!element.hasID(s.id)) {
-                return false
-            }
+    if (nextSelector is Component.ID) {
+        if (!element.hasID(nextSelector.id)) return false
 
-            nextSelector = iter.next()
-        }
+        nextSelector = iterator.nextOrNull() ?: return true
     }
 
-    nextSelector.ifLet { s ->
-        if (s is Component.ID) {
-            if (!element.hasID(s.id)) {
-                return false
-            }
-
-            nextSelector = iter.next()
-        }
-    }
-
-    loop@
     while (true) {
-        val selector = when (nextSelector) {
-            is Some -> nextSelector.unwrap()
-            is None -> break@loop
-        }
+        if (nextSelector is Component.Class) {
+            if (!element.hasClass(nextSelector.styleClass)) return false
 
-        if (selector is Component.Class) {
-            if (!element.hasClass(selector.styleClass)) {
-                return false
-            }
-
-            nextSelector = iter.next()
-        } else {
-            break@loop
+            nextSelector = iterator.nextOrNull() ?: return true
+            continue
         }
+        break
     }
 
-    loop@
     while (true) {
-        val selector = when (nextSelector) {
-            is Some -> nextSelector.unwrap()
-            is None -> return true
-        }
+        if (!matchesSimpleSelector(nextSelector, element, context)) return false
 
-        if (!matchesSimpleSelector(selector, element, context)) {
-            return false
-        }
-
-        nextSelector = iter.next()
+        nextSelector = iterator.nextOrNull() ?: return true
     }
 }
 
@@ -259,24 +209,12 @@ private fun matchesSimpleSelector(selector: Component, element: Element, context
                     matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = true)
         }
         is Component.Negation -> {
-            val iter = selector.iter()
+            val iterator = selector.iterator()
+            while (iterator.hasNext()) {
+                val nextSelector = iterator.next()
 
-            var nextSelector = iter.next()
-
-            loop@
-            while (true) {
-                val innerSelector = when (nextSelector) {
-                    is Some -> nextSelector.unwrap()
-                    is None -> break@loop
-                }
-
-                if (matchesSimpleSelector(innerSelector, element, context)) {
-                    return false
-                }
-
-                nextSelector = iter.next()
+                if (matchesSimpleSelector(nextSelector, element, context)) return false
             }
-
             true
         }
     }
@@ -339,3 +277,5 @@ private fun matchesLastChild(element: Element): Boolean {
 private fun matchesOnlyChild(element: Element): Boolean {
     return element.previousSibling == null && element.nextSibling == null
 }
+
+private fun <E : Any> Iterator<E>.nextOrNull(): E? = if (hasNext()) next() else null

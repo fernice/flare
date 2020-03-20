@@ -6,10 +6,9 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.style.parser.QuirksMode
-import fernice.std.Option
 
 class MatchingContext(
-    val bloomFilter: Option<BloomFilter>,
+    val bloomFilter: BloomFilter?,
     val quirksMode: QuirksMode
 ) {
 

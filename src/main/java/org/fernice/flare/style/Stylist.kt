@@ -290,7 +290,7 @@ class CascadeData(
 
                         val indexedRule = Rule(
                             selector,
-                            AncestorHashes.new(selector, quirksMode),
+                            AncestorHashes.fromSelector(selector, quirksMode),
                             rulesSourceOrder,
                             styleRule
                         )
