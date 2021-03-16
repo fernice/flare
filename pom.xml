@@ -8,9 +8,9 @@
         <version>1.0.29</version>
     </parent>
     <artifactId>fernice-flare</artifactId>
-    <version>1.0.29</version>
+    <version>1.0.30</version>
 
-    <name>Flare</name>
+    <name>fernice-flare</name>
     <description>CSS 3 engine written in Kotlin</description>
     <url>https://github.com/fernice/flare</url>
 
