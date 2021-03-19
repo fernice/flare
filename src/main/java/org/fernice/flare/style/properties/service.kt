@@ -6,7 +6,8 @@
 
 package org.fernice.flare.style.properties
 
-import mu.KotlinLogging
+import org.fernice.logging.FLogging
+
 
 interface PropertyContainerContributor {
 
@@ -54,6 +55,6 @@ class PropertyContainer {
     }
 
     companion object {
-        private val LOG = KotlinLogging.logger { }
+        private val LOG = FLogging.logger { }
     }
 }

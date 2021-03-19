@@ -8,7 +8,6 @@ package org.fernice.flare.style.properties
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
-import mu.KotlinLogging
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
@@ -29,10 +28,11 @@ import org.fernice.flare.style.properties.longhand.font.FontSizeId
 import org.fernice.flare.style.ruletree.CascadeLevel
 import org.fernice.flare.style.ruletree.RuleNode
 import org.fernice.flare.style.value.Context
+import org.fernice.logging.FLogging
 import java.io.Writer
 import java.util.ServiceLoader
 
-private val LOG = KotlinLogging.logger { }
+private val LOG = FLogging.logger { }
 
 abstract class PropertyDeclaration : ToCss {
 
@@ -65,7 +65,7 @@ abstract class PropertyDeclaration : ToCss {
             declarations: MutableList<PropertyDeclaration>,
             id: PropertyId,
             context: ParserContext,
-            input: Parser
+            input: Parser,
         ): Result<Unit, ParseError> {
             return id.parseInto(declarations, context, input)
         }
@@ -245,7 +245,7 @@ fun cascade(
     parentStyle: ComputedValues?,
     parentStyleIgnoringFirstLine: ComputedValues?,
     layoutStyle: ComputedValues?,
-    fontMetricsProvider: FontMetricsProvider
+    fontMetricsProvider: FontMetricsProvider,
 ): ComputedValues {
 
     val sequence = ruleNode.selfAndAncestors().flatMap { node ->
@@ -282,7 +282,7 @@ fun applyDeclarations(
     parentStyle: ComputedValues?,
     parentStyleIgnoringFirstLine: ComputedValues?,
     layoutStyle: ComputedValues?,
-    fontMetricsProvider: FontMetricsProvider
+    fontMetricsProvider: FontMetricsProvider,
 ): ComputedValues {
     val context = Context(
         false,

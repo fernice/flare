@@ -10,7 +10,6 @@ import fernice.std.None
 import fernice.std.Ok
 import fernice.std.Result
 import fernice.std.Some
-import mu.KotlinLogging
 import org.fernice.flare.cssparser.AtRuleParser
 import org.fernice.flare.cssparser.DeclarationListParser
 import org.fernice.flare.cssparser.DeclarationParser
@@ -21,6 +20,7 @@ import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.parseImportant
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.stylesheet.AtRulePrelude
+import org.fernice.logging.FLogging
 import java.util.BitSet
 
 enum class Importance {
@@ -151,4 +151,4 @@ class PropertyDeclarationParser(private val context: ParserContext, private val 
     }
 }
 
-private val LOG = KotlinLogging.logger { }
+private val LOG = FLogging.logger { }

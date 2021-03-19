@@ -9,7 +9,6 @@ import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
 import fernice.std.Some
-import mu.KotlinLogging
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ParserInput
 import org.fernice.flare.cssparser.RuleListParser
@@ -17,6 +16,7 @@ import org.fernice.flare.style.parser.ParseMode
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.flare.url.Url
+import org.fernice.logging.FLogging
 import java.net.URI
 
 enum class Origin {
@@ -68,6 +68,6 @@ class Stylesheet(
             return Stylesheet(rules, origin, source)
         }
 
-        private val LOG = KotlinLogging.logger { }
+        private val LOG = FLogging.logger { }
     }
 }
