@@ -72,7 +72,7 @@ sealed class BackgroundSize : SpecifiedValue<ComputedBackgroundSize>, ToCss {
             }
 
             return Ok(
-                when (ident.toLowerCase()) {
+                when (ident.lowercase()) {
                     "cover" -> Cover
                     "contain" -> Contain
                     else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
@@ -140,7 +140,7 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss 
                 is Err -> return identifier
             }
 
-            when (identifier.toLowerCase()) {
+            when (identifier.lowercase()) {
                 "repeat-x" -> return Ok(RepeatX)
                 "repeat-y" -> return Ok(RepeatY)
                 else -> {
@@ -182,7 +182,7 @@ sealed class BackgroundRepeatKeyword : ToCss {
 
     companion object {
         fun fromIdent(keyword: String): Result<BackgroundRepeatKeyword, Unit> {
-            return when (keyword.toLowerCase()) {
+            return when (keyword.lowercase()) {
                 "repeat" -> Ok(Repeat)
                 "space" -> Ok(Space)
                 "round" -> Ok(Round)
@@ -199,7 +199,7 @@ sealed class BackgroundRepeatKeyword : ToCss {
                 is Err -> return identifier
             }
 
-            return when (identifier.toLowerCase()) {
+            return when (identifier.lowercase()) {
                 "repeat" -> Ok(Repeat)
                 "space" -> Ok(Space)
                 "round" -> Ok(Round)

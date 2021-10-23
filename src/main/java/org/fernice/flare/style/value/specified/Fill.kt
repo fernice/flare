@@ -51,7 +51,7 @@ sealed class Fill : SpecifiedValue<ComputedFill> {
             }
 
             return Ok(
-                when (ident.toLowerCase()) {
+                when (ident.lowercase()) {
                     "none" -> Fill.None
                     else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
                 }

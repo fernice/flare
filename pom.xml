@@ -5,10 +5,10 @@
     <parent>
         <groupId>org.fernice</groupId>
         <artifactId>fernice-maven</artifactId>
-        <version>1.0.34</version>
+        <version>1.0.35</version>
     </parent>
     <artifactId>fernice-flare</artifactId>
-    <version>1.0.34</version>
+    <version>1.0.35</version>
 
     <name>fernice-flare</name>
     <description>CSS 3 engine written in Kotlin</description>

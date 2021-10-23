@@ -327,7 +327,7 @@ private fun parseTypeSelector(
             when (qualifiedName.localName) {
                 is Some -> {
                     val localName = qualifiedName.localName.value
-                    val localNameLower = localName.toLowerCase()
+                    val localNameLower = localName.lowercase()
 
                     sink(Component.LocalName(localName, localNameLower))
                 }
@@ -609,7 +609,7 @@ private fun parseFunctionalPseudoElement(
 }
 
 private fun parsePseudoElement(location: SourceLocation, name: String): Result<PseudoElement, ParseError> {
-    return when (name.toLowerCase()) {
+    return when (name.lowercase()) {
         "before" -> Ok(PseudoElement.Before)
         "after" -> Ok(PseudoElement.After)
         "selection" -> Ok(PseudoElement.Selection)
@@ -628,7 +628,7 @@ private fun parseFunctionalPseudoClass(
     name: String,
     negated: Boolean
 ): Result<Component, ParseError> {
-    return when (name.toLowerCase()) {
+    return when (name.lowercase()) {
         "nth-child" -> parseNthPseudoClass(input, Component::NthChild)
         "nth-of-type" -> parseNthPseudoClass(input, Component::NthOfType)
         "nth-last-child" -> parseNthPseudoClass(input, Component::NthLastChild)
@@ -656,7 +656,7 @@ private fun parseNonTSFunctionalPseudoClass(
     location: SourceLocation,
     name: String
 ): Result<NonTSPseudoClass, ParseError> {
-    return when (name.toLowerCase()) {
+    return when (name.lowercase()) {
         "lang" -> {
             return when (val identifierResult = input.expectIdentifier()) {
                 is Ok -> Ok(NonTSPseudoClass.Lang(identifierResult.value))
@@ -668,7 +668,7 @@ private fun parseNonTSFunctionalPseudoClass(
 }
 
 private fun parsePseudoClass(location: SourceLocation, name: String): Result<Component, ParseError> {
-    return when (name.toLowerCase()) {
+    return when (name.lowercase()) {
         "first-child" -> Ok(Component.FirstChild)
         "last-child" -> Ok(Component.LastChild)
         "only-child" -> Ok(Component.OnlyChild)
@@ -684,7 +684,7 @@ private fun parsePseudoClass(location: SourceLocation, name: String): Result<Com
 }
 
 private fun parseNonTSPseudoClass(location: SourceLocation, name: String): Result<NonTSPseudoClass, ParseError> {
-    return when (name.toLowerCase()) {
+    return when (name.lowercase()) {
         "active" -> Ok(NonTSPseudoClass.Active)
         "checked" -> Ok(NonTSPseudoClass.Checked)
         "disabled" -> Ok(NonTSPseudoClass.Disabled)
@@ -784,7 +784,7 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
     val token = when (val token = input.next()) {
         is Ok -> token.value
         is Err -> {
-            val localNameLower = localName.toLowerCase()
+            val localNameLower = localName.lowercase()
             return if (namespace is Some) {
                 Ok(
                     Component.AttributeOther(
@@ -842,7 +842,7 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
         is Err -> return flagResult
     }
 
-    val localNameLower = localName.toLowerCase()
+    val localNameLower = localName.lowercase()
 
     return if (namespace is Some) {
         Ok(

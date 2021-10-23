@@ -33,7 +33,7 @@ internal fun parseNth(input: Parser): Result<Nth, ParseError> {
             Ok(Nth(0, token.number.int()))
         }
         is Token.Dimension -> {
-            when (val unit = token.unit.toLowerCase()) {
+            when (val unit = token.unit.lowercase()) {
                 "n" -> parseB(input, token.number.int())
                 "n-" -> parseSignlessB(input, token.number.int(), -1)
                 else -> {

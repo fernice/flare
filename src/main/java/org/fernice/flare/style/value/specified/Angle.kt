@@ -98,7 +98,7 @@ data class Angle(
         }
 
         fun parseDimension(value: Float, unit: String, wasCalc: Boolean): Result<Angle, Unit> {
-            val angle = when (unit.toLowerCase()) {
+            val angle = when (unit.lowercase()) {
                 "deg" -> fromDegree(value, wasCalc)
                 "grad" -> fromGradians(value, wasCalc)
                 "turn" -> fromTurns(value, wasCalc)

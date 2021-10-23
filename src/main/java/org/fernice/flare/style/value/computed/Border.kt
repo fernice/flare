@@ -77,7 +77,7 @@ sealed class Style : ToCss {
                 is Err -> return identifierResult
             }
 
-            return when (identifier.toLowerCase()) {
+            return when (identifier.lowercase()) {
                 "none" -> Ok(Style.None)
                 "hidden" -> Ok(Style.Hidden)
                 "dotted" -> Ok(Style.Dotted)

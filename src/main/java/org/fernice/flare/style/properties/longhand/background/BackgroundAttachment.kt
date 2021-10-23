@@ -108,7 +108,7 @@ sealed class Attachment : ToCss {
                 is Err -> return identifierResult
             }
 
-            return when (identifier.toLowerCase()) {
+            return when (identifier.lowercase()) {
                 "scroll" -> Ok(Scroll)
                 "fixed" -> Ok(Fixed)
                 "local" -> Ok(Local)

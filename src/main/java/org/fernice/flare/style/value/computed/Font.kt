@@ -77,7 +77,7 @@ sealed class SingleFontFamily : ToCss {
                 is Err -> return identifierResult
             }
 
-            val cssWideKeyword = when (identifier.toLowerCase()) {
+            val cssWideKeyword = when (identifier.lowercase()) {
                 "serif" -> return Ok(Generic("serif"))
                 "sans-serif" -> return Ok(Generic("sans-serif"))
                 "cursive" -> return Ok(Generic("cursive"))

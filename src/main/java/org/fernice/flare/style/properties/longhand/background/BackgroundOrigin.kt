@@ -100,7 +100,7 @@ sealed class Origin : ToCss {
                 is Err -> return identifierResult
             }
 
-            return when (identifier.toLowerCase()) {
+            return when (identifier.lowercase()) {
                 "border-box" -> Ok(BorderBox)
                 "padding-box" -> Ok(PaddingBox)
                 "content-box" -> Ok(ContentBox)

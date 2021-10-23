@@ -344,7 +344,7 @@ sealed class NoCalcLength : SpecifiedValue<PixelLength>, ToCss {
          * Parses a length by of specified [unit] and returns the appropriate type representing the type.
          */
         fun parseDimension(context: ParserContext, value: Float, unit: String): Result<NoCalcLength, Unit> {
-            return when (unit.toLowerCase()) {
+            return when (unit.lowercase()) {
                 "px" -> Ok(Absolute(AbsoluteLength.Px(value)))
                 "in" -> Ok(Absolute(AbsoluteLength.In(value)))
                 "cm" -> Ok(Absolute(AbsoluteLength.Cm(value)))

@@ -69,7 +69,7 @@ sealed class FontWeight : SpecifiedValue<ComputedFontWeight> {
             }
 
             return Ok(
-                when (ident.toLowerCase()) {
+                when (ident.lowercase()) {
                     "bolder" -> Bolder
                     "lighter" -> Lighter
                     else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
@@ -119,7 +119,7 @@ sealed class AbsoluteFontWeight : SpecifiedValue<ComputedFontWeight> {
             }
 
             return Ok(
-                when (ident.toLowerCase()) {
+                when (ident.lowercase()) {
                     "normal" -> Normal
                     "bold" -> Bold
                     else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
@@ -382,7 +382,7 @@ sealed class KeywordSize : SpecifiedValue<NonNegativeLength>, ToCss {
                 is Err -> return identifier
             }
 
-            return when (identifier.toLowerCase()) {
+            return when (identifier.lowercase()) {
                 "xx-small" -> Ok(XXSmall)
                 "x-small" -> Ok(XSmall)
                 "small" -> Ok(Small)
