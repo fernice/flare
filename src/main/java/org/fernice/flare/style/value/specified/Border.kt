@@ -72,7 +72,7 @@ sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength>, ToCss 
                 is Err -> return ident
             }
 
-            return when (ident.toLowerCase()) {
+            return when (ident.lowercase()) {
                 "thin" -> Ok(Thin)
                 "medium" -> Ok(Medium)
                 "thick" -> Ok(Thick)

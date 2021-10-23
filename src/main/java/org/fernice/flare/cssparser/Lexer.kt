@@ -733,7 +733,7 @@ class Lexer(private val reader: Reader) {
      * [spec](https://www.w3.org/TR/css-syntax-3/#name-start-code-point)
      */
     private fun isNameStart(c: Char): Boolean {
-        return isLetter(c) || c.toInt() > 128 || c == '_'
+        return isLetter(c) || c.code > 128 || c == '_'
     }
 
     /**

@@ -627,7 +627,7 @@ sealed class ShapeExtend {
                 is Err -> return ident
             }
 
-            return when (ident.toLowerCase()) {
+            return when (ident.lowercase()) {
                 "closest-side" -> Ok(ClosestSide)
                 "farthest-side" -> Ok(FarthestSide)
                 "closest-corner" -> Ok(ClosestCorner)

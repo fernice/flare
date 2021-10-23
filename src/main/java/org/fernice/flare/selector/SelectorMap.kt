@@ -191,7 +191,7 @@ class RuleMap {
 
     fun get(key: String, quirksMode: QuirksMode): List<Rule>? {
         return if (quirksMode == QuirksMode.QUIRKS) {
-            map[key.toLowerCase()]
+            map[key.lowercase()]
         } else {
             map[key]
         }

@@ -5,13 +5,12 @@
  */
 package org.fernice.flare.cssparser
 
-import org.fernice.flare.cssparser.Color.RGBA
-import org.fernice.flare.std.trunc
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
 import org.fernice.flare.std.max
 import org.fernice.flare.std.min
+import org.fernice.flare.std.trunc
 import java.io.Writer
 import kotlin.math.roundToInt
 
@@ -210,7 +209,7 @@ interface ColorComponentParser {
                 Ok(AngleOrNumber.Number(token.number.float()))
             }
             is Token.Dimension -> {
-                val degrees = when (token.unit.toLowerCase()) {
+                val degrees = when (token.unit.lowercase()) {
                     "deg" -> token.number.float()
                     "grad" -> token.number.float() * (360 / 400)
                     "rad" -> Math.toDegrees(token.number.value).toFloat()

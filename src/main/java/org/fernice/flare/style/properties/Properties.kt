@@ -166,7 +166,7 @@ sealed class PropertyId {
     companion object {
 
         fun parse(name: String): Result<PropertyId, Unit> {
-            val result = REGISTERED_PROPERTIES[name.toLowerCase()]
+            val result = REGISTERED_PROPERTIES[name.lowercase()]
 
             return if (result != null) {
                 Ok(result)
@@ -225,7 +225,7 @@ sealed class CssWideKeyword : ToCss {
                 is Err -> return identifier
             }
 
-            return when (identifier.toLowerCase()) {
+            return when (identifier.lowercase()) {
                 "unset" -> Ok(Unset)
                 "initial" -> Ok(Initial)
                 "inherit" -> Ok(Inherit)

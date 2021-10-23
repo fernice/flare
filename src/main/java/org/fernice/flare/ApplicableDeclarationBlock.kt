@@ -9,6 +9,7 @@ import org.fernice.flare.std.atMost
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
 import org.fernice.flare.style.ruletree.CascadeLevel
 import org.fernice.flare.style.ruletree.StyleSource
+import kotlin.math.min
 
 data class ApplicableDeclarationBlock(
     val source: StyleSource,
@@ -75,8 +76,8 @@ class ApplicableDeclarationBits private constructor(private val bits: Int) {
 
     companion object {
         fun new(sourceOrder: Int, cascadeLevel: CascadeLevel): ApplicableDeclarationBits {
-            var bits = sourceOrder.atMost(SOURCE_ORDER_MAX)
-            bits = bits or (cascadeLevel.ordinal.atMost(CASCADE_LEVEL_MAX) shl CASCADE_LEVEL_SHIFT)
+            var bits = min(sourceOrder, SOURCE_ORDER_MAX)
+            bits = bits or (min(cascadeLevel.ordinal, CASCADE_LEVEL_MAX) shl CASCADE_LEVEL_SHIFT)
             return ApplicableDeclarationBits(bits)
         }
     }

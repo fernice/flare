@@ -328,7 +328,7 @@ sealed class X : Side {
                 is Err -> return ident
             }
 
-            return when (ident.toLowerCase()) {
+            return when (ident.lowercase()) {
                 "left" -> Ok(Left)
                 "right" -> Ok(Right)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
@@ -378,7 +378,7 @@ sealed class Y : Side {
                 is Err -> return ident
             }
 
-            return when (ident.toLowerCase()) {
+            return when (ident.lowercase()) {
                 "top" -> Ok(Top)
                 "bottom" -> Ok(Bottom)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
