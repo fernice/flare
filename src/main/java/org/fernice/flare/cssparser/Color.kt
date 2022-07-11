@@ -8,8 +8,6 @@ package org.fernice.flare.cssparser
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
-import org.fernice.flare.std.max
-import org.fernice.flare.std.min
 import org.fernice.flare.std.trunc
 import java.io.Writer
 import kotlin.math.roundToInt
@@ -669,5 +667,5 @@ private fun clampUnit(value: Float): Int {
  * Clamps [value] to a value ranging from 0 to 255.
  */
 private fun clampFloor(value: Float): Int {
-    return value.roundToInt().max(0).min(255)
+    return value.roundToInt().coerceAtLeast(0).coerceAtMost(255)
 }

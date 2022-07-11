@@ -8,7 +8,6 @@ package org.fernice.flare.style.value.specified
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
-import fernice.std.Some
 import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
@@ -155,7 +154,7 @@ sealed class BackgroundRepeat : SpecifiedValue<ComputedBackgroundRepeat>, ToCss 
 
             val vertical = input.tryParse(BackgroundRepeatKeyword.Companion::parse).ok()
 
-            return Ok(Keywords(horizontal, vertical.unwrapOr(horizontal)))
+            return Ok(Keywords(horizontal, vertical ?: horizontal))
         }
 
         val Repeat by lazy { BackgroundRepeat.Keywords(BackgroundRepeatKeyword.Repeat, BackgroundRepeatKeyword.Repeat) }

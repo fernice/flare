@@ -7,11 +7,8 @@
 package org.fernice.flare.style.value.specified
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.Token
@@ -23,10 +20,10 @@ import org.fernice.flare.style.value.SpecifiedValue
 
 data class Number(
     val value: Float,
-    val clampingMode: Option<ClampingMode>
+    val clampingMode: ClampingMode?
 ) : SpecifiedValue<Float> {
 
-    fun wasCalc(): Boolean = clampingMode is Some
+    fun wasCalc(): Boolean = clampingMode != null
     override fun toComputedValue(context: Context): Float = value
 
     companion object {
@@ -46,7 +43,7 @@ data class Number(
             return when (token) {
                 is Token.Number -> {
                     if (clampingMode.isAllowed(context.parseMode, token.number.float())) {
-                        Ok(Number(token.number.float(), None))
+                        Ok(Number(token.number.float(), null))
                     } else {
                         Err(location.newUnexpectedTokenError(token))
                     }
@@ -58,7 +55,7 @@ data class Number(
                             is Err -> return result
                         }
 
-                        Ok(Number(number, Some(clampingMode)))
+                        Ok(Number(number, clampingMode))
                     } else {
                         Err(location.newUnexpectedTokenError(token))
                     }

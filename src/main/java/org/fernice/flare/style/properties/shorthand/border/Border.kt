@@ -6,12 +6,8 @@
 package org.fernice.flare.style.properties.shorthand.border
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
-import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
@@ -61,41 +57,41 @@ import org.fernice.flare.style.value.specified.LengthOrPercentage
 private data class Longhands(
     val width: BorderSideWidth,
     val color: Color,
-    val style: Style
+    val style: Style,
 )
 
 private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands, ParseError> {
-    var color: Option<Color> = None
-    var style: Option<Style> = None
-    var width: Option<BorderSideWidth> = None
+    var color: Color? = null
+    var style: Style? = null
+    var width: BorderSideWidth? = null
     var any = false
 
     while (true) {
-        if (color.isNone()) {
+        if (color == null) {
             val colorResult = input.tryParse { input -> Color.parse(context, input) }
 
             if (colorResult is Ok) {
-                color = Some(colorResult.value)
+                color = colorResult.value
                 any = true
                 continue
             }
         }
 
-        if (style.isNone()) {
+        if (style == null) {
             val styleResult = input.tryParse { input -> Style.parse(input) }
 
             if (styleResult is Ok) {
-                style = Some(styleResult.value)
+                style = styleResult.value
                 any = true
                 continue
             }
         }
 
-        if (width.isNone()) {
+        if (width == null) {
             val widthResult = input.tryParse { input -> BorderSideWidth.parse(context, input) }
 
             if (widthResult is Ok) {
-                width = Some(widthResult.value)
+                width = widthResult.value
                 any = true
                 continue
             }
@@ -107,9 +103,9 @@ private fun parseBorder(context: ParserContext, input: Parser): Result<Longhands
     return if (any) {
         Ok(
             Longhands(
-                width.unwrapOr(BorderSideWidth.Medium),
-                color.unwrapOr(Color.transparent()),
-                style.unwrapOr(Style.None)
+                width ?: BorderSideWidth.Medium,
+                color ?: Color.transparent(),
+                style ?: Style.None,
             )
         )
     } else {

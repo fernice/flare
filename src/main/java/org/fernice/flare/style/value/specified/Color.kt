@@ -8,7 +8,6 @@ package org.fernice.flare.style.value.specified
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
-import fernice.std.toNullable
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.RGBA
@@ -59,7 +58,7 @@ sealed class Color : SpecifiedValue<ComputedColor>, ToCss {
             }
 
             return when (color) {
-                is ParserColor.RGBA -> Ok(RGBA(color.rgba, keyword.toNullable()))
+                is ParserColor.RGBA -> Ok(RGBA(color.rgba, keyword))
                 is ParserColor.CurrentColor -> Ok(CurrentColor)
             }
         }

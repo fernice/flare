@@ -5,11 +5,10 @@
  */
 package org.fernice.flare.selector
 
-import org.fernice.flare.debugAssert
-import org.fernice.flare.std.iter.iter
 import fernice.std.None
 import fernice.std.Some
-import org.fernice.flare.std.min
+import org.fernice.flare.debugAssert
+import org.fernice.flare.std.iter.iter
 
 class SelectorBuilder {
 
@@ -86,9 +85,9 @@ private class Specificity {
 private const val MAX_10_BIT = (1 shl 10) - 1
 
 private fun Specificity.into(): Int {
-    return (this.idSelectors.min(MAX_10_BIT) shl 20) or
-            (this.classSelectors.min(MAX_10_BIT) shl 10) or
-            (this.elementSelectors.min(MAX_10_BIT))
+    return (this.idSelectors.coerceAtMost(MAX_10_BIT) shl 20) or
+            (this.classSelectors.coerceAtMost(MAX_10_BIT) shl 10) or
+            (this.elementSelectors.coerceAtMost(MAX_10_BIT))
 }
 
 private fun specificity(iterator: Iterator<Component>): Int {

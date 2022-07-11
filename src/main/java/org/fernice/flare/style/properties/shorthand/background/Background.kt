@@ -7,12 +7,8 @@
 package org.fernice.flare.style.properties.shorthand.background
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
-import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
@@ -60,11 +56,11 @@ private class Longhands(
     val backgroundSize: List<BackgroundSize>,
     val backgroundAttachment: List<Attachment>,
     val backgroundOrigin: List<Origin>,
-    val backgroundClip: List<Clip>
+    val backgroundClip: List<Clip>,
 )
 
 private fun parse(context: ParserContext, input: Parser): Result<Longhands, ParseError> {
-    var backgroundColor: Option<Color> = None
+    var backgroundColor: Color? = null
     val backgroundImage: MutableList<ImageLayer> = mutableListOf()
     val backgroundPositionX: MutableList<HorizontalPosition> = mutableListOf()
     val backgroundPositionY: MutableList<VerticalPosition> = mutableListOf()
@@ -75,37 +71,38 @@ private fun parse(context: ParserContext, input: Parser): Result<Longhands, Pars
     val backgroundClip: MutableList<Clip> = mutableListOf()
 
     val result = input.parseCommaSeparated { parser ->
-        if (backgroundColor.isSome()) {
+        if (backgroundColor != null) {
             return@parseCommaSeparated Err(input.newError(ParseErrorKind.Unspecified))
         }
 
-        var image: Option<ImageLayer> = None
-        var position: Option<Position> = None
-        var repeat: Option<BackgroundRepeat> = None
-        var size: Option<BackgroundSize> = None
-        var attachment: Option<Attachment> = None
-        var origin: Option<Origin> = None
-        var clip: Option<Clip> = None
+        var image: ImageLayer? = null
+        var position: Position? = null
+        var repeat: BackgroundRepeat? = null
+        var size: BackgroundSize? = null
+        var attachment: Attachment? = null
+        var origin: Origin? = null
+        var clip: Clip? = null
 
         loop@
         while (true) {
-            if (backgroundColor.isNone()) {
+            if (backgroundColor == null) {
                 val result = parser.tryParse { nestedParser -> Color.parse(context, nestedParser) }
 
                 if (result is Ok) {
-                    backgroundColor = Some(result.value)
+                    backgroundColor = result.value
                     continue@loop
                 }
             }
-            if (position.isNone()) {
+            if (position == null) {
                 val result = parser.tryParse { nestedParser -> Position.parse(context, nestedParser) }
 
                 if (result is Ok) {
-                    position = Some(result.value)
+                    position = result.value
 
                     size = parser.tryParse { nestedParser ->
                         when (val solidus = nestedParser.expectSolidus()) {
                             is Err -> return@tryParse Err(solidus.value)
+                            else -> {}
                         }
                         BackgroundSize.parse(context, nestedParser)
                     }.ok()
@@ -113,104 +110,104 @@ private fun parse(context: ParserContext, input: Parser): Result<Longhands, Pars
                     continue@loop
                 }
             }
-            if (image.isNone()) {
+            if (image == null) {
                 val result = parser.tryParse { nestedParser -> Image.parse(context, nestedParser).map(::Second) }
 
                 if (result is Ok) {
-                    image = Some(result.value)
+                    image = result.value
                     continue@loop
                 }
             }
-            if (repeat.isNone()) {
+            if (repeat == null) {
                 val result = parser.tryParse { nestedParser -> BackgroundRepeat.parse(context, nestedParser) }
 
                 if (result is Ok) {
-                    repeat = Some(result.value)
+                    repeat = result.value
                     continue@loop
                 }
             }
-            if (size.isNone()) {
+            if (size == null) {
                 val result = parser.tryParse { nestedParser -> BackgroundSize.parse(context, nestedParser) }
 
                 if (result is Ok) {
-                    size = Some(result.value)
+                    size = result.value
                     continue@loop
                 }
             }
-            if (attachment.isNone()) {
+            if (attachment == null) {
                 val result = parser.tryParse { nestedParser -> Attachment.parse(context, nestedParser) }
 
                 if (result is Ok) {
-                    attachment = Some(result.value)
+                    attachment = result.value
                     continue@loop
                 }
             }
-            if (origin.isNone()) {
+            if (origin == null) {
                 val result = parser.tryParse { nestedParser -> Origin.parse(nestedParser) }
 
                 if (result is Ok) {
-                    origin = Some(result.value)
+                    origin = result.value
                     continue@loop
                 }
             }
-            if (clip.isNone()) {
+            if (clip == null) {
                 val result = parser.tryParse { nestedParser -> Clip.parse(nestedParser) }
 
                 if (result is Ok) {
-                    clip = Some(result.value)
+                    clip = result.value
                     continue@loop
                 }
             }
             break
         }
-        if (clip.isNone() && origin is Some) {
-            clip = Some(origin.value.toClip())
+        if (clip == null && origin != null) {
+            clip = origin.toClip()
         }
-        val any = image.isSome()
-                || position.isSome()
-                || repeat.isSome()
-                || size.isSome()
-                || attachment.isSome()
-                || origin.isSome()
-                || clip.isSome()
-                || backgroundColor.isSome()
+        val any = image != null
+                || position != null
+                || repeat != null
+                || size != null
+                || attachment != null
+                || origin != null
+                || clip != null
+                || backgroundColor != null
 
         if (any) {
-            if (position is Some) {
-                backgroundPositionX.add(position.value.horizontal)
-                backgroundPositionY.add(position.value.vertical)
+            if (position != null) {
+                backgroundPositionX.add(position.horizontal)
+                backgroundPositionY.add(position.vertical)
             } else {
                 backgroundPositionX.add(HorizontalPosition.zero())
                 backgroundPositionY.add(VerticalPosition.zero())
             }
 
-            if (image is Some) {
-                backgroundImage.add(image.value)
+            if (image != null) {
+                backgroundImage.add(image)
             } else {
                 backgroundImage.add(BackgroundImageDeclaration.InitialSingleValue)
             }
-            if (repeat is Some) {
-                backgroundRepeat.add(repeat.value)
+            if (repeat != null) {
+                backgroundRepeat.add(repeat)
             } else {
                 backgroundRepeat.add(BackgroundRepeatDeclaration.InitialSingleValue)
             }
-            if (size is Some) {
-                backgroundSize.add(size.value)
+            if (size != null) {
+                backgroundSize.add(size)
             } else {
                 backgroundSize.add(BackgroundSize.auto())
             }
-            if (attachment is Some) {
-                backgroundAttachment.add(attachment.value)
+            if (attachment != null) {
+                backgroundAttachment.add(attachment)
             } else {
                 backgroundAttachment.add(BackgroundAttachmentDeclaration.InitialSingleValue)
             }
-            if (origin is Some) {
-                backgroundOrigin.add(origin.value)
+            if (origin != null) {
+                backgroundOrigin.add(origin)
             } else {
                 backgroundOrigin.add(BackgroundOriginDeclaration.InitialSingleValue)
             }
-            if (clip is Some) {
-                backgroundClip.add(clip.value)
+            if (clip != null) {
+                backgroundClip.add(clip)
             } else {
                 backgroundClip.add(BackgroundClipDeclaration.InitialSingleValue)
             }
@@ -227,7 +224,7 @@ private fun parse(context: ParserContext, input: Parser): Result<Longhands, Pars
 
     return Ok(
         Longhands(
-            backgroundColor = backgroundColor.unwrapOr(Color.transparent()),
+            backgroundColor = backgroundColor ?: Color.transparent(),
             backgroundImage = backgroundImage,
             backgroundPositionX = backgroundPositionX,
             backgroundPositionY = backgroundPositionY,
@@ -255,7 +252,7 @@ object BackgroundId : ShorthandId() {
     override fun parseInto(
         declarations: MutableList<PropertyDeclaration>,
         context: ParserContext,
-        input: Parser
+        input: Parser,
     ): Result<Unit, ParseError> {
         val longhands = when (val result = input.parseEntirely { parser -> parse(context, parser) }) {
             is Ok -> result.value

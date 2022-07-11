@@ -8,11 +8,7 @@ package org.fernice.flare.cssparser
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
-import fernice.std.expect
-import fernice.std.let
 import fernice.std.unwrap
 
 /**
@@ -20,8 +16,8 @@ import fernice.std.unwrap
  */
 class Parser private constructor(
     private val tokenizer: Tokenizer,
-    private var blockType: Option<BlockType>,
-    private val delimiters: Int
+    private var blockType: BlockType?,
+    private val delimiters: Int,
 ) {
 
     companion object {
@@ -29,8 +25,8 @@ class Parser private constructor(
         fun new(input: ParserInput): Parser {
             return Parser(
                 Tokenizer.new(input.text),
-                None,
-                0
+                blockType = null,
+                delimiters = 0,
             )
         }
     }
@@ -122,8 +118,8 @@ class Parser private constructor(
      * @see nextIncludingWhitespace for no comments
      */
     fun nextIncludingWhitespaceAndComment(): Result<Token, ParseError> {
-        if (blockType is Some) {
-            tokenizer.consumeUntilEndOfBlock(takeBlockType().unwrap())
+        takeBlockType()?.let { blockType ->
+            tokenizer.consumeUntilEndOfBlock(blockType)
         }
 
         val state = state()
@@ -511,7 +507,7 @@ class Parser private constructor(
 
         val result = delimitedParser.parseEntirely(parse)
 
-        delimitedParser.blockType.let { blockType ->
+        delimitedParser.blockType?.let { blockType ->
             delimitedParser.tokenizer.consumeUntilEndOfBlock(blockType)
         }
 
@@ -534,7 +530,7 @@ class Parser private constructor(
             // make sure to take the next token not some token
             tokenizer.nextToken()
 
-            BlockType.opening(token.unwrap()).let { blockType ->
+            BlockType.opening(token.unwrap())?.let { blockType ->
                 tokenizer.consumeUntilEndOfBlock(blockType)
             }
         }
@@ -549,7 +545,7 @@ class Parser private constructor(
      * and those derived from the block opening token.
      */
     fun <T> parseNestedBlock(parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
-        val blockType = takeBlockType().expect("not a nested block")
+        val blockType = takeBlockType() ?: error("not a nested block")
 
         val closingDelimiter = when (blockType) {
             is BlockType.Brace -> Delimiters.RightBrace
@@ -557,11 +553,11 @@ class Parser private constructor(
             is BlockType.Bracket -> Delimiters.RightBracket
         }
 
-        val nestedParser = Parser(tokenizer.clone(), None, closingDelimiter.bits)
+        val nestedParser = Parser(tokenizer.clone(), blockType = null, closingDelimiter.bits)
 
         val result = nestedParser.parseEntirely(parse)
 
-        nestedParser.blockType.let { nestedBlockType ->
+        nestedParser.blockType?.let { nestedBlockType ->
             nestedParser.tokenizer.consumeUntilEndOfBlock(nestedBlockType)
         }
 
@@ -573,17 +569,10 @@ class Parser private constructor(
     /**
      * "Atomically" takes the current [BlockType], if present, and replaces it with [None].
      */
-    private fun takeBlockType(): Option<BlockType> {
-        return when (blockType) {
-            is Some -> {
-                val value = blockType
-                blockType = None
-                value
-            }
-            is None -> {
-                blockType
-            }
-        }
+    private fun takeBlockType(): BlockType? {
+        val blockType = this.blockType
+        this.blockType = null
+        return blockType
     }
 
     override fun toString(): String {
@@ -615,7 +604,7 @@ data class ParserInput(internal val text: String)
  * A single state of a [Parser], including all essential information of that very Parser's state. This should be used
  * for error reporting and state reverting.
  */
-data class ParserState(internal val state: State, internal val blockType: Option<BlockType>) {
+data class ParserState(internal val state: State, internal val blockType: BlockType?) {
 
     /**
      * Returns the current [SourcePosition] of this [ParserState]. The source position is the index in the char stream starting at 0.

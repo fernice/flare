@@ -7,19 +7,15 @@ package org.fernice.flare.style.value.computed
 
 import org.fernice.flare.style.parser.ClampingMode
 import org.fernice.flare.style.value.ComputedValue
-import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
-import fernice.std.map
 
-data class CalcLengthOrPercentage(val clampingMode: ClampingMode,
-                             val length: PixelLength,
-                             val percentage: Option<Percentage>) : ComputedValue {
+data class CalcLengthOrPercentage(
+    val clampingMode: ClampingMode,
+    val length: PixelLength,
+    val percentage: Percentage?,
+) : ComputedValue {
 
     fun length(): PixelLength {
-        if (percentage is Some) {
-            throw IllegalStateException()
-        }
+        if (percentage == null) error("has percentage portion")
 
         return lengthComponent()
     }
@@ -32,37 +28,37 @@ data class CalcLengthOrPercentage(val clampingMode: ClampingMode,
         return length
     }
 
-    fun toUsedValue(containingLength: Option<Au>): Option<Au> {
-        return toPixelLength(containingLength).map(Au.Companion::from)
+    fun toUsedValue(containingLength: Au?): Au? {
+        return toPixelLength(containingLength)?.let(Au.Companion::from)
     }
 
-    fun toPixelLength(containingLength: Option<Au>): Option<PixelLength> {
-        return if (percentage is Some && containingLength is Some) {
-            val value = length.px() + containingLength.value.scaleBy(percentage.value.value).toFloat()
+    fun toPixelLength(containingLength: Au?): PixelLength? {
+        return if (percentage != null && containingLength != null) {
+            val value = length.px() + containingLength.scaleBy(percentage.value).toFloat()
 
-            Some(PixelLength(clampingMode.clamp(value)))
-        } else if (percentage.isNone()) {
-            Some(length)
+            PixelLength(clampingMode.clamp(value))
+        } else if (percentage == null) {
+            length
         } else {
-            None
+            null
         }
     }
 
     companion object {
 
-        fun new(length: Length, percentage: Option<Percentage>): CalcLengthOrPercentage {
+        fun new(length: Length, percentage: Percentage?): CalcLengthOrPercentage {
             return withClampingMode(length, percentage, ClampingMode.All)
         }
 
         fun withClampingMode(
-                length: Length,
-                percentage: Option<Percentage>,
-                clampingMode: ClampingMode
+            length: Length,
+            percentage: Percentage?,
+            clampingMode: ClampingMode,
         ): CalcLengthOrPercentage {
             return CalcLengthOrPercentage(
-                    clampingMode,
-                    length,
-                    percentage
+                clampingMode,
+                length,
+                percentage
             )
         }
     }

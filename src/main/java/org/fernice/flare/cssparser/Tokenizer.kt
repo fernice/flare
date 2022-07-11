@@ -6,11 +6,8 @@
 package org.fernice.flare.cssparser
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
 import fernice.std.unwrap
 import org.fernice.flare.std.systemFlag
 import org.fernice.logging.FLogging
@@ -29,7 +26,7 @@ private val print_token: Boolean by lazy { systemFlag("fernice.flare.printToken"
 class Tokenizer private constructor(
     private val text: String,
     private val lexer: Lexer,
-    private var state: State
+    private var state: State,
 ) {
 
     init {
@@ -44,12 +41,12 @@ class Tokenizer private constructor(
                 LOG.trace("${iter.token} ${iter.sourceLocation}")
 
                 iter = when (val next = iter.next) {
-                    is None -> {
+                    null -> {
                         val nextState = State.next(lexer)
-                        state.next = Some(nextState)
+                        state.next = nextState
                         nextState
                     }
-                    is Some -> next.value
+                    else -> next
                 }
             }
         }
@@ -66,12 +63,12 @@ class Tokenizer private constructor(
         }
 
         state = when (val next = state.next) {
-            is None -> {
+            null -> {
                 val nextState = State.next(lexer)
-                state.next = Some(nextState)
+                state.next = nextState
                 nextState
             }
-            is Some -> next.value
+            else -> next
         }
 
         return token
@@ -90,12 +87,12 @@ class Tokenizer private constructor(
             }
 
             state = when (val next = state.next) {
-                is None -> {
+                null -> {
                     val nextState = State.next(lexer)
-                    state.next = Some(nextState)
+                    state.next = nextState
                     nextState
                 }
-                is Some -> next.value
+                else -> next
             }
         }
 
@@ -174,7 +171,7 @@ class Tokenizer private constructor(
 
             val closing = BlockType.closing(token)
 
-            if (closing is Some && stack.peek() == closing.value) {
+            if (closing != null && stack.peek() == closing) {
                 stack.pop()
 
                 if (stack.isEmpty()) {
@@ -183,8 +180,8 @@ class Tokenizer private constructor(
             } else {
                 val opening = BlockType.opening(token)
 
-                if (opening is Some) {
-                    stack.push(opening.value)
+                if (opening != null) {
+                    stack.push(opening)
                 }
             }
         }
@@ -207,8 +204,8 @@ class Tokenizer private constructor(
                 is Err -> break@loop
             }
 
-            if (blockType is Some) {
-                consumeUntilEndOfBlock(blockType.value)
+            if (blockType != null) {
+                consumeUntilEndOfBlock(blockType)
             }
         }
     }
@@ -243,7 +240,7 @@ class Tokenizer private constructor(
 data class State(
     val token: Result<Token, Unit>,
     val sourcePosition: SourcePosition,
-    val sourceLocation: SourceLocation
+    val sourceLocation: SourceLocation,
 ) {
 
     /**
@@ -253,7 +250,7 @@ data class State(
      * tokens are automatically released after the have been passed by the tokenizer also long as no one else holds a reference
      * to them.
      */
-    internal var next: Option<State> = None
+    internal var next: State? = null
 
     companion object {
 

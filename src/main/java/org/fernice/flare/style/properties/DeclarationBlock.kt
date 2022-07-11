@@ -6,10 +6,8 @@
 package org.fernice.flare.style.properties
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
 import fernice.std.Result
-import fernice.std.Some
 import org.fernice.flare.cssparser.AtRuleParser
 import org.fernice.flare.cssparser.DeclarationListParser
 import org.fernice.flare.cssparser.DeclarationParser
@@ -98,10 +96,7 @@ fun parsePropertyDeclarationList(context: ParserContext, input: Parser): Propert
 
     loop@
     while (true) {
-        val result = when (val next = iter.next()) {
-            is Some -> next.value
-            is None -> break@loop
-        }
+        val result = iter.next() ?: break@loop
 
         when (result) {
             is Ok -> block.expand(declarations, result.value)

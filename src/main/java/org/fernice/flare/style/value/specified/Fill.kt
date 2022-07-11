@@ -42,6 +42,7 @@ sealed class Fill : SpecifiedValue<ComputedFill> {
                         is ParserColor.CurrentColor -> Err(input.newUnexpectedTokenError(Token.Identifier("currentcolor")))
                     }
                 }
+                else -> {}
             }
 
             val location = input.sourceLocation()

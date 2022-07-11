@@ -5,21 +5,14 @@
  */
 package org.fernice.flare.style.value.computed
 
-import fernice.std.Some
-import fernice.std.unwrap
 import org.fernice.flare.cssparser.ToCss
-import org.fernice.flare.std.max
 import org.fernice.flare.style.value.ComputedValue
-import java.io.Writer
 import org.fernice.flare.style.value.specified.AbsoluteLength
 import org.fernice.flare.style.value.specified.FontRelativeLength
-import org.fernice.flare.style.value.specified.ViewportPercentageLength
-import org.fernice.flare.style.value.specified.NoCalcLength
 import org.fernice.flare.style.value.specified.Length
-import org.fernice.flare.style.value.specified.NonNegativeLength as SpecifiedNonNegativeLength
-import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentage as SpecifiedNonNegativeLengthOrPercentage
-import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentageOrAuto as SpecifiedNonNegativeLengthOrPercentageOrAuto
-import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentageOrNone as SpecifiedNonNegativeLengthOrPercentageOrNone
+import org.fernice.flare.style.value.specified.NoCalcLength
+import org.fernice.flare.style.value.specified.ViewportPercentageLength
+import java.io.Writer
 
 /**
  * Computed representation of [AbsoluteLength], [FontRelativeLength], [ViewportPercentageLength], [NoCalcLength]
@@ -81,7 +74,7 @@ fun Au.into(): PixelLength {
 data class NonNegativeLength(val length: PixelLength) : ComputedValue {
 
     fun scaleBy(factor: Float): NonNegativeLength {
-        return new(length.px() * factor.max(0f))
+        return new(length.px() * factor.coerceAtLeast(0f))
     }
 
     operator fun plus(other: NonNegativeLength): NonNegativeLength {
@@ -91,7 +84,7 @@ data class NonNegativeLength(val length: PixelLength) : ComputedValue {
     companion object {
 
         fun new(px: Float): NonNegativeLength {
-            return NonNegativeLength(PixelLength(px.max(0f)))
+            return NonNegativeLength(PixelLength(px.coerceAtLeast(0f)))
         }
 
         private val zero: NonNegativeLength by lazy { NonNegativeLength(PixelLength.zero()) }
@@ -238,7 +231,7 @@ sealed class LengthOrPercentage : ComputedValue {
                 containingLength.scaleBy(percentage.value).into()
             }
             is LengthOrPercentage.Calc -> {
-                calc.toPixelLength(Some(containingLength)).unwrap()
+                calc.toPixelLength(containingLength) ?: error("calculation should have resulted in length")
             }
         }
     }
@@ -287,7 +280,7 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
                 containingLength.scaleBy(percentage.value).into()
             }
             is LengthOrPercentageOrAuto.Calc -> {
-                calc.toPixelLength(Some(containingLength)).unwrap()
+                calc.toPixelLength(containingLength) ?: error("calculation should have resulted in length")
             }
             is LengthOrPercentageOrAuto.Auto -> {
                 PixelLength.zero()
@@ -304,7 +297,7 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
                 containingLength.scaleBy(percentage.value).into()
             }
             is LengthOrPercentageOrAuto.Calc -> {
-                calc.toPixelLength(Some(containingLength)).unwrap()
+                calc.toPixelLength(containingLength) ?: error("calculation should have resulted in length")
             }
             is LengthOrPercentageOrAuto.Auto -> {
                 referenceLength.into()

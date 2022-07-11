@@ -11,11 +11,11 @@ import fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
-import org.fernice.flare.std.max
-import org.fernice.flare.std.min
 import org.fernice.flare.style.value.ComputedValue
 import org.fernice.flare.style.value.specified.KeywordInfo
 import java.io.Writer
+import kotlin.math.max
+import kotlin.math.min
 
 data class FontWeight(val value: Float) {
 
@@ -23,15 +23,15 @@ data class FontWeight(val value: Float) {
         return when {
             value < 350 -> FontWeight(400f)
             value < 550 -> FontWeight(700f)
-            else -> FontWeight(value.max(900f))
+            else -> FontWeight(max(value, 900f))
         }
     }
 
     fun lighter(): FontWeight {
         return when {
-            value < 550 -> FontWeight(value.min(100f))
+            value < 550 -> FontWeight(min(value,100f))
             value < 750 -> FontWeight(400f)
-            else -> FontWeight(value.max(700f))
+            else -> FontWeight(max(value, 700f))
         }
     }
 
