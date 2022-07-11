@@ -75,7 +75,8 @@ abstract class PropertyDeclaration : ToCss {
 private val REGISTERED_PROPERTIES: MutableMap<String, PropertyId> by lazy {
     val propertyRegistryContainer = PropertyContainer()
 
-    val containerContributorLoader = ServiceLoader.load(PropertyContainerContributor::class.java)
+    val classLoader = PropertyId::class.java.classLoader
+    val containerContributorLoader = ServiceLoader.load(PropertyContainerContributor::class.java, classLoader)
 
     for (containerContributor in containerContributorLoader) {
         containerContributor.contribute(propertyRegistryContainer)

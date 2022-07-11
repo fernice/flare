@@ -6,13 +6,8 @@
 package org.fernice.flare.style.value.specified
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
-import fernice.std.mapOr
-import fernice.std.unwrap
 import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
@@ -32,7 +27,7 @@ import org.fernice.flare.style.value.computed.Position as ComputedPosition
 
 data class Position(
     val horizontal: HorizontalPosition,
-    val vertical: VerticalPosition
+    val vertical: VerticalPosition,
 ) : SpecifiedValue<ComputedPosition>, ToCss {
 
     companion object {
@@ -44,7 +39,7 @@ data class Position(
         fun parseQuirky(
             context: ParserContext,
             input: Parser,
-            allowQuirks: AllowQuirks
+            allowQuirks: AllowQuirks,
         ): Result<Position, ParseError> {
             when (val xPosResult = input.tryParse { parser -> PositionComponent.parseQuirky(context, parser, allowQuirks, X.Companion) }) {
                 is Ok -> {
@@ -83,8 +78,8 @@ data class Position(
 
                             val (side, lop) = xPos
 
-                            val xPosSplit = PositionComponent.Side(side, None)
-                            val yPos = lop.mapOr({ lop -> PositionComponent.Length<Y>(lop) }, PositionComponent.Center<Y>())
+                            val xPosSplit = PositionComponent.Side(side, null)
+                            val yPos = lop?.let { PositionComponent.Length(it) } ?: PositionComponent.Center<Y>()
 
                             return Ok(Position(xPosSplit, yPos))
                         }
@@ -92,7 +87,7 @@ data class Position(
                             val ySide = input.tryParse(Y.Companion::parse)
 
                             if (ySide is Ok) {
-                                val yPos = PositionComponent.Side(ySide.value, None)
+                                val yPos = PositionComponent.Side(ySide.value, null)
 
                                 return Ok(Position(xPos, yPos))
                             }
@@ -117,7 +112,7 @@ data class Position(
                         is Err -> return yKeyword
                     }
 
-                    val sideResult: Result<Pair<Option<LengthOrPercentage>, PositionComponent<X>>, ParseError> = input.tryParse { parser ->
+                    val sideResult: Result<Pair<LengthOrPercentage?, PositionComponent<X>>, ParseError> = input.tryParse { parser ->
                         val yLop = input.tryParse { nestedParser -> LengthOrPercentage.parseQuirky(context, nestedParser, allowQuirks) }
                             .ok()
 
@@ -148,7 +143,7 @@ data class Position(
                     }
 
                     val xPos = PositionComponent.Center<X>()
-                    val yPos = PositionComponent.Side(yKeyword, None)
+                    val yPos = PositionComponent.Side(yKeyword, null)
 
                     return Ok(Position(xPos, yPos))
                 }
@@ -185,7 +180,7 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
 
     class Center<S : org.fernice.flare.style.value.specified.Side> : PositionComponent<S>()
     class Length<S : org.fernice.flare.style.value.specified.Side>(val length: LengthOrPercentage) : PositionComponent<S>()
-    data class Side<S : org.fernice.flare.style.value.specified.Side>(val side: S, val length: Option<LengthOrPercentage>) : PositionComponent<S>()
+    data class Side<S : org.fernice.flare.style.value.specified.Side>(val side: S, val length: LengthOrPercentage?) : PositionComponent<S>()
 
     override fun toCss(writer: Writer) {
         when (this) {
@@ -193,9 +188,9 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
             is PositionComponent.Length -> length.toCss(writer)
             is PositionComponent.Side -> {
                 side.toCss(writer)
-                if (length is Some) {
+                if (length != null) {
                     writer.append(' ')
-                    length.value.toCss(writer)
+                    length.toCss(writer)
                 }
             }
         }
@@ -207,7 +202,7 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
             context: ParserContext,
             input: Parser,
             allowQuirks: AllowQuirks,
-            parse: Parse<S>
+            parse: Parse<S>,
         ): Result<PositionComponent<S>, ParseError> {
             if (input.tryParse { parser -> parser.expectIdentifierMatching("center") }.isOk()) {
                 return Ok(Center())
@@ -229,7 +224,7 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
             return Ok(Side(side, lop))
         }
 
-        fun <S: org.fernice.flare.style.value.specified.Side> zero():PositionComponent<S>{
+        fun <S : org.fernice.flare.style.value.specified.Side> zero(): PositionComponent<S> {
             return PositionComponent.Length(LengthOrPercentage.Zero)
         }
     }
@@ -238,7 +233,7 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
         return when (this) {
             is Center -> ComputedLengthOrPercentage.fifty
             is Side -> {
-                if (this.length is None) {
+                if (this.length == null) {
                     val percentage = Percentage(
                         if (this.side.isStart()) {
                             0.0f
@@ -249,7 +244,7 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
                     return ComputedLengthOrPercentage.Percentage(percentage)
                 }
 
-                val length = this.length.unwrap()
+                val length = this.length
 
                 if (this.side.isStart()) {
                     length.toComputedValue(context)
@@ -258,7 +253,7 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
                         is ComputedLengthOrPercentage.Length -> {
                             ComputedLengthOrPercentage.Calc(
                                 CalcLengthOrPercentage.new(
-                                    -computed.length, Some(Percentage.hundred())
+                                    -computed.length, Percentage.hundred()
                                 )
                             )
                         }
@@ -270,9 +265,9 @@ sealed class PositionComponent<S : Side> : SpecifiedValue<ComputedLengthOrPercen
                             )
                         }
                         is ComputedLengthOrPercentage.Calc -> {
-                            val p = Percentage(1.0f - computed.calc.percentage.mapOr({ p -> p.value }, 0.0f))
+                            val p = Percentage(1.0f - (computed.calc.percentage?.value ?: 0.0f))
                             val l = -computed.calc.unclampedLength()
-                            ComputedLengthOrPercentage.Calc(CalcLengthOrPercentage.new(l, Some(p)))
+                            ComputedLengthOrPercentage.Calc(CalcLengthOrPercentage.new(l, p))
                         }
                     }
                 }

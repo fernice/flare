@@ -8,11 +8,8 @@ package org.fernice.flare.cssparser
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
 import fernice.std.loop
-import org.fernice.flare.std.iter.Iter
 
 /**
  * Marks a parser that is capable of parsing any kind of at-rule.
@@ -76,9 +73,8 @@ data class ParseErrorSlice(val error: ParseError, val slice: String)
  */
 class DeclarationListParser<A, D, P>(
     private val input: Parser,
-    private val parser: P
-) : Iter<Result<D, ParseErrorSlice>>
-        where P : AtRuleParser<A, D>, P : DeclarationParser<D> {
+    private val parser: P,
+) where P : AtRuleParser<A, D>, P : DeclarationParser<D> {
 
     /**
      * Tries to parse the next property declaration in the block. If an error occurs the parser tries recover by skipping the
@@ -90,20 +86,21 @@ class DeclarationListParser<A, D, P>(
      * tries to parse an at-rule. If the parsing fails returns a [ParseErrorSlice] containing the [ParseError] that occurred
      * as well as a slice of input in which it occurred.
      */
-    override fun next(): Option<Result<D, ParseErrorSlice>> {
+    fun next(): Result<D, ParseErrorSlice>? {
         loop@
         while (true) {
             val state = input.state()
 
             val token = when (val token = input.nextIncludingWhitespaceAndComment()) {
                 is Ok -> token.value
-                is Err -> return None
+                is Err -> return null
             }
 
             when (token) {
                 is Token.Whitespace,
                 is Token.SemiColon,
-                is Token.Comment -> continue@loop
+                is Token.Comment,
+                -> continue@loop
                 is Token.Identifier -> {
                     val result = input.parseUntilBefore(Delimiters.SemiColon) { input ->
                         val colon = input.expectColon()
@@ -111,15 +108,15 @@ class DeclarationListParser<A, D, P>(
                         colon as? Err ?: parser.parseValue(input, token.name)
                     }
 
-                    return Some(result.mapErr { e -> ParseErrorSlice(e, input.sliceFrom(state.position())) })
+                    return result.mapErr { e -> ParseErrorSlice(e, input.sliceFrom(state.position())) }
                 }
                 is Token.AtKeyword -> {
-                    return Some(parseAtRule(input, parser, state, token.name))
+                    return parseAtRule(input, parser, state, token.name)
                 }
                 else -> {
                     val result = input.parseUntilAfter(Delimiters.SemiColon) { Err(state.location().newUnexpectedTokenError(token)) }
 
-                    return Some(result.mapErr { e -> ParseErrorSlice(e, input.sliceFrom(state.position())) })
+                    return result.mapErr { e -> ParseErrorSlice(e, input.sliceFrom(state.position())) }
                 }
             }
         }
@@ -133,7 +130,7 @@ class DeclarationListParser<A, D, P>(
 class RuleListParser<A, Q, R, P>(
     private val input: Parser,
     private val parser: P,
-    private val stylesheet: Boolean
+    private val stylesheet: Boolean,
 ) where P : AtRuleParser<A, R>, P : QualifiedRuleParser<Q, R> {
 
     private var firstRule = true
@@ -142,7 +139,7 @@ class RuleListParser<A, Q, R, P>(
      * Tries to parse the next rule in the stylesheet. If an error occurs the parser tries recover by skipping the
      * rule. Returns [None] if no more declarations are left to parse in the block.
      */
-    fun next(): Option<Result<R, ParseErrorSlice>> {
+    fun next(): Result<R, ParseErrorSlice>? {
         loop {
             input.skipWhitespace()
 
@@ -150,32 +147,32 @@ class RuleListParser<A, Q, R, P>(
 
             val token = when (val token = input.next()) {
                 is Ok -> token.value
-                is Err -> return None
+                is Err -> return null
             }
 
-            val atKeyword: Option<String> = when (token) {
-                is Token.AtKeyword -> Some(token.name)
+            val atKeyword = when (token) {
+                is Token.AtKeyword -> token.name
                 else -> {
                     input.reset(state)
-                    None
+                    null
                 }
             }
 
-            if (atKeyword is Some) {
+            if (atKeyword != null) {
                 val firstStylesheetRule = stylesheet && firstRule
                 firstRule = false
 
-                if (firstStylesheetRule && atKeyword.value.equals("charset", true)) {
+                if (firstStylesheetRule && atKeyword.equals("charset", true)) {
                     input.parseUntilAfter(Delimiters.SemiColon) { Ok() }
                 } else {
-                    return Some(parseAtRule(input, parser, state, atKeyword.value))
+                    return parseAtRule(input, parser, state, atKeyword)
                 }
             } else {
                 firstRule = false
 
                 val result = parseQualifiedRule(input, parser)
 
-                return Some(result.mapErr { e -> ParseErrorSlice(e, input.sliceFrom(state.position())) })
+                return result.mapErr { e -> ParseErrorSlice(e, input.sliceFrom(state.position())) }
             }
         }
     }
@@ -189,7 +186,7 @@ private fun <P, R> parseAtRule(
     input: Parser,
     @Suppress("UNUSED_PARAMETER") parser: AtRuleParser<P, R>,
     state: ParserState,
-    name: String
+    name: String,
 ): Result<R, ParseErrorSlice> {
     return Err(
         ParseErrorSlice(
@@ -204,7 +201,7 @@ private fun <P, R> parseAtRule(
  */
 private fun <P, R> parseQualifiedRule(
     input: Parser,
-    parser: QualifiedRuleParser<P, R>
+    parser: QualifiedRuleParser<P, R>,
 ): Result<R, ParseError> {
     val preludeResult = input.parseUntilBefore(Delimiters.LeftBrace, parser::parseQualifiedRulePrelude)
 

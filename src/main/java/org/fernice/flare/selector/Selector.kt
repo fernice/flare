@@ -19,7 +19,6 @@ import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.flare.cssparser.toCssString
 import org.fernice.flare.panic
-import org.fernice.flare.std.iter.drain
 import org.fernice.flare.style.parser.QuirksMode
 import java.io.Writer
 
@@ -77,7 +76,7 @@ sealed class Component : ToCss {
         val localName: String,
         val localNameLower: String,
         val operation: AttributeSelectorOperation,
-        val neverMatches: Boolean
+        val neverMatches: Boolean,
     ) : Component()
 
     data class AttributeInNoNamespaceExists(val localName: String, val localNameLower: String) : Component()
@@ -88,7 +87,7 @@ sealed class Component : ToCss {
         val operator: AttributeSelectorOperator,
         val value: String,
         val caseSensitive: Boolean,
-        val neverMatches: Boolean
+        val neverMatches: Boolean,
     ) : Component()
 
     fun ancestorHash(quirksMode: QuirksMode): Int? {
@@ -482,6 +481,12 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         return selector.iterator()
     }
 
+    private fun <E> MutableCollection<E>.drain(): List<E> {
+        val list = toList()
+        clear()
+        return list
+    }
+
     override fun toCss(writer: Writer) {
         rawIteratorTrueParseOrder().toCssJoining(writer)
     }
@@ -494,7 +499,7 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
 class SelectorIterator(
     private val components: List<Component>,
     private var index: Int = 0,
-    private var combinator: Combinator? = null
+    private var combinator: Combinator? = null,
 ) : Iterator<Component> {
 
     override fun hasNext(): Boolean = combinator == null && index < components.size

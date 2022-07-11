@@ -6,8 +6,6 @@
 package org.fernice.flare.cssparser
 
 import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
 import kotlin.String as Str
 
 sealed class Token {
@@ -168,25 +166,25 @@ sealed class BlockType {
         /**
          * Returns the matching [BlockType] for the specified [token] if it opens a block, otherwise returns [None].
          */
-        fun opening(token: Token): Option<BlockType> {
+        fun opening(token: Token): BlockType? {
             return when (token) {
-                is Token.LParen -> Some(Parenthesis)
-                is Token.LBracket -> Some(Bracket)
-                is Token.LBrace -> Some(Brace)
-                is Token.Function -> Some(Parenthesis)
-                else -> None
+                is Token.LParen -> Parenthesis
+                is Token.LBracket -> Bracket
+                is Token.LBrace -> Brace
+                is Token.Function -> Parenthesis
+                else -> null
             }
         }
 
         /**
          * Returns the matching [BlockType] for the specified [token] if it closes a block, otherwise returns [None].
          */
-        fun closing(token: Token): Option<BlockType> {
+        fun closing(token: Token): BlockType? {
             return when (token) {
-                is Token.RParen -> Some(Parenthesis)
-                is Token.RBracket -> Some(Bracket)
-                is Token.RBrace -> Some(Brace)
-                else -> None
+                is Token.RParen -> Parenthesis
+                is Token.RBracket -> Bracket
+                is Token.RBrace -> Brace
+                else -> null
             }
         }
     }

@@ -5,8 +5,6 @@
  */
 package org.fernice.flare.cssparser
 
-import fernice.std.Option
-import fernice.std.Some
 import java.io.StringWriter
 import java.io.Writer
 
@@ -62,15 +60,5 @@ fun <T : ToCss> Iterator<T>.toCssJoining(writer: Writer, separator: String = "")
         }
         later = true
         element.toCss(writer)
-    }
-}
-
-/**
- *  Assistance method to write an optional containing a [ToCss] marked object into a [writer] by
- *  invoking its [ToCss.toCss] method.
- */
-fun <T : ToCss> Option<T>.toCss(writer: Writer) {
-    if (this is Some) {
-        value.toCss(writer)
     }
 }

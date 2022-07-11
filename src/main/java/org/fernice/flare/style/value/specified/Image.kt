@@ -8,10 +8,8 @@ package org.fernice.flare.style.value.specified
 import fernice.std.Err
 import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
 import fernice.std.Some
-import fernice.std.unwrapOr
 import fernice.std.unwrapOrElse
 import org.fernice.flare.cssparser.Delimiters
 import org.fernice.flare.cssparser.ParseError
@@ -20,7 +18,6 @@ import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.cssparser.toCss
 import org.fernice.flare.panic
 import org.fernice.flare.std.Either
 import org.fernice.flare.style.parser.ParserContext
@@ -82,7 +79,7 @@ private typealias SpecifiedGradient = Gradient
 data class Gradient(
     val items: List<GradientItem>,
     val repeating: Repeating,
-    val kind: GradientKind
+    val kind: GradientKind,
 ) : SpecifiedValue<ComputedGradient>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedGradient {
@@ -256,7 +253,7 @@ sealed class GradientItem : SpecifiedValue<ComputedGradientItem>, ToCss {
                             GradientItem.ColorStop(
                                 org.fernice.flare.style.value.specified.ColorStop(
                                     stop.color,
-                                    Some(secondPosition.value)
+                                    secondPosition.value
                                 )
                             )
                         )
@@ -268,6 +265,7 @@ sealed class GradientItem : SpecifiedValue<ComputedGradientItem>, ToCss {
                     Ok()
                 }) {
                     is Err -> return result
+                    else -> {}
                 }
 
                 when (val token = input.next()) {
@@ -294,19 +292,19 @@ private typealias SpecifiedColorStop = ColorStop
 
 data class ColorStop(
     val color: RGBAColor,
-    val position: Option<LengthOrPercentage>
+    val position: LengthOrPercentage?,
 ) : SpecifiedValue<ComputedColorStop>, ToCss {
 
     override fun toComputedValue(context: Context): ComputedColorStop {
         return ComputedColorStop(
             color.toComputedValue(context),
-            position.toComputedValue(context)
+            position?.toComputedValue(context)
         )
     }
 
     override fun toCss(writer: Writer) {
         color.toCss(writer)
-        position.toCss(writer)
+        position?.toCss(writer)
     }
 
     companion object {
@@ -379,7 +377,7 @@ sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
                 Position.parse(context, nestedParser)
             }.ok()
 
-            if (shapeResult.isOk() || positionResult.isSome()) {
+            if (shapeResult.isOk() || positionResult != null) {
                 val comma = input.expectComma()
 
                 if (comma is Err) {
@@ -389,7 +387,7 @@ sealed class GradientKind : SpecifiedValue<ComputedGradientKind> {
 
             val shape = shapeResult.unwrapOrElse { EndingShape.Ellipse(Ellipse.Extend(ShapeExtend.FarthestCorner)) }
 
-            val position = positionResult.unwrapOr { Position.center() }
+            val position = positionResult ?: Position.center()
 
             return Ok(Radial(shape, position))
         }

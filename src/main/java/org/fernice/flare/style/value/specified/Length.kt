@@ -16,8 +16,6 @@ import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newError
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.font.FontMetricsQueryResult
-import org.fernice.flare.std.max
-import org.fernice.flare.std.min
 import org.fernice.flare.std.trunc
 import org.fernice.flare.style.parser.AllowQuirks
 import org.fernice.flare.style.parser.ClampingMode
@@ -160,8 +158,8 @@ sealed class FontRelativeLength : ToCss {
     fun toComputedValue(context: Context, baseSize: FontBaseSize): PixelLength {
         val (referencedSize, factor) = referencedSizeAndFactor(context, baseSize)
         val pixel = (referencedSize.toFloat() * factor)
-            .max(Float.MIN_VALUE)
-            .min(Float.MAX_VALUE)
+            .coerceAtLeast(Float.MIN_VALUE)
+            .coerceAtMost(Float.MAX_VALUE)
         return PixelLength(pixel)
     }
 

@@ -6,10 +6,6 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.debugAssert
-import org.fernice.flare.std.iter.iter
-import fernice.std.None
-import fernice.std.Some
-import org.fernice.flare.std.min
 
 class SelectorBuilder {
 
@@ -50,7 +46,7 @@ class SelectorBuilder {
     fun buildWithSpecificityAndFlags(specificityAndFlags: SpecificityAndFlags): Selector {
         val selector = mutableListOf<Component>()
 
-        val combinatorIter = combinators.reversed().iter()
+        val combinatorIter = combinators.reversed().iterator()
 
         var upper = simpleSelectors.size
         var lower = upper - currentLength
@@ -59,17 +55,14 @@ class SelectorBuilder {
         do {
             selector.addAll(simpleSelectors.subList(lower, upper))
 
-            when (val next = combinatorIter.next()) {
-                is Some -> {
-                    val (combinator, length) = next.value
+            if (!combinatorIter.hasNext()) break@loop
 
-                    upper = lower
-                    lower -= length
+            val (combinator, length) = combinatorIter.next()
 
-                    selector.add(Component.Combinator(combinator))
-                }
-                is None -> break@loop
-            }
+            upper = lower
+            lower -= length
+
+            selector.add(Component.Combinator(combinator))
         } while (true)
 
         return Selector(specificityAndFlags, selector)
@@ -86,9 +79,9 @@ private class Specificity {
 private const val MAX_10_BIT = (1 shl 10) - 1
 
 private fun Specificity.into(): Int {
-    return (this.idSelectors.min(MAX_10_BIT) shl 20) or
-            (this.classSelectors.min(MAX_10_BIT) shl 10) or
-            (this.elementSelectors.min(MAX_10_BIT))
+    return (this.idSelectors.coerceAtMost(MAX_10_BIT) shl 20) or
+            (this.classSelectors.coerceAtMost(MAX_10_BIT) shl 10) or
+            (this.elementSelectors.coerceAtMost(MAX_10_BIT))
 }
 
 private fun specificity(iterator: Iterator<Component>): Int {
@@ -97,7 +90,8 @@ private fun specificity(iterator: Iterator<Component>): Int {
             is Component.Combinator -> throw IllegalStateException("unreachable")
 
             is Component.LocalName,
-            is Component.PseudoElement -> {
+            is Component.PseudoElement,
+            -> {
                 specificity.elementSelectors += 1
             }
 
@@ -123,7 +117,8 @@ private fun specificity(iterator: Iterator<Component>): Int {
             is Component.FirstOfType,
             is Component.LastOfType,
             is Component.OnlyOfType,
-            is Component.NonTSPseudoClass -> {
+            is Component.NonTSPseudoClass,
+            -> {
                 specificity.classSelectors += 1
             }
 

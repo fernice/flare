@@ -6,16 +6,8 @@
 package org.fernice.flare.style.value.specified
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Option
 import fernice.std.Result
-import fernice.std.Some
-import fernice.std.let
-import fernice.std.map
-import fernice.std.mapOr
-import fernice.std.unwrap
-import fernice.std.unwrapOr
 import org.fernice.flare.Experimental
 import org.fernice.flare.cssparser.NumberOrPercentage
 import org.fernice.flare.cssparser.ParseError
@@ -42,34 +34,34 @@ import org.fernice.flare.style.value.computed.Percentage as ComputedPercentage
  */
 class CalcLengthOrPercentage(private val clampingMode: ClampingMode) : SpecifiedValue<ComputedCalcLengthOrPercentage>, ToCss {
 
-    internal var absolute: Option<AbsoluteLength> = None
+    internal var absolute: AbsoluteLength? = null
 
-    internal var em: Option<Float> = None
-    internal var ex: Option<Float> = None
-    internal var ch: Option<Float> = None
-    internal var rem: Option<Float> = None
+    internal var em: Float? = null
+    internal var ex: Float? = null
+    internal var ch: Float? = null
+    internal var rem: Float? = null
 
-    internal var vw: Option<Float> = None
-    internal var vh: Option<Float> = None
-    internal var vmin: Option<Float> = None
-    internal var vmax: Option<Float> = None
+    internal var vw: Float? = null
+    internal var vh: Float? = null
+    internal var vmin: Float? = null
+    internal var vmax: Float? = null
 
-    internal var percentage: Option<ComputedPercentage> = None
+    internal var percentage: ComputedPercentage? = null
 
     fun toComputedValue(context: Context, baseSize: FontBaseSize): ComputedCalcLengthOrPercentage {
         var length = 0f
 
-        absolute.let { value ->
+        absolute?.let { value ->
             length += value.toComputedValue(context).px()
         }
 
         for (fontRelativeLength in listOf(
-            em.map(FontRelativeLength::Em),
-            ex.map(FontRelativeLength::Ex),
-            ch.map(FontRelativeLength::Ch),
-            rem.map(FontRelativeLength::Rem)
+            em?.let(FontRelativeLength::Em),
+            ex?.let(FontRelativeLength::Ex),
+            ch?.let(FontRelativeLength::Ch),
+            rem?.let(FontRelativeLength::Rem)
         )) {
-            fontRelativeLength.let { value ->
+            fontRelativeLength?.let { value ->
                 length += value.toComputedValue(context, baseSize).px()
             }
         }
@@ -77,12 +69,12 @@ class CalcLengthOrPercentage(private val clampingMode: ClampingMode) : Specified
         val viewportSize = context.viewportSizeForViewportUnitResolution()
 
         for (viewportPercentageLength in listOf(
-            vw.map(ViewportPercentageLength::Vw),
-            vh.map(ViewportPercentageLength::Vh),
-            vmin.map(ViewportPercentageLength::Vmin),
-            vmax.map(ViewportPercentageLength::Vmax)
+            vw?.let(ViewportPercentageLength::Vw),
+            vh?.let(ViewportPercentageLength::Vh),
+            vmin?.let(ViewportPercentageLength::Vmin),
+            vmax?.let(ViewportPercentageLength::Vmax)
         )) {
-            viewportPercentageLength.let { value ->
+            viewportPercentageLength?.let { value ->
                 length += value.toComputedValue(context, viewportSize).px()
             }
         }
@@ -109,35 +101,35 @@ class CalcLengthOrPercentage(private val clampingMode: ClampingMode) : Specified
 
         writer.append("calc(")
 
-        percentage.let { percentage ->
+        percentage?.let { percentage ->
             checkFirstValue(percentage.value)
             percentage.toCss(writer)
         }
 
-        absolute.let { absolute ->
+        absolute?.let { absolute ->
             checkFirstValue(absolute.toPx())
             absolute.toCss(writer)
         }
 
         for (fontRelativeLength in listOf(
-            em.map(FontRelativeLength::Em),
-            ex.map(FontRelativeLength::Ex),
-            ch.map(FontRelativeLength::Ch),
-            rem.map(FontRelativeLength::Rem)
+            em?.let(FontRelativeLength::Em),
+            ex?.let(FontRelativeLength::Ex),
+            ch?.let(FontRelativeLength::Ch),
+            rem?.let(FontRelativeLength::Rem)
         )) {
-            fontRelativeLength.let { value ->
+            fontRelativeLength?.let { value ->
                 checkFirstValue(value.sign())
                 value.toCss(writer)
             }
         }
 
         for (viewportPercentageLength in listOf(
-            vw.map(ViewportPercentageLength::Vw),
-            vh.map(ViewportPercentageLength::Vh),
-            vmin.map(ViewportPercentageLength::Vmin),
-            vmax.map(ViewportPercentageLength::Vmax)
+            vw?.let(ViewportPercentageLength::Vw),
+            vh?.let(ViewportPercentageLength::Vh),
+            vmin?.let(ViewportPercentageLength::Vmin),
+            vmax?.let(ViewportPercentageLength::Vmax)
         )) {
-            viewportPercentageLength.let { value ->
+            viewportPercentageLength?.let { value ->
                 checkFirstValue(value.sign())
                 value.toCss(writer)
             }
@@ -223,49 +215,44 @@ sealed class CalcNode {
     internal open fun reduceCalc(ret: CalcLengthOrPercentage, factor: Float): Result<Unit, Unit> {
         when (this) {
             is CalcNode.Percentage -> {
-                ret.percentage = Some(
-                    ComputedPercentage(
-                        ret.percentage.mapOr({ p -> p.value }, 0f) + value * factor
-                    )
+                ret.percentage = ComputedPercentage(
+                    (ret.percentage?.value ?: 0f) + value * factor
                 )
             }
             is CalcNode.Length -> {
                 when (length) {
                     is NoCalcLength.Absolute -> {
-                        ret.absolute = when (ret.absolute) {
-                            is Some -> Some(ret.absolute.unwrap() + length.length * factor)
-                            is None -> Some(length.length * factor)
-                        }
+                        ret.absolute = (ret.absolute ?: AbsoluteLength.Px(0f)) + length.length * factor
                     }
                     is NoCalcLength.FontRelative -> {
                         when (val rel = length.length) {
                             is FontRelativeLength.Em -> {
-                                ret.em = Some(ret.em.unwrapOr(0f) + rel.value * factor)
+                                ret.em = (ret.em ?: 0f) + rel.value * factor
                             }
                             is FontRelativeLength.Ex -> {
-                                ret.ex = Some(ret.ex.unwrapOr(0f) + rel.value * factor)
+                                ret.ex = (ret.ex ?: 0f) + rel.value * factor
                             }
                             is FontRelativeLength.Ch -> {
-                                ret.ch = Some(ret.ch.unwrapOr(0f) + rel.value * factor)
+                                ret.ch = (ret.ch ?: 0f) + rel.value * factor
                             }
                             is FontRelativeLength.Rem -> {
-                                ret.rem = Some(ret.rem.unwrapOr(0f) + rel.value * factor)
+                                ret.rem = (ret.rem ?: 0f) + rel.value * factor
                             }
                         }
                     }
                     is NoCalcLength.ViewportPercentage -> {
                         when (val rel = length.length) {
                             is ViewportPercentageLength.Vw -> {
-                                ret.vw = Some(ret.vw.unwrapOr(0f) + rel.value * factor)
+                                ret.vw = (ret.vw ?: 0f) + rel.value * factor
                             }
                             is ViewportPercentageLength.Vh -> {
-                                ret.vh = Some(ret.vh.unwrapOr(0f) + rel.value * factor)
+                                ret.vh = (ret.vh ?: 0f) + rel.value * factor
                             }
                             is ViewportPercentageLength.Vmin -> {
-                                ret.vmin = Some(ret.vmin.unwrapOr(0f) + rel.value * factor)
+                                ret.vmin = (ret.vmin ?: 0f) + rel.value * factor
                             }
                             is ViewportPercentageLength.Vmax -> {
-                                ret.vmax = Some(ret.vmax.unwrapOr(0f) + rel.value * factor)
+                                ret.vmax = (ret.vmax ?: 0f) + rel.value * factor
                             }
                         }
                     }
@@ -274,19 +261,23 @@ sealed class CalcNode {
             is CalcNode.Sum -> {
                 when (val result = left.reduceCalc(ret, factor)) {
                     is Err -> return result
+                    else -> {}
                 }
 
                 when (val result = right.reduceCalc(ret, factor)) {
                     is Err -> return result
+                    else -> {}
                 }
             }
             is CalcNode.Sub -> {
                 when (val result = left.reduceCalc(ret, factor)) {
                     is Err -> return result
+                    else -> {}
                 }
 
                 when (val result = right.reduceCalc(ret, factor * -1)) {
                     is Err -> return result
+                    else -> {}
                 }
             }
             is CalcNode.Mul -> {
@@ -294,6 +285,7 @@ sealed class CalcNode {
                     is Ok -> {
                         when (val result = right.reduceCalc(ret, factor * operandLeft.value)) {
                             is Err -> return result
+                            else -> {}
                         }
                     }
                     is Err -> {
@@ -304,6 +296,7 @@ sealed class CalcNode {
 
                         when (val result = left.reduceCalc(ret, factor * operand)) {
                             is Err -> return result
+                            else -> {}
                         }
                     }
                 }
@@ -320,11 +313,13 @@ sealed class CalcNode {
 
                 when (val result = left.reduceCalc(ret, factor / operand)) {
                     is Err -> return result
+                    else -> {}
                 }
             }
             is CalcNode.Angle,
             is CalcNode.Time,
-            is CalcNode.Number -> return Err()
+            is CalcNode.Number,
+            -> return Err()
         }
 
         return Ok()
@@ -412,7 +407,8 @@ sealed class CalcNode {
                 is Length,
                 is Number,
                 is Time,
-                is Angle -> return Err()
+                is Angle,
+                -> return Err()
             }
         )
     }
@@ -498,7 +494,8 @@ sealed class CalcNode {
                 is Length,
                 is Percentage,
                 is Time,
-                is Angle -> return Err()
+                is Angle,
+                -> return Err()
             }
         )
     }
@@ -585,7 +582,8 @@ sealed class CalcNode {
                 is Number,
                 is Length,
                 is Percentage,
-                is Time -> return Err()
+                is Time,
+                -> return Err()
             }
         )
     }
@@ -725,7 +723,7 @@ sealed class CalcNode {
         fun parse(
             context: ParserContext,
             input: Parser,
-            expectedUnit: CalcUnit
+            expectedUnit: CalcUnit,
         ): Result<CalcNode, ParseError> {
 
             var root = when (val root = parseProduct(context, input, expectedUnit)) {
@@ -794,7 +792,7 @@ sealed class CalcNode {
         private fun parseProduct(
             context: ParserContext,
             input: Parser,
-            expectedUnit: CalcUnit
+            expectedUnit: CalcUnit,
         ): Result<CalcNode, ParseError> {
             var root = when (val root = parseOne(context, input, expectedUnit)) {
                 is Ok -> root.value
@@ -862,7 +860,7 @@ sealed class CalcNode {
         private fun parseOne(
             context: ParserContext,
             input: Parser,
-            expectedUnit: CalcUnit
+            expectedUnit: CalcUnit,
         ): Result<CalcNode, ParseError> {
             val location = input.sourceLocation()
 
@@ -878,7 +876,8 @@ sealed class CalcNode {
                 is Token.Dimension -> {
                     when (expectedUnit) {
                         CalcUnit.LENGTH,
-                        CalcUnit.LENGTH_OR_PERCENTAGE -> {
+                        CalcUnit.LENGTH_OR_PERCENTAGE,
+                        -> {
                             return NoCalcLength.parseDimension(context, token.number.float(), token.unit)
                                 .map(CalcNode::Length)
                                 .mapErr { location.newUnexpectedTokenError(token) }

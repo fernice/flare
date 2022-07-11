@@ -5,8 +5,6 @@
  */
 package org.fernice.flare.style
 
-import fernice.std.Option
-import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.RGBA
 import org.fernice.flare.dom.Device
 import org.fernice.flare.font.WritingMode

@@ -5,14 +5,11 @@
  */
 package org.fernice.flare.style.value
 
+import org.fernice.flare.dom.Device
+import org.fernice.flare.font.FontMetricsProvider
 import org.fernice.flare.style.StyleBuilder
 import org.fernice.flare.style.value.computed.Au
 import org.fernice.flare.style.value.generic.Size2D
-import org.fernice.flare.dom.Device
-import org.fernice.flare.font.FontMetricsProvider
-import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
 
 class Context(
         val rootElement: Boolean,
@@ -88,11 +85,4 @@ interface ComputedValue
 
 fun <E : SpecifiedValue<C>, C> List<E>.toComputedValue(context: Context): List<C> {
     return this.map { item -> item.toComputedValue(context) }
-}
-
-fun <E : SpecifiedValue<C>, C> Option<E>.toComputedValue(context: Context): Option<C> {
-    return when (this) {
-        is Some -> Some(this.value.toComputedValue(context))
-        is None -> None
-    }
 }

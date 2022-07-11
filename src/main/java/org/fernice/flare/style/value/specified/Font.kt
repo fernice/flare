@@ -8,10 +8,6 @@ package org.fernice.flare.style.value.specified
 import fernice.std.Err
 import fernice.std.Ok
 import fernice.std.Result
-import fernice.std.Some
-import fernice.std.mapOr
-import fernice.std.unwrap
-import fernice.std.unwrapOr
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
@@ -19,8 +15,6 @@ import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.cssparser.toCssJoining
-import org.fernice.flare.std.max
-import org.fernice.flare.std.min
 import org.fernice.flare.style.parser.AllowQuirks
 import org.fernice.flare.style.parser.Parse
 import org.fernice.flare.style.parser.ParseQuirky
@@ -60,6 +54,7 @@ sealed class FontWeight : SpecifiedValue<ComputedFontWeight> {
         fun parse(context: ParserContext, input: Parser): Result<FontWeight, ParseError> {
             when (val result = input.tryParse { parser -> AbsoluteFontWeight.parse(context, parser) }) {
                 is Ok -> return Ok(Absolute(result.value))
+                else -> {}
             }
 
             val location = input.sourceLocation()
@@ -92,7 +87,7 @@ sealed class AbsoluteFontWeight : SpecifiedValue<ComputedFontWeight> {
 
     override fun toComputedValue(context: Context): ComputedFontWeight {
         return when (this) {
-            is Weight -> ComputedFontWeight(value.value.max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT))
+            is Weight -> ComputedFontWeight(value.value.coerceAtLeast(MIN_FONT_WEIGHT).coerceAtMost(MAX_FONT_WEIGHT))
             is Normal -> ComputedFontWeight.Normal
             is Bold -> ComputedFontWeight.Bold
         }
@@ -110,6 +105,7 @@ sealed class AbsoluteFontWeight : SpecifiedValue<ComputedFontWeight> {
                     }
                     return Ok(Weight(number))
                 }
+                else -> {}
             }
 
             val location = input.sourceLocation()
@@ -201,8 +197,8 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
                         val calc = lop.calc
                         val parent = context.style().getParentFont().fontSize
 
-                        if (calc.em.isSome() || calc.percentage.isSome() && parent.keywordInfo != null) {
-                            val ratio = calc.em.unwrapOr(0f) + calc.percentage.mapOr({ p -> p.value }, 0f)
+                        if (calc.em != null || calc.percentage != null && parent.keywordInfo != null) {
+                            val ratio = (calc.em ?: 0f) + (calc.percentage?.value ?: 0f)
 
                             val abs = calc.toComputedValue(context, FontBaseSize.InheritStyleButStripEmUnits)
                                 .lengthComponent()
@@ -212,9 +208,8 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
                         }
 
                         val computed = calc.toComputedValue(context, baseSize)
-                        computed.toUsedValue(Some(baseSize.resolve(context)))
-                            .unwrap()
-                            .intoNonNegative()
+                        val used = computed.toUsedValue(baseSize.resolve(context)) ?: error("conversion should have resulted in size")
+                        used.intoNonNegative()
                     }
                 }
 
@@ -300,7 +295,7 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
 data class KeywordInfo(
     val keyword: KeywordSize,
     val factor: Float,
-    val offset: NonNegativeLength
+    val offset: NonNegativeLength,
 ) : SpecifiedValue<NonNegativeLength>, ToCss {
 
     companion object {

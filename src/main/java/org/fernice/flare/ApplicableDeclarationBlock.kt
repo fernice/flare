@@ -5,7 +5,6 @@
  */
 package org.fernice.flare
 
-import org.fernice.flare.std.atMost
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
 import org.fernice.flare.style.ruletree.CascadeLevel
 import org.fernice.flare.style.ruletree.StyleSource

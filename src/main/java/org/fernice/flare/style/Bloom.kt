@@ -5,10 +5,6 @@
  */
 package org.fernice.flare.style
 
-import fernice.std.None
-import fernice.std.Option
-import fernice.std.Some
-import fernice.std.unwrap
 import org.fernice.flare.dom.Element
 import org.fernice.flare.selector.BloomFilter
 import org.fernice.flare.selector.CountingBloomFilter
@@ -17,7 +13,7 @@ import java.util.Stack
 class StyleBloom(
     private val filter: BloomFilter,
     private val elements: Stack<PushedElement>,
-    private val pushedHashes: Stack<Int>
+    private val pushedHashes: Stack<Int>,
 ) {
 
     companion object {
@@ -61,9 +57,9 @@ class StyleBloom(
         elements.push(PushedElement(element, count))
     }
 
-    fun pop(): Option<Element> {
+    fun pop(): Element? {
         val element = if (elements.isEmpty()) {
-            return None
+            return null
         } else {
             elements.pop()
         }
@@ -73,7 +69,7 @@ class StyleBloom(
             filter.removeHash(hash)
         }
 
-        return Some(element.element)
+        return element.element
     }
 
     fun clear() {
@@ -118,11 +114,11 @@ class StyleBloom(
         }
     }
 
-    fun currentParent(): Option<Element> {
+    fun currentParent(): Element? {
         return if (elements.isEmpty()) {
-            None
+            null
         } else {
-            Some(elements.peek().element)
+            elements.peek().element
         }
     }
 
@@ -135,7 +131,7 @@ class StyleBloom(
         val traversalParent = element.traversalParent ?: return clear()
 
         // Current parent is present as stack is not empty
-        if (currentParent().unwrap() == traversalParent) {
+        if (currentParent() === traversalParent) {
             return
         } else {
             // We have no use for that parent
@@ -144,14 +140,10 @@ class StyleBloom(
 
         loop@
         while (true) {
-            when (val currentParent = pop()) {
-                is Some -> {
-                    if (currentParent.value == traversalParent) {
-                        rebuildUntil(element, currentParent.value)
-                        return
-                    }
-                }
-                is None -> break@loop
+            val currentParent = pop() ?: break@loop
+            if (currentParent === traversalParent) {
+                rebuildUntil(element, currentParent)
+                return
             }
         }
 

@@ -6,9 +6,7 @@
 package org.fernice.flare.style.stylesheet
 
 import fernice.std.Err
-import fernice.std.None
 import fernice.std.Ok
-import fernice.std.Some
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ParserInput
 import org.fernice.flare.cssparser.RuleListParser
@@ -31,7 +29,7 @@ enum class Origin {
 class Stylesheet(
     val rules: List<CssRule>,
     val origin: Origin,
-    val source: URI
+    val source: URI,
 ) : Iterable<CssRule> {
 
     override fun iterator(): Iterator<CssRule> = rules.iterator()
@@ -50,10 +48,7 @@ class Stylesheet(
 
             loop@
             while (true) {
-                val result = when (val next = iter.next()) {
-                    is Some -> next.value
-                    is None -> break@loop
-                }
+                val result = iter.next() ?: break@loop
 
                 when (result) {
                     is Ok -> {

@@ -5,12 +5,11 @@
  */
 package org.fernice.flare.style.value.computed
 
+import org.fernice.flare.std.Either
 import org.fernice.flare.style.value.ComputedValue
 import org.fernice.flare.style.value.specified.ShapeExtend
 import org.fernice.flare.style.value.specified.X
 import org.fernice.flare.style.value.specified.Y
-import fernice.std.Option
-import org.fernice.flare.std.Either
 
 typealias ImageLayer = Either<Unit, Image>
 
@@ -42,7 +41,7 @@ private typealias ComputedColorStop = ColorStop
 
 data class ColorStop(
     val color: RGBAColor,
-    val position: Option<LengthOrPercentage>
+    val position: LengthOrPercentage?
 ) : ComputedValue
 
 sealed class GradientKind : ComputedValue {

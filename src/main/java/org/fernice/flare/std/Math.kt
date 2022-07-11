@@ -8,25 +8,25 @@ package org.fernice.flare.std
 /**
  * Bounds the receiver to at most the specified [limit].
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
 fun Float.atMost(limit: Float): Float = Math.min(this, limit)
 
 /**
  * Bounds the receiver to at least the specified [limit].
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
 fun Float.atLeast(limit: Float): Float = Math.max(this, limit)
 
 /**
  * Returns the minimum of the two numbers.
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
 fun Float.min(other: Float): Float = Math.min(this, other)
 
 /**
  * Returns the maximum of the two numbers.
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
 fun Float.max(other: Float): Float = Math.max(this, other)
 
 /**
@@ -38,7 +38,7 @@ fun Float.trunc(): Float = Math.floor(this.toDouble()).toFloat()
 /**
  * Bounds the receiver to at most the specified [limit].
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
 fun Double.atMost(limit: Double): Double {
     return Math.min(this, limit)
 }
@@ -46,7 +46,7 @@ fun Double.atMost(limit: Double): Double {
 /**
  * Bounds the receiver to at least the specified [limit].
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
 fun Double.atLeast(limit: Double): Double {
     return Math.max(this, limit)
 }
@@ -54,13 +54,13 @@ fun Double.atLeast(limit: Double): Double {
 /**
  * Returns the minimum of the two numbers.
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
 fun Double.min(other: Double): Double = Math.min(this, other)
 
 /**
  * Returns the maximum of the two numbers.
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
 fun Double.max(other: Double): Double = Math.max(this, other)
 
 fun Double.trunc(): Double {
@@ -70,7 +70,7 @@ fun Double.trunc(): Double {
 /**
  * Bounds the receiver to at most the specified [limit].
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
 fun Int.atMost(limit: Int): Int {
     return kotlin.math.min(this, limit)
 }
@@ -78,7 +78,7 @@ fun Int.atMost(limit: Int): Int {
 /**
  * Bounds the receiver to at least the specified [limit].
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
 fun Int.atLeast(limit: Int): Int {
     return Math.max(this, limit)
 }
@@ -86,19 +86,19 @@ fun Int.atLeast(limit: Int): Int {
 /**
  * Returns the minimum of the two numbers.
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
 fun Int.min(other: Int): Int = Math.min(this, other)
 
 /**
  * Returns the maximum of the two numbers.
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
 fun Int.max(other: Int): Int = Math.max(this, other)
 
 /**
  * Bounds the receiver to at most the specified [limit].
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
 fun Long.atMost(limit: Long): Long {
     return Math.min(this, limit)
 }
@@ -106,7 +106,7 @@ fun Long.atMost(limit: Long): Long {
 /**
  * Bounds the receiver to at least the specified [limit].
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
 fun Long.atLeast(limit: Long): Long {
     return Math.max(this, limit)
 }
@@ -114,11 +114,11 @@ fun Long.atLeast(limit: Long): Long {
 /**
  * Returns the minimum of the two numbers.
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("min(this, limit)", imports = ["kotlin.math.min"]))
 fun Long.min(other: Long): Long = Math.min(this, other)
 
 /**
  * Returns the maximum of the two numbers.
  */
-@Deprecated(message = "non standard library", replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
+@Deprecated(message = "non standard library", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("max(this, limit)", imports = ["kotlin.math.max"]))
 fun Long.max(other: Long): Long = Math.max(this, other)
