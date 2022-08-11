@@ -12,9 +12,9 @@ import org.fernice.flare.style.parser.ParseMode
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.flare.url.Url
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

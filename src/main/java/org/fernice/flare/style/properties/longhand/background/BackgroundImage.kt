@@ -5,12 +5,12 @@
  */
 package org.fernice.flare.style.properties.longhand.background
 
-import fernice.std.Result
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.toCssJoining
-import org.fernice.flare.std.First
-import org.fernice.flare.std.Second
+import org.fernice.std.First
+import org.fernice.std.Second
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.LonghandId

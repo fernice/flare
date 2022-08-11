@@ -5,11 +5,9 @@
  */
 package org.fernice.flare.selector
 
-import fernice.std.Err
-import fernice.std.None
-import fernice.std.Ok
-import fernice.std.Result
-import fernice.std.Some
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.Delimiters
 import org.fernice.flare.cssparser.Nth
 import org.fernice.flare.cssparser.ParseError

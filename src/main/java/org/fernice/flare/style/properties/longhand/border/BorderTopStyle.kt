@@ -5,7 +5,7 @@
  */
 package org.fernice.flare.style.properties.longhand.border
 
-import fernice.std.Result
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
@@ -15,7 +15,6 @@ import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.computed.Style
 import java.io.Writer
-import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 
 object BorderTopStyleId : LonghandId() {
 

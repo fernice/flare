@@ -10,9 +10,9 @@ import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.style.value.ComputedValue
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.ToCss
 import java.io.Writer
 
@@ -78,16 +78,16 @@ sealed class Style : ToCss {
             }
 
             return when (identifier.lowercase()) {
-                "none" -> Ok(Style.None)
-                "hidden" -> Ok(Style.Hidden)
-                "dotted" -> Ok(Style.Dotted)
-                "dashed" -> Ok(Style.Dashed)
-                "solid" -> Ok(Style.Solid)
-                "double" -> Ok(Style.Double)
-                "groove" -> Ok(Style.Groove)
-                "ridge" -> Ok(Style.Ride)
-                "inset" -> Ok(Style.Inset)
-                "outset" -> Ok(Style.Outset)
+                "none" -> Ok(None)
+                "hidden" -> Ok(Hidden)
+                "dotted" -> Ok(Dotted)
+                "dashed" -> Ok(Dashed)
+                "solid" -> Ok(Solid)
+                "double" -> Ok(Double)
+                "groove" -> Ok(Groove)
+                "ridge" -> Ok(Ride)
+                "inset" -> Ok(Inset)
+                "outset" -> Ok(Outset)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }

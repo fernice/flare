@@ -5,8 +5,8 @@
  */
 package org.fernice.flare.style.stylesheet
 
-import fernice.std.Err
-import fernice.std.Ok
+import org.fernice.std.Err
+import org.fernice.std.Ok
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ParserInput
 import org.fernice.flare.cssparser.RuleListParser

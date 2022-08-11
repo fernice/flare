@@ -5,12 +5,6 @@
  */
 package org.fernice.flare.style.value.specified
 
-import fernice.std.Err
-import fernice.std.None
-import fernice.std.Ok
-import fernice.std.Result
-import fernice.std.Some
-import fernice.std.unwrapOrElse
 import org.fernice.flare.cssparser.Delimiters
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
@@ -19,11 +13,15 @@ import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.panic
-import org.fernice.flare.std.Either
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.toComputedValue
+import org.fernice.std.Either
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
+import org.fernice.std.unwrapOrElse
 import java.io.Writer
 import org.fernice.flare.style.value.computed.Circle as ComputedCircle
 import org.fernice.flare.style.value.computed.ColorStop as ComputedColorStop
@@ -149,20 +147,15 @@ data class Gradient(
                 is Err -> return functionResult
             }
 
-            val result = when (function) {
-                "linear-gradient" -> Some(Pair(Shape.Linear, false))
-                "repeating-linear-gradient" -> Some(Pair(Shape.Linear, true))
-                "radial-gradient" -> Some(Pair(Shape.Radial, false))
-                "repeating-radial-gradient" -> Some(Pair(Shape.Radial, true))
-                else -> None
+            val (shape, repeating) = when (function) {
+                "linear-gradient" -> Pair(Shape.Linear, false)
+                "repeating-linear-gradient" -> Pair(Shape.Linear, true)
+                "radial-gradient" -> Pair(Shape.Radial, false)
+                "repeating-radial-gradient" -> Pair(Shape.Radial, true)
+                else -> return Err(location.newUnexpectedTokenError(Token.Function(function)))
             }
 
-            val (shape, repeating) = when (result) {
-                is Some -> result.value
-                is None -> return Err(location.newUnexpectedTokenError(Token.Function(function)))
-            }
-
-            val parseResult = input.parseNestedBlock<Pair<GradientKind, List<GradientItem>>> { nestedParser ->
+            val parseResult = input.parseNestedBlock { nestedParser ->
                 val shapeResult = when (shape) {
                     Shape.Linear -> GradientKind.parseLinear(context, nestedParser)
                     Shape.Radial -> GradientKind.parseRadial(context, nestedParser)
@@ -173,9 +166,7 @@ data class Gradient(
                     is Err -> return@parseNestedBlock shapeResult
                 }
 
-                val itemsResult = GradientItem.parseCommaSeparated(context, nestedParser)
-
-                val items = when (itemsResult) {
+                val items = when (val itemsResult = GradientItem.parseCommaSeparated(context, nestedParser)) {
                     is Ok -> itemsResult.value
                     is Err -> return@parseNestedBlock itemsResult
                 }

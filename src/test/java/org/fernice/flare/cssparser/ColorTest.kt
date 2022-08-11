@@ -5,8 +5,8 @@
  */
 package org.fernice.flare.cssparser
 
-import fernice.std.Err
-import fernice.std.Ok
+import org.fernice.std.Err
+import org.fernice.std.Ok
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

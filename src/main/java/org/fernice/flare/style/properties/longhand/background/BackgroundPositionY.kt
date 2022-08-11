@@ -16,7 +16,7 @@ import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.VerticalPosition
 import org.fernice.flare.style.value.specified.Y
 import org.fernice.flare.style.value.toComputedValue
-import fernice.std.Result
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.toCssJoining
 import java.io.Writer
 import org.fernice.flare.style.value.computed.VerticalPosition as ComputedVerticalPosition

@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.cssparser
 
-import fernice.std.None
 import kotlin.String as Str
 
 sealed class Token {

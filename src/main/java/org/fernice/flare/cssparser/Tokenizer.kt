@@ -5,11 +5,11 @@
  */
 package org.fernice.flare.cssparser
 
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
-import fernice.std.unwrap
-import org.fernice.flare.std.systemFlag
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
+import org.fernice.std.unwrap
+import org.fernice.std.systemFlag
 import org.fernice.logging.FLogging
 import java.util.Stack
 

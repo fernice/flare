@@ -7,8 +7,8 @@ package org.fernice.flare.selector
 
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ParserInput
-import fernice.std.Err
-import fernice.std.Ok
+import org.fernice.std.Err
+import org.fernice.std.Ok
 import org.junit.Test
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals

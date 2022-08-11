@@ -5,10 +5,10 @@
     <parent>
         <groupId>org.fernice</groupId>
         <artifactId>fernice-maven</artifactId>
-        <version>1.0.37</version>
+        <version>1.1.0</version>
     </parent>
     <artifactId>fernice-flare</artifactId>
-    <version>1.0.37</version>
+    <version>1.1.0</version>
 
     <name>fernice-flare</name>
     <description>CSS 3 engine written in Kotlin</description>
@@ -21,11 +21,4 @@
         <tag>HEAD</tag>
     </scm>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.fernice</groupId>
-            <artifactId>fernice-stdlib</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-    </dependencies>
 </project>

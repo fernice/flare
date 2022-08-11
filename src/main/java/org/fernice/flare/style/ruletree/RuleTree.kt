@@ -8,9 +8,9 @@ package org.fernice.flare.style.ruletree
 import org.fernice.flare.ApplicableDeclarationBlock
 import org.fernice.flare.RuleTreeValues
 import org.fernice.flare.debugAssert
-import org.fernice.flare.std.Either
-import org.fernice.flare.std.First
-import org.fernice.flare.std.Second
+import org.fernice.std.Either
+import org.fernice.std.First
+import org.fernice.std.Second
 import org.fernice.flare.style.properties.Importance
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
 import org.fernice.flare.style.stylesheet.StyleRule

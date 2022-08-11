@@ -15,9 +15,9 @@ import org.fernice.flare.selector.SelectorParser
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
 import org.fernice.flare.style.properties.parsePropertyDeclarationList
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.toCssString
 import java.net.URI
 
