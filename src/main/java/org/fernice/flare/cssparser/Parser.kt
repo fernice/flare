@@ -6,7 +6,6 @@
 package org.fernice.flare.cssparser
 
 import org.fernice.std.Err
-import fernice.std.None
 import org.fernice.std.Ok
 import org.fernice.std.Result
 import org.fernice.std.unwrap

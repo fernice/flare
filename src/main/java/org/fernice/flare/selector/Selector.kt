@@ -6,10 +6,8 @@
 package org.fernice.flare.selector
 
 import org.fernice.std.Err
-import fernice.std.None
 import org.fernice.std.Ok
 import org.fernice.std.Result
-import fernice.std.Some
 import org.fernice.flare.cssparser.Delimiters
 import org.fernice.flare.cssparser.Nth
 import org.fernice.flare.cssparser.ParseError
