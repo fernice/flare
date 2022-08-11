@@ -6,9 +6,9 @@
 
 package org.fernice.flare.style.value.specified
 
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.RGBA
@@ -38,7 +38,7 @@ sealed class Fill : SpecifiedValue<ComputedFill> {
             when (val result = input.tryParse { parser -> ParserColor.parse(parser) }) {
                 is Ok -> {
                     return when (val color = result.value) {
-                        is ParserColor.RGBA -> Ok(Fill.Color(color.rgba))
+                        is ParserColor.RGBA -> Ok(Color(color.rgba))
                         is ParserColor.CurrentColor -> Err(input.newUnexpectedTokenError(Token.Identifier("currentcolor")))
                     }
                 }
@@ -53,7 +53,7 @@ sealed class Fill : SpecifiedValue<ComputedFill> {
 
             return Ok(
                 when (ident.lowercase()) {
-                    "none" -> Fill.None
+                    "none" -> None
                     else -> return Err(location.newUnexpectedTokenError(Token.Identifier(ident)))
                 }
             )

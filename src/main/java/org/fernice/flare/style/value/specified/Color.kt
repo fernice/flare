@@ -5,9 +5,9 @@
  */
 package org.fernice.flare.style.value.specified
 
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.RGBA

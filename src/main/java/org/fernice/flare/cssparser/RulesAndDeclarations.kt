@@ -5,11 +5,9 @@
  */
 package org.fernice.flare.cssparser
 
-import fernice.std.Err
-import fernice.std.None
-import fernice.std.Ok
-import fernice.std.Result
-import fernice.std.loop
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
 
 /**
  * Marks a parser that is capable of parsing any kind of at-rule.
@@ -140,7 +138,7 @@ class RuleListParser<A, Q, R, P>(
      * rule. Returns [None] if no more declarations are left to parse in the block.
      */
     fun next(): Result<R, ParseErrorSlice>? {
-        loop {
+        while (true) {
             input.skipWhitespace()
 
             val state = input.state()

@@ -5,7 +5,7 @@
  */
 package org.fernice.flare.style.properties.stylestruct
 
-import org.fernice.flare.std.Second
+import org.fernice.std.Second
 import org.fernice.flare.style.MutStyleStruct
 import org.fernice.flare.style.StyleStruct
 import org.fernice.flare.style.properties.longhand.background.Attachment

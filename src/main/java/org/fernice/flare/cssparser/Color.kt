@@ -5,10 +5,10 @@
  */
 package org.fernice.flare.cssparser
 
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
-import org.fernice.flare.std.trunc
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
+import org.fernice.std.trunc
 import java.io.Writer
 import kotlin.math.roundToInt
 

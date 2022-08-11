@@ -5,7 +5,7 @@
  */
 package org.fernice.flare.style.value.computed
 
-import org.fernice.flare.std.Either
+import org.fernice.std.Either
 import org.fernice.flare.style.value.ComputedValue
 import org.fernice.flare.style.value.specified.ShapeExtend
 import org.fernice.flare.style.value.specified.X

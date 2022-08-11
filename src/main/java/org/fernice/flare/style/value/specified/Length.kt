@@ -5,9 +5,9 @@
  */
 package org.fernice.flare.style.value.specified
 
-import fernice.std.Err
-import fernice.std.Ok
-import fernice.std.Result
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
@@ -16,7 +16,7 @@ import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newError
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.font.FontMetricsQueryResult
-import org.fernice.flare.std.trunc
+import org.fernice.std.trunc
 import org.fernice.flare.style.parser.AllowQuirks
 import org.fernice.flare.style.parser.ClampingMode
 import org.fernice.flare.style.parser.ParserContext

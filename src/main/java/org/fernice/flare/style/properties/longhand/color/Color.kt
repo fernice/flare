@@ -5,7 +5,7 @@
  */
 package org.fernice.flare.style.properties.longhand.color
 
-import fernice.std.Result
+import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.RGBA
@@ -16,7 +16,6 @@ import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.ColorPropertyValue
 import java.io.Writer
-import org.fernice.flare.style.value.specified.Color as ComputedColor
 
 object ColorId : LonghandId() {
 

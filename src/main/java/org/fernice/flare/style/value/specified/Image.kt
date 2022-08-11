@@ -5,12 +5,12 @@
  */
 package org.fernice.flare.style.value.specified
 
-import fernice.std.Err
+import org.fernice.std.Err
 import fernice.std.None
-import fernice.std.Ok
-import fernice.std.Result
+import org.fernice.std.Ok
+import org.fernice.std.Result
 import fernice.std.Some
-import fernice.std.unwrapOrElse
+import org.fernice.std.unwrapOrElse
 import org.fernice.flare.cssparser.Delimiters
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
@@ -19,7 +19,7 @@ import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.panic
-import org.fernice.flare.std.Either
+import org.fernice.std.Either
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
