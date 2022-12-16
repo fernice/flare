@@ -9,58 +9,48 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.LengthOrPercentageOrAuto
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
 
-object MarginTopId : LonghandId() {
+object MarginTopId : AbstractLonghandId<MarginTopDeclaration>(
+    name = "margin-top",
+    declarationType = MarginTopDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "margin-top"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return LengthOrPercentageOrAuto.parse(context, input).map { width -> MarginTopDeclaration(width) }
+    override fun parseValue(context: ParserContext, input: Parser): Result<MarginTopDeclaration, ParseError> {
+        return LengthOrPercentageOrAuto.parse(context, input).map { MarginTopDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is MarginTopDeclaration -> {
-                val length = declaration.length.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: MarginTopDeclaration) {
+        val length = declaration.length.toComputedValue(context)
 
-                context.builder.setMarginTop(length)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetMarginTop()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritMarginTop()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setMarginTop(length)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetMarginTop()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritMarginTop()
     }
 }
 
-class MarginTopDeclaration(val length: LengthOrPercentageOrAuto) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return MarginTopId
-    }
+class MarginTopDeclaration(val length: LengthOrPercentageOrAuto) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(MarginTopId),
+) {
 
     override fun toCssInternally(writer: Writer) = length.toCss(writer)
 
     companion object {
 
-        val initialValue: ComputedLengthOrPercentageOrAuto by lazy { ComputedLengthOrPercentageOrAuto.zero() }
+        val InitialValue: ComputedLengthOrPercentageOrAuto by lazy { ComputedLengthOrPercentageOrAuto.zero() }
     }
 }

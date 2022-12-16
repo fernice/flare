@@ -6,29 +6,23 @@
 package org.fernice.flare.style.context
 
 import org.fernice.flare.dom.Device
+import org.fernice.flare.dom.Element
 import org.fernice.flare.font.FontMetricsProvider
 import org.fernice.flare.style.StyleBloom
+import org.fernice.flare.style.StyleRoot
 import org.fernice.flare.style.Stylist
 
 class StyleContext(
     val device: Device,
     val stylist: Stylist,
-    val bloomFilter: StyleBloom,
-    val fontMetricsProvider: FontMetricsProvider
+    val fontMetricsProvider: FontMetricsProvider,
 ) {
 
-    companion object {
-        fun new(
-            device: Device,
-            stylist: Stylist,
-            fontMetricsProvider: FontMetricsProvider
-        ): StyleContext {
-            return StyleContext(
-                device,
-                stylist,
-                StyleBloom.new(),
-                fontMetricsProvider
-            )
-        }
+    val styleRoots = StyleRootStack(stylist.styleRoot)
+    val bloomFilter = StyleBloom()
+
+    fun prepare(element: Element) {
+        styleRoots.insert(element)
+        bloomFilter.insertParent(element)
     }
 }

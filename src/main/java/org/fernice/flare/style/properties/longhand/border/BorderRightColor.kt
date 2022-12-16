@@ -9,58 +9,48 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.Color
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 
-object BorderRightColorId : LonghandId() {
+object BorderRightColorId : AbstractLonghandId<BorderRightColorDeclaration>(
+    name = "border-right-color",
+    declarationType = BorderRightColorDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "border-right-color"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return Color.parse(context, input).map { color -> BorderRightColorDeclaration(color) }
+    override fun parseValue(context: ParserContext, input: Parser): Result<BorderRightColorDeclaration, ParseError> {
+        return Color.parse(context, input).map { BorderRightColorDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BorderRightColorDeclaration -> {
-                val color = declaration.color.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: BorderRightColorDeclaration) {
+        val color = declaration.color.toComputedValue(context)
 
-                context.builder.setBorderRightColor(color)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBorderRightColor()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBorderRightColor()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setBorderRightColor(color)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBorderRightColor()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBorderRightColor()
     }
 }
 
-class BorderRightColorDeclaration(val color: Color) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return BorderRightColorId
-    }
+class BorderRightColorDeclaration(val color: Color) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BorderRightColorId),
+) {
 
     override fun toCssInternally(writer: Writer) = color.toCss(writer)
 
     companion object {
 
-        val initialValue: ComputedColor by lazy { ComputedColor.transparent() }
+        val InitialValue: ComputedColor = ComputedColor.Transparent
     }
 }

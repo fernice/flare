@@ -15,60 +15,45 @@ import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
+import org.fernice.std.map
 import java.io.Writer
 
-object BackgroundOriginId : LonghandId() {
+object BackgroundOriginId : AbstractLonghandId<BackgroundOriginDeclaration>(
+    name = "background-origin",
+    declarationType = BackgroundOriginDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "background-origin"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { Origin.parse(it) }.map(::BackgroundOriginDeclaration)
+    override fun parseValue(context: ParserContext, input: Parser): Result<BackgroundOriginDeclaration, ParseError> {
+        return input.parseCommaSeparated { Origin.parse(it) }.map { BackgroundOriginDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BackgroundOriginDeclaration -> {
-                context.builder.setBackgroundOrigin(declaration.origin)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundOrigin()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundOrigin()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+    override fun cascadeProperty(context: Context, declaration: BackgroundOriginDeclaration) {
+        context.builder.setBackgroundOrigin(declaration.origin)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBackgroundOrigin()
     }
 
-    override fun toString(): String {
-        return "LonghandId::BackgroundOrigin"
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBackgroundOrigin()
     }
 }
 
-class BackgroundOriginDeclaration(val origin: List<Origin>) : PropertyDeclaration() {
-
-    override fun id(): LonghandId {
-        return BackgroundOriginId
-    }
+class BackgroundOriginDeclaration(val origin: List<Origin>) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BackgroundOriginId),
+) {
 
     override fun toCssInternally(writer: Writer) = origin.toCssJoining(writer, ", ")
 
     companion object {
 
-        val initialValue: List<Origin> by lazy { listOf(Origin.BorderBox) }
+        val InitialValue: List<Origin> by lazy { listOf(Origin.BorderBox) }
         val InitialSingleValue by lazy { Origin.BorderBox }
     }
 }

@@ -46,6 +46,7 @@ import org.fernice.flare.style.value.specified.Image
 import org.fernice.flare.style.value.specified.ImageLayer
 import org.fernice.flare.style.value.specified.Position
 import org.fernice.flare.style.value.specified.VerticalPosition
+import org.fernice.std.map
 
 private class Longhands(
     val backgroundColor: Color,
@@ -111,7 +112,7 @@ private fun parse(context: ParserContext, input: Parser): Result<Longhands, Pars
                 }
             }
             if (image == null) {
-                val result = parser.tryParse { nestedParser -> Image.parse(context, nestedParser).map(::Second) }
+                val result = parser.tryParse { nestedParser -> Image.parse(context, nestedParser).map { Second(it) } }
 
                 if (result is Ok) {
                     image = result.value
@@ -224,7 +225,7 @@ private fun parse(context: ParserContext, input: Parser): Result<Longhands, Pars
 
     return Ok(
         Longhands(
-            backgroundColor = backgroundColor ?: Color.transparent(),
+            backgroundColor = backgroundColor ?: Color.Transparent,
             backgroundImage = backgroundImage,
             backgroundPositionX = backgroundPositionX,
             backgroundPositionY = backgroundPositionY,
@@ -245,9 +246,20 @@ private fun Origin.toClip(): Clip {
     }
 }
 
-object BackgroundId : ShorthandId() {
-
-    override val name: String = "background"
+object BackgroundId : ShorthandId(
+    name = "background",
+    longhands = listOf(
+        BackgroundColorId,
+        BackgroundImageId,
+        BackgroundPositionXId,
+        BackgroundPositionYId,
+        BackgroundRepeatId,
+        BackgroundSizeId,
+        BackgroundAttachmentId,
+        BackgroundOriginId,
+        BackgroundClipId,
+    ),
+) {
 
     override fun parseInto(
         declarations: MutableList<PropertyDeclaration>,
@@ -271,16 +283,4 @@ object BackgroundId : ShorthandId() {
 
         return Ok()
     }
-
-    override val longhands: List<LonghandId> = listOf(
-        BackgroundColorId,
-        BackgroundImageId,
-        BackgroundPositionXId,
-        BackgroundPositionYId,
-        BackgroundRepeatId,
-        BackgroundSizeId,
-        BackgroundAttachmentId,
-        BackgroundOriginId,
-        BackgroundClipId
-    )
 }

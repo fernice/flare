@@ -16,7 +16,7 @@ import org.fernice.flare.style.parser.QuirksMode
 
 class Engine(
     val device: Device,
-    private val shared: SharedEngine
+    private val shared: SharedEngine,
 ) {
     fun createEngineContext(): EngineContext {
         return shared.createEngineContext(device)
@@ -33,13 +33,13 @@ class Engine(
 
 class SharedEngine(
     val stylist: Stylist,
-    private val fontMetricsProvider: FontMetricsProvider
+    private val fontMetricsProvider: FontMetricsProvider,
 ) {
 
     companion object {
         fun new(fontMetricsProvider: FontMetricsProvider): SharedEngine {
             return SharedEngine(
-                Stylist.new(QuirksMode.NO_QUIRKS),
+                Stylist(QuirksMode.NoQuirks),
                 fontMetricsProvider
             )
         }
@@ -47,7 +47,7 @@ class SharedEngine(
 
     fun createEngineContext(device: Device): EngineContext {
         return EngineContextImpl(
-            StyleContext.new(
+            StyleContext(
                 device,
                 stylist,
                 fontMetricsProvider
@@ -56,50 +56,38 @@ class SharedEngine(
     }
 
     fun style(device: Device, element: Element) {
-        val context = EngineContextImpl(
-            StyleContext.new(
-                device,
-                stylist,
-                fontMetricsProvider
-            )
-        )
+        val context = createEngineContext(device)
 
         style(element, context)
     }
 
     private fun style(element: Element, context: EngineContext) {
-        styleInternal(element, context)
+        applyStyles(element, context)
 
         for (child in element.children) {
             style(child, context)
         }
     }
 
-    private fun styleInternal(element: Element, context: EngineContext) {
-        context.styleContext.bloomFilter.insertParent(element)
+    private fun applyStyles(element: Element, context: EngineContext) {
+        context.styleContext.prepare(element)
 
         val styleResolver = ElementStyleResolver(element, context.styleContext)
-        val styles = styleResolver.resolvePrimaryStyleWithDefaultParentStyles()
+        val styles = styleResolver.resolveStyleWithDefaultParentStyles()
 
-        val data = element.getData()
+        val previousStyles = element.styles
 
-        element.finishRestyle(context.styleContext, data, styles)
+        element.finishRestyle(context.styleContext, previousStyles, styles)
     }
 
     fun matchStyle(device: Device, element: Element): MatchingResult {
-        val context = EngineContextImpl(
-            StyleContext.new(
-                device,
-                stylist,
-                fontMetricsProvider
-            )
-        )
+        val context = createEngineContext(device)
 
-        context.styleContext.bloomFilter.insertParent(element)
+        context.styleContext.prepare(element)
 
         val styleResolver = ElementStyleResolver(element, context.styleContext)
 
-        return styleResolver.matchPrimary()
+        return styleResolver.matchPrimaryStyle()
     }
 }
 
@@ -108,5 +96,5 @@ interface EngineContext {
 }
 
 private class EngineContextImpl(
-    override val styleContext: StyleContext
+    override val styleContext: StyleContext,
 ) : EngineContext

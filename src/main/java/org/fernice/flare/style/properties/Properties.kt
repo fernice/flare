@@ -5,55 +5,345 @@
  */
 package org.fernice.flare.style.properties
 
-import org.fernice.std.Err
-import org.fernice.std.Ok
-import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.dom.Device
-import org.fernice.flare.dom.Element
-import org.fernice.flare.font.FontMetricsProvider
-import org.fernice.flare.font.WritingMode
-import org.fernice.flare.selector.PseudoElement
-import org.fernice.flare.style.ComputedValues
-import org.fernice.flare.style.StyleBuilder
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.longhand.font.FontFamilyDeclaration
-import org.fernice.flare.style.properties.longhand.font.FontFamilyId
-import org.fernice.flare.style.properties.longhand.font.FontSizeDeclaration
-import org.fernice.flare.style.properties.longhand.font.FontSizeId
-import org.fernice.flare.style.ruletree.CascadeLevel
-import org.fernice.flare.style.ruletree.RuleNode
+import org.fernice.flare.style.properties.custom.Name
+import org.fernice.flare.style.properties.custom.SubstitutionCache
+import org.fernice.flare.style.properties.custom.UnparsedValue
+import org.fernice.flare.style.properties.custom.TemplateValue
+import org.fernice.flare.style.properties.custom.VariableValue
 import org.fernice.flare.style.value.Context
-import org.fernice.logging.FLogging
+import org.fernice.std.Err
+import org.fernice.std.Ok
+import org.fernice.std.Result
+import org.fernice.std.map
+import org.fernice.std.unwrap
+import org.fernice.std.unwrapErr
 import java.io.Writer
 import java.util.ServiceLoader
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.KClass
 
-private val LOG = FLogging.logger { }
+abstract class LonghandId(
+    val name: String,
+    val isInherited: Boolean,
+    val isEarlyProperty: Boolean = false,
+) : Comparable<LonghandId> {
 
-abstract class PropertyDeclaration : ToCss {
+    abstract fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError>
 
-    class CssWideKeyword(val id: LonghandId, val keyword: org.fernice.flare.style.properties.CssWideKeyword) : PropertyDeclaration() {
+    abstract fun cascadeProperty(declaration: PropertyDeclaration, context: Context)
 
-        override fun id(): LonghandId {
-            return id
-        }
-
-        override fun toCssInternally(writer: Writer) = keyword.toCss(writer)
+    final override fun compareTo(other: LonghandId): Int {
+        return name.compareTo(other.name)
     }
 
-    /**
-     * Returns the name of the property
-     */
-    abstract fun id(): LonghandId
+    final override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is LonghandId) return false
+
+        val allocation = allocation.get()
+        if (allocation > 0 && allocation == other.allocation.get()) return true
+
+        return name == other.name
+    }
+
+    final override fun hashCode(): Int {
+        return allocation.hashCode()
+    }
+
+    final override fun toString(): String = name
+
+    private val allocation = AtomicInteger(-1)
+    val ordinal: Int
+        get() {
+            val ordinal = allocation.get()
+            if (ordinal == -1) error("LonghandId $this was never allocated")
+            return ordinal
+        }
+
+    internal fun allocate(ordinal: Int) {
+        if (!allocation.compareAndSet(-1, ordinal)) {
+            error("LonghandId $this has already been allocated")
+        }
+    }
+}
+
+abstract class AbstractLonghandId<T : PropertyDeclaration>(
+    name: String,
+    declarationType: KClass<T>,
+    isInherited: Boolean,
+    isEarlyProperty: Boolean = false,
+) : LonghandId(name, isInherited, isEarlyProperty) {
+
+    private val declarationType: Class<T> = declarationType.java
+
+    abstract override fun parseValue(context: ParserContext, input: Parser): Result<T, ParseError>
+
+    final override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
+        if (declarationType.isInstance(declaration)) {
+            cascadeProperty(context, declarationType.cast(declaration))
+        }
+        when (declaration) {
+            is PropertyDeclaration.CssWideKeyword -> {
+                when (declaration.declaration.keyword) {
+                    CssWideKeyword.Unset -> {
+                        if (!isInherited) {
+                            resetProperty(context)
+                        } else {
+                            inheritProperty(context)
+                        }
+                    }
+
+                    CssWideKeyword.Initial -> {
+                        if (!isInherited) error("keyword 'initial' should have been handled by caller")
+                        resetProperty(context)
+                    }
+
+                    CssWideKeyword.Inherit -> {
+                        if (isInherited) error("keyword 'inherit' should have been handled by caller")
+                        inheritProperty(context)
+                    }
+
+                    CssWideKeyword.Revert -> error("keyword 'revert' should have been handled by caller")
+                }
+            }
+
+            is PropertyDeclaration.WithVariables -> error("variables should have already been substituted")
+        }
+    }
+
+    protected abstract fun cascadeProperty(context: Context, declaration: T)
+    protected abstract fun resetProperty(context: Context)
+    protected abstract fun inheritProperty(context: Context)
+}
+
+class LonghandIdSet : AbstractMutableSet<LonghandId>() {
+    private val allocation = Properties.longhandIds.size
+    private val storage = LongArray(allocation % 64)
+
+    private fun get(ordinal: Int): Boolean {
+        val bin = ordinal % 64
+        val bit = ordinal / 64
+        val bits = storage[bin]
+        return (bits and (1L shl bit)) != 0L
+    }
+
+    private fun set(ordinal: Int): Boolean {
+        val bin = ordinal % 64
+        val bit = ordinal / 64
+        val bits = storage[bin]
+        if ((bits and (1L shl bit)) == 0L) {
+            storage[bin] = bits or (1L shl bit)
+            return true
+        }
+        return false
+    }
+
+    private fun clear(ordinal: Int): Boolean {
+        val bin = ordinal % 64
+        val bit = ordinal / 64
+        val bits = storage[bin]
+        if ((bits and (1L shl bit)) != 0L) {
+            storage[bin] = bits and (1L shl bit).inv()
+            return true
+        }
+        return false
+    }
+
+    override fun clear() {
+        for (bin in storage.indices) {
+            storage[bin] = 0L
+        }
+    }
+
+    override fun isEmpty(): Boolean {
+        for (bin in storage.indices) {
+            if (storage[bin] != 0L) return false
+        }
+        return true
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is LonghandIdSet) return false
+        if (!super.equals(other)) return false
+
+        if (!storage.contentEquals(other.storage)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + storage.contentHashCode()
+        return result
+    }
+
+    override val size: Int
+        get() = count()
+
+    override fun contains(element: LonghandId): Boolean = get(element.ordinal)
+
+    override fun add(element: LonghandId): Boolean = set(element.ordinal)
+    override fun remove(element: LonghandId): Boolean = clear(element.ordinal)
+
+    override fun iterator(): MutableIterator<LonghandId> = SetIterator()
+
+    private inner class SetIterator : MutableIterator<LonghandId> {
+        private var ordinal = 0
+
+        override fun hasNext(): Boolean {
+            while (ordinal < allocation) {
+                if (get(ordinal)) return true
+                ordinal++
+            }
+            return false
+        }
+
+        override fun next(): LonghandId {
+            if (!hasNext()) throw NoSuchElementException()
+            return Properties.longhandIds[ordinal++]
+        }
+
+        override fun remove() {
+            if (ordinal <= 0) error("next() has not been called yet")
+            clear(ordinal - 1)
+        }
+    }
+}
+
+abstract class ShorthandId(
+    val name: String,
+    val longhands: List<LonghandId>,
+) : Comparable<ShorthandId> {
+
+    abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError>
+
+    final override fun compareTo(other: ShorthandId): Int = name.compareTo(other.name)
+
+    final override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ShorthandId) return false
+
+        if (name != other.name) return false
+
+        return true
+    }
+
+    final override fun hashCode(): Int {
+        return name.hashCode()
+    }
+
+    final override fun toString(): String = name
+}
+
+sealed class PropertyId {
+
+    data class Longhand(val id: LonghandId) : PropertyId() {
+
+        override fun toString(): String {
+            return "PropertyId::Longhand($id)"
+        }
+    }
+
+    data class Shorthand(val id: ShorthandId) : PropertyId() {
+
+        override fun toString(): String {
+            return "PropertyId::Shorthand($id)"
+        }
+    }
+
+    data class Custom(val name: Name) : PropertyId() {
+
+        override fun toString(): String {
+            return "PropertyId::Custom($name)"
+        }
+    }
+
+    companion object {
+
+        fun parse(propertyName: String): Result<PropertyId, Unit> {
+            val result = Properties[propertyName.lowercase()]
+
+            if (result != null) return Ok(result)
+
+            val name = Name.parse(propertyName).unwrap { return it }
+            return Ok(PropertyId.Custom(name))
+        }
+    }
+}
+
+object Properties {
+
+    private val properties: Map<String, PropertyId>
+
+    val longhandIds: Array<out LonghandId>
+
+    init {
+        val propertyRegistryContainer = PropertyContainer()
+
+        val classLoader = PropertyId::class.java.classLoader
+        val containerContributorLoader = ServiceLoader.load(PropertyContainerContributor::class.java, classLoader)
+
+        for (containerContributor in containerContributorLoader) {
+            containerContributor.contribute(propertyRegistryContainer)
+        }
+
+        properties = propertyRegistryContainer.getRegisteredProperties()
+
+        longhandIds = properties.values.asSequence()
+            .filterIsInstance<PropertyId.Longhand>()
+            .map { it.id }
+            .onEachIndexed { index, longhandId -> longhandId.allocate(index) }
+            .toList()
+            .toTypedArray()
+    }
+
+    operator fun get(name: String): PropertyId? {
+        return properties[name]
+    }
+}
+
+sealed class PropertyDeclarationId {
+    data class Longhand(val id: LonghandId) : PropertyDeclarationId()
+    data class Custom(val name: Name) : PropertyDeclarationId()
+}
+
+fun PropertyDeclarationId.toCss(writer: Writer) {
+    when (this) {
+        is PropertyDeclarationId.Longhand -> writer.append(id.name)
+        is PropertyDeclarationId.Custom -> writer.append("--").append(name.value)
+    }
+}
+
+abstract class PropertyDeclaration(
+    val id: PropertyDeclarationId,
+) : ToCss {
+
+    data class CssWideKeyword(val declaration: CssWideKeywordDeclaration) : PropertyDeclaration(PropertyDeclarationId.Longhand(declaration.id)) {
+
+        override fun toCssInternally(writer: Writer) = declaration.keyword.toCss(writer)
+    }
+
+    data class WithVariables(val declaration: VariablesDeclaration) : PropertyDeclaration(PropertyDeclarationId.Longhand(declaration.id)) {
+
+        override fun toCssInternally(writer: Writer) {}
+    }
+
+    data class Custom(val declaration: CustomDeclaration) : PropertyDeclaration(PropertyDeclarationId.Custom(declaration.name)) {
+
+        override fun toCssInternally(writer: Writer) {}
+    }
 
     protected abstract fun toCssInternally(writer: Writer)
 
     final override fun toCss(writer: Writer) {
-        writer.append(id().name)
+        id.toCss(writer)
         writer.append(": ")
         toCssInternally(writer)
         writer.append(';')
@@ -67,121 +357,96 @@ abstract class PropertyDeclaration : ToCss {
             context: ParserContext,
             input: Parser,
         ): Result<Unit, ParseError> {
-            return id.parseInto(declarations, context, input)
-        }
-    }
-}
+            return when (id) {
+                is PropertyId.Custom -> {
+                    input.tryParse { org.fernice.flare.style.properties.CssWideKeyword.parse(it) }
+                        .map { CustomDeclaration(id.name, CustomDeclarationValue.CssWideKeyword(it)) }
+                        .map { declarations.add(PropertyDeclaration.Custom(it)) }
+                        .unwrapErr { return Ok() }
 
-private val REGISTERED_PROPERTIES: MutableMap<String, PropertyId> by lazy {
-    val propertyRegistryContainer = PropertyContainer()
-
-    val classLoader = PropertyId::class.java.classLoader
-    val containerContributorLoader = ServiceLoader.load(PropertyContainerContributor::class.java, classLoader)
-
-    for (containerContributor in containerContributorLoader) {
-        containerContributor.contribute(propertyRegistryContainer)
-    }
-
-    propertyRegistryContainer.getRegisteredProperties()
-}
-
-
-abstract class LonghandId {
-
-    /**
-     * Returns the name of the property.
-     */
-    abstract val name: String
-
-    abstract fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError>
-
-    abstract fun cascadeProperty(declaration: PropertyDeclaration, context: Context)
-
-    abstract fun isEarlyProperty(): Boolean
-}
-
-abstract class ShorthandId {
-
-    abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError>
-
-    abstract val longhands: List<LonghandId>
-
-    abstract val name: String
-}
-
-sealed class PropertyId {
-
-    abstract fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError>
-
-    class Longhand(private val id: LonghandId) : PropertyId() {
-
-        override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
-            return when (val keyword = input.tryParse { CssWideKeyword.parse(it) }) {
-                is Ok -> {
-                    declarations.add(PropertyDeclaration.CssWideKeyword(id, keyword.value))
+                    TemplateValue.parse(input)
+                        .map { VariableValue(it) }
+                        .map { CustomDeclaration(id.name, CustomDeclarationValue.Value(it)) }
+                        .map { declarations.add(PropertyDeclaration.Custom(it)) }
+                        .unwrap { return it }
 
                     Ok()
                 }
-                is Err -> {
-                    when (val declaration = input.parseEntirely { id.parseValue(context, input) }) {
-                        is Ok -> {
-                            declarations.add(declaration.value)
 
-                            Ok()
-                        }
-                        is Err -> {
-                            declaration
-                        }
+                is PropertyId.Longhand -> {
+                    input.skipWhitespace()
+
+                    input.tryParse { org.fernice.flare.style.properties.CssWideKeyword.parse(it) }
+                        .map { CssWideKeywordDeclaration(id.id, it) }
+                        .map { declarations.add(PropertyDeclaration.CssWideKeyword(it)) }
+                        .unwrapErr { return Ok() }
+
+                    // try parse, but we're looking for var() functions
+                    val state = input.state()
+                    input.lookForVarFunctions()
+
+                    val error = input.parseEntirely { id.id.parseValue(context, input) }
+                        .map { declarations.add(it) }
+                        .unwrapErr { return Ok() }
+
+                    while (input.next().isOk()) {
                     }
-                }
-            }
-        }
 
-        override fun toString(): String {
-            return "PropertyId::Longhand($id)"
-        }
-    }
+                    if (!input.seenVarFunctions()) return Err(error)
+                    input.reset(state)
 
-    class Shorthand(private val id: ShorthandId) : PropertyId() {
-
-        override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
-            return when (val keyword = input.tryParse { CssWideKeyword.parse(it) }) {
-                is Ok -> {
-                    for (longhand in id.longhands) {
-                        declarations.add(PropertyDeclaration.CssWideKeyword(longhand, keyword.value))
-                    }
+                    TemplateValue.parse(input)
+                        .map { UnparsedValue(it, context.baseUrl, fromShorthand = null) }
+                        .map { VariablesDeclaration(id.id, it) }
+                        .map { declarations.add(PropertyDeclaration.WithVariables(it)) }
+                        .unwrap { return it }
 
                     Ok()
                 }
-                is Err -> {
-                    input.parseEntirely { id.parseInto(declarations, context, input) }
+
+                is PropertyId.Shorthand -> {
+                    input.skipWhitespace()
+
+                    input.tryParse { org.fernice.flare.style.properties.CssWideKeyword.parse(it) }
+                        .map { keyword -> id.id.longhands.map { longhand -> CssWideKeywordDeclaration(longhand, keyword) } }
+                        .map { values -> values.forEach { declarations.add(PropertyDeclaration.CssWideKeyword(it)) } }
+                        .unwrapErr { return Ok() }
+
+                    // try parse, but we're looking for var() functions
+                    val state = input.state()
+                    input.lookForVarFunctions()
+
+                    val error = input.parseEntirely { id.id.parseInto(declarations, context, input) }
+                        .unwrapErr { return Ok() }
+
+                    while (input.next().isOk()) {
+                    }
+
+                    if (!input.seenVarFunctions()) return Err(error)
+                    input.reset(state)
+
+                    TemplateValue.parse(input)
+                        .map { UnparsedValue(it, context.baseUrl, fromShorthand = id.id) }
+                        .map { value -> id.id.longhands.map { longhand -> VariablesDeclaration(longhand, value) } }
+                        .map { values -> values.forEach { declarations.add(PropertyDeclaration.WithVariables(it)) } }
+                        .unwrap { return it }
+
+                    Ok()
                 }
-            }
-        }
-
-        override fun toString(): String {
-            return "PropertyId::Longhand($id)"
-        }
-    }
-
-    companion object {
-
-        fun parse(name: String): Result<PropertyId, Unit> {
-            val result = REGISTERED_PROPERTIES[name.lowercase()]
-
-            return if (result != null) {
-                Ok(result)
-            } else {
-                Err()
             }
         }
     }
 }
+
+data class CssWideKeywordDeclaration(
+    val id: LonghandId,
+    val keyword: CssWideKeyword,
+)
 
 /**
  * Represents the three universally definable property value keywords.
  */
-sealed class CssWideKeyword : ToCss {
+enum class CssWideKeyword : ToCss {
 
     /**
      * The `inherit` CSS keyword causes the element for which it is specified to take the computed value of the property
@@ -190,21 +455,23 @@ sealed class CssWideKeyword : ToCss {
      * For inherited properties this keyword behaves the same as `unset`, on non-inherited properties it causes an
      * explicit inheritance.
      */
-    object Unset : CssWideKeyword()
+    Unset,
 
     /**
      * The `unset` CSS keyword resets a property to its inherited value if it inherits from its parent, and to its initial
      * value if not. In other words, it behaves like the inherit keyword in the first case, and like the initial keyword
      * in the second case. It can be applied to any CSS property, including the CSS shorthand `all`.
      */
-    object Initial : CssWideKeyword()
+    Initial,
 
     /**
      * The `initial` CSS keyword applies the initial (or default) value of a property to an element. It can be applied to
      * any CSS property. This includes the CSS shorthand `all`, with which `initial` can be used to restore all CSS
      * properties to their initial state.
      */
-    object Inherit : CssWideKeyword()
+    Inherit,
+
+    Revert;
 
     override fun toCss(writer: Writer) {
         writer.write(
@@ -212,6 +479,7 @@ sealed class CssWideKeyword : ToCss {
                 Unset -> "unset"
                 Initial -> "initial"
                 Inherit -> "inherit"
+                Revert -> "revert"
             }
         )
     }
@@ -230,127 +498,32 @@ sealed class CssWideKeyword : ToCss {
                 "unset" -> Ok(Unset)
                 "initial" -> Ok(Initial)
                 "inherit" -> Ok(Inherit)
+                "revert" -> Ok(Revert)
                 else -> Err(location.newUnexpectedTokenError(Token.Identifier(identifier)))
             }
         }
     }
 }
 
-data class DeclarationAndCascadeLevel(val declaration: PropertyDeclaration, val cascadeLevel: CascadeLevel)
+data class VariablesDeclaration(
+    val id: LonghandId,
+    val unparsedValue: UnparsedValue,
+) {
 
-fun cascade(
-    device: Device,
-    element: Element?,
-    pseudoElement: PseudoElement?,
-    ruleNode: RuleNode,
-    parentStyle: ComputedValues?,
-    parentStyleIgnoringFirstLine: ComputedValues?,
-    layoutStyle: ComputedValues?,
-    fontMetricsProvider: FontMetricsProvider,
-): ComputedValues {
-
-    val sequence = ruleNode.selfAndAncestors().flatMap { node ->
-        val level = node.level
-
-        val declarations = when (val source = node.source) {
-            null -> DeclarationImportanceSequence(emptySequence())
-            else -> source.declarations().reversedDeclarationImportanceSequence()
-        }
-
-        val nodeImportance = node.importance
-
-        declarations.filter { (_, importance) -> importance == nodeImportance }
-            .map { (declaration, _) -> DeclarationAndCascadeLevel(declaration, level) }
+    fun substituteVariables(
+        customProperties: CustomPropertiesList?,
+        substitutionCache: SubstitutionCache,
+    ): PropertyDeclaration {
+        return unparsedValue.substituteVariables(id, customProperties, substitutionCache)
     }
-
-    return applyDeclarations(
-        device,
-        element,
-        pseudoElement,
-        sequence,
-        parentStyle,
-        parentStyleIgnoringFirstLine,
-        layoutStyle,
-        fontMetricsProvider
-    )
 }
 
-fun applyDeclarations(
-    device: Device,
-    element: Element?,
-    pseudoElement: PseudoElement?,
-    declarations: Sequence<DeclarationAndCascadeLevel>,
-    parentStyle: ComputedValues?,
-    parentStyleIgnoringFirstLine: ComputedValues?,
-    layoutStyle: ComputedValues?,
-    fontMetricsProvider: FontMetricsProvider,
-): ComputedValues {
-    val context = Context(
-        false,
+data class CustomDeclaration(
+    val name: Name,
+    val value: CustomDeclarationValue,
+)
 
-        StyleBuilder.new(
-            device,
-            WritingMode(0),
-            parentStyle,
-            parentStyleIgnoringFirstLine
-        ),
-        fontMetricsProvider
-    )
-
-    val seen = mutableSetOf<LonghandId>()
-
-    var fontFamily: FontFamilyDeclaration? = null
-    var fontSize: FontSizeDeclaration? = null
-
-    for ((declaration, _) in declarations) {
-        val longhandId = declaration.id()
-
-        if (!longhandId.isEarlyProperty()) {
-            continue
-        }
-
-        if (!seen.add(longhandId)) {
-            continue
-        }
-
-        if (longhandId is FontFamilyId) {
-            fontFamily = declaration as FontFamilyDeclaration
-            continue
-        }
-
-        if (longhandId is FontSizeId) {
-            fontSize = declaration as FontSizeDeclaration
-            continue
-        }
-
-        longhandId.cascadeProperty(declaration, context)
-    }
-
-    if (fontFamily != null) {
-        val longhandId = FontFamilyId
-
-        longhandId.cascadeProperty(fontFamily, context)
-    }
-
-    if (fontSize != null) {
-        val longhandId = FontSizeId
-
-        longhandId.cascadeProperty(fontSize, context)
-    }
-
-    for ((declaration, _) in declarations) {
-        val longhandId = declaration.id()
-
-        if (longhandId.isEarlyProperty()) {
-            continue
-        }
-
-        if (!seen.add(longhandId)) {
-            continue
-        }
-
-        longhandId.cascadeProperty(declaration, context)
-    }
-
-    return context.builder.build()
+sealed class CustomDeclarationValue {
+    data class Value(val value: VariableValue) : CustomDeclarationValue()
+    data class CssWideKeyword(val keyword: org.fernice.flare.style.properties.CssWideKeyword) : CustomDeclarationValue()
 }

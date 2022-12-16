@@ -25,30 +25,30 @@ import org.fernice.flare.style.properties.longhand.border.BorderTopStyleDeclarat
 import org.fernice.flare.style.properties.longhand.border.BorderTopWidthDeclaration
 import org.fernice.flare.style.value.computed.BorderCornerRadius
 import org.fernice.flare.style.value.computed.NonNegativeLength
-import org.fernice.flare.style.value.computed.Style
+import org.fernice.flare.style.value.computed.BorderStyle
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 
 interface Border : StyleStruct<MutBorder> {
 
     val topWidth: NonNegativeLength
     val topColor: ComputedColor
-    val topStyle: Style
+    val topStyle: BorderStyle
     val topLeftRadius: BorderCornerRadius
     val topRightRadius: BorderCornerRadius
 
     val rightWidth: NonNegativeLength
     val rightColor: ComputedColor
-    val rightStyle: Style
+    val rightStyle: BorderStyle
 
     val bottomWidth: NonNegativeLength
     val bottomColor: ComputedColor
-    val bottomStyle: Style
+    val bottomStyle: BorderStyle
     val bottomLeftRadius: BorderCornerRadius
     val bottomRightRadius: BorderCornerRadius
 
     val leftWidth: NonNegativeLength
     val leftColor: ComputedColor
-    val leftStyle: Style
+    val leftStyle: BorderStyle
 
     fun shapeHash(): Int {
         var hash = topWidth.hashCode() * 31
@@ -96,25 +96,25 @@ interface Border : StyleStruct<MutBorder> {
 
         val initial: Border by lazy {
             StaticBorder(
-                BorderTopWidthDeclaration.initialValue,
-                BorderTopColorDeclaration.initialValue,
+                BorderTopWidthDeclaration.InitialValue,
+                BorderTopColorDeclaration.InitialValue,
                 BorderTopStyleDeclaration.initialValue,
-                BorderTopLeftRadiusDeclaration.initialValue,
-                BorderTopRightRadiusDeclaration.initialValue,
+                BorderTopLeftRadiusDeclaration.InitialValue,
+                BorderTopRightRadiusDeclaration.InitialValue,
 
-                BorderRightWidthDeclaration.initialValue,
-                BorderRightColorDeclaration.initialValue,
-                BorderRightStyleDeclaration.initialValue,
+                BorderRightWidthDeclaration.InitialValue,
+                BorderRightColorDeclaration.InitialValue,
+                BorderRightStyleDeclaration.InitialValue,
 
-                BorderBottomWidthDeclaration.initialValue,
-                BorderBottomColorDeclaration.initialValue,
-                BorderBottomStyleDeclaration.initialValue,
-                BorderBottomLeftRadiusDeclaration.initialValue,
-                BorderBottomRightRadiusDeclaration.initialValue,
+                BorderBottomWidthDeclaration.InitialValue,
+                BorderBottomColorDeclaration.InitialValue,
+                BorderBottomStyleDeclaration.InitialValue,
+                BorderBottomLeftRadiusDeclaration.InitialValue,
+                BorderBottomRightRadiusDeclaration.InitialValue,
 
-                BorderLeftWidthDeclaration.initialValue,
-                BorderLeftColorDeclaration.initialValue,
-                BorderLeftStyleDeclaration.initialValue
+                BorderLeftWidthDeclaration.InitialValue,
+                BorderLeftColorDeclaration.InitialValue,
+                BorderLeftStyleDeclaration.InitialValue
             )
         }
     }
@@ -123,43 +123,43 @@ interface Border : StyleStruct<MutBorder> {
 private data class StaticBorder(
     override val topWidth: NonNegativeLength,
     override val topColor: ComputedColor,
-    override val topStyle: Style,
+    override val topStyle: BorderStyle,
     override val topLeftRadius: BorderCornerRadius,
     override val topRightRadius: BorderCornerRadius,
 
     override val rightWidth: NonNegativeLength,
     override val rightColor: ComputedColor,
-    override val rightStyle: Style,
+    override val rightStyle: BorderStyle,
 
     override val bottomWidth: NonNegativeLength,
     override val bottomColor: ComputedColor,
-    override val bottomStyle: Style,
+    override val bottomStyle: BorderStyle,
     override val bottomLeftRadius: BorderCornerRadius,
     override val bottomRightRadius: BorderCornerRadius,
 
     override val leftWidth: NonNegativeLength,
     override val leftColor: ComputedColor,
-    override val leftStyle: Style
+    override val leftStyle: BorderStyle
 ) : Border
 
 data class MutBorder(
     override var topWidth: NonNegativeLength,
     override var topColor: ComputedColor,
-    override var topStyle: Style,
+    override var topStyle: BorderStyle,
     override var topLeftRadius: BorderCornerRadius,
     override var topRightRadius: BorderCornerRadius,
 
     override var rightWidth: NonNegativeLength,
     override var rightColor: ComputedColor,
-    override var rightStyle: Style,
+    override var rightStyle: BorderStyle,
 
     override var bottomWidth: NonNegativeLength,
     override var bottomColor: ComputedColor,
-    override var bottomStyle: Style,
+    override var bottomStyle: BorderStyle,
     override var bottomLeftRadius: BorderCornerRadius,
     override var bottomRightRadius: BorderCornerRadius,
 
     override var leftWidth: NonNegativeLength,
     override var leftColor: ComputedColor,
-    override var leftStyle: Style
+    override var leftStyle: BorderStyle
 ) : Border, MutStyleStruct

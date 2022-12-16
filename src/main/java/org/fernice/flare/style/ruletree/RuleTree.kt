@@ -5,140 +5,153 @@
  */
 package org.fernice.flare.style.ruletree
 
-import org.fernice.flare.ApplicableDeclarationBlock
-import org.fernice.flare.RuleTreeValues
 import org.fernice.flare.debugAssert
-import org.fernice.std.Either
-import org.fernice.std.First
-import org.fernice.std.Second
-import org.fernice.flare.style.properties.Importance
-import org.fernice.flare.style.properties.PropertyDeclarationBlock
-import org.fernice.flare.style.stylesheet.StyleRule
+import org.fernice.flare.style.ApplicableDeclarationBlock
+import org.fernice.flare.style.Importance
+import org.fernice.flare.style.Origin
+import org.fernice.flare.style.source.StyleSource
+import org.fernice.std.Recycler
+import java.lang.ref.WeakReference
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 enum class CascadeLevel {
 
-    USER_AGENT_NORMAL,
+    UserAgentNormal,
 
-    USER_NORMAL,
+    UserNormal,
 
-    AUTHOR_NORMAL,
+    AuthorNormal,
 
-    STYLE_ATTRIBUTE_NORMAL,
+    AuthorImportant,
 
-    AUTHOR_IMPORTANT,
+    UserImportant,
 
-    STYLE_ATTRIBUTE_IMPORTANT,
+    UserAgentImportant;
 
-    USER_IMPORTANT,
+    val origin: Origin
+        get() = when (this) {
+            UserAgentNormal -> Origin.UserAgent
+            UserNormal -> Origin.User
+            AuthorNormal -> Origin.Author
+            AuthorImportant -> Origin.Author
+            UserImportant -> Origin.User
+            UserAgentImportant -> Origin.UserAgent
+        }
 
-    USER_AGENT_IMPORTANT;
+    val importance: Importance
+        get() = if (isImportant) Importance.Important else Importance.Normal
 
-    fun isImportant(): Boolean {
-        return when (this) {
-            AUTHOR_IMPORTANT,
-            STYLE_ATTRIBUTE_IMPORTANT,
-            USER_IMPORTANT,
-            USER_AGENT_IMPORTANT -> true
-            else -> false
+    val isImportant: Boolean
+        get() {
+            return when (this) {
+                AuthorImportant,
+                UserImportant,
+                UserAgentImportant,
+                -> true
+
+                else -> false
+            }
+        }
+
+    companion object {
+        val values: List<CascadeLevel> = Collections.unmodifiableList(arrayListOf(*CascadeLevel.values()))
+
+        fun of(origin: Origin, importance: Importance): CascadeLevel {
+            return when (origin) {
+                Origin.UserAgent -> if (importance == Importance.Important) UserAgentImportant else UserAgentNormal
+                Origin.User -> if (importance == Importance.Important) UserImportant else UserNormal
+                Origin.Author -> if (importance == Importance.Important) AuthorImportant else AuthorNormal
+            }
         }
     }
 }
 
-data class StyleSource(val source: Either<StyleRule, PropertyDeclarationBlock>) {
-
-    companion object {
-        fun fromDeclarations(declarations: PropertyDeclarationBlock): StyleSource {
-            return StyleSource(
-                Second(declarations)
-            )
-        }
-
-        fun fromRule(rule: StyleRule): StyleSource {
-            return StyleSource(
-                First(rule)
-            )
-        }
-    }
-
-    fun declarations(): PropertyDeclarationBlock {
-        return when (source) {
-            is First -> source.value.declarations
-            is Second -> source.value
-        }
-    }
+private class ImportantDeclarations {
+    val userAgent: MutableList<ApplicableDeclarationBlock> = arrayListOf()
+    val user: MutableList<ApplicableDeclarationBlock> = arrayListOf()
+    val author: MutableList<ApplicableDeclarationBlock> = arrayListOf()
 }
 
-class RuleTree(private val root: RuleNode) {
+private val ImportantDeclarationsRecycler = Recycler(
+    factory = { ImportantDeclarations() },
+    reset = {
+        it.userAgent.clear()
+        it.user.clear()
+        it.author.clear()
+    },
+)
 
-    companion object {
-        fun new(): RuleTree = RuleTree(RuleNode.root())
-    }
+private const val DORMANT_CYCLES = 1000
 
-    fun computedRuleNode(applicableDeclarations: List<ApplicableDeclarationBlock>): RuleNode {
-        return insertsRuleNodeWithImportant(
-            applicableDeclarations.asSequence().map(ApplicableDeclarationBlock::forRuleTree).iterator()
-        )
-    }
+class RuleTree {
+    val root: RuleNode = RuleNode.root()
 
-    fun insertsRuleNodeWithImportant(iterator: Iterator<RuleTreeValues>): RuleNode {
+    // TODO add gc mechanism to prevent build up of StyleSource that aren't StyleRules
+
+    fun computedRuleNode(sources: Iterator<StyleSource>): RuleNode {
         var current = root
-        var lastLevel = current.level
+        var lastOrigin = current.level.origin
         var seenImportant = false
 
-        val authorImportant = mutableListOf<StyleSource>()
-        val userImportant = mutableListOf<StyleSource>()
-        val userAgentImportant = mutableListOf<StyleSource>()
-        val styleAttributeImportant = mutableListOf<StyleSource>()
+        val importantDeclarations = ImportantDeclarationsRecycler.acquire()
 
-        for ((source, level) in iterator) {
-            debugAssert(level >= lastLevel, "illegal order")
-            debugAssert(!level.isImportant(), "important cannot be inserted")
+        for (source in sources) {
+            debugAssert(source.origin >= lastOrigin, "illegal order: ${source.origin} < $lastOrigin")
 
-            val hasImportant = source.declarations().hasImportant()
+            val hasImportant = source.declarations.hasImportant()
             if (hasImportant) {
                 seenImportant = true
 
-                when (level) {
-                    CascadeLevel.AUTHOR_NORMAL -> authorImportant.add(source)
-                    CascadeLevel.USER_NORMAL -> userImportant.add(source)
-                    CascadeLevel.USER_AGENT_NORMAL -> userAgentImportant.add(source)
-                    CascadeLevel.STYLE_ATTRIBUTE_NORMAL -> styleAttributeImportant.add(source)
-                    else -> {
-                    }
+                when (source.origin) {
+                    Origin.Author -> importantDeclarations.author.add(source.getApplicableDeclarations(Importance.Important))
+                    Origin.User -> importantDeclarations.user.add(source.getApplicableDeclarations(Importance.Important))
+                    Origin.UserAgent -> importantDeclarations.userAgent.add(source.getApplicableDeclarations(Importance.Important))
                 }
             }
 
-            current = current.ensureChild(root, source, level)
-            lastLevel = level
+            current = current.ensureChild(root, source.getApplicableDeclarations(Importance.Normal), CascadeLevel.of(source.origin, Importance.Normal))
+            lastOrigin = source.origin
         }
 
         if (!seenImportant) {
             return current
         }
 
-        for (source in authorImportant) {
-            current = current.ensureChild(root, source, CascadeLevel.AUTHOR_IMPORTANT)
+        for (source in importantDeclarations.author) {
+            current = current.ensureChild(root, source, CascadeLevel.AuthorImportant)
         }
 
-        for (source in styleAttributeImportant) {
-            current = current.ensureChild(root, source, CascadeLevel.STYLE_ATTRIBUTE_IMPORTANT)
+        for (source in importantDeclarations.user) {
+            current = current.ensureChild(root, source, CascadeLevel.UserImportant)
         }
 
-        for (source in userImportant) {
-            current = current.ensureChild(root, source, CascadeLevel.USER_IMPORTANT)
+        for (source in importantDeclarations.userAgent) {
+            current = current.ensureChild(root, source, CascadeLevel.UserAgentImportant)
         }
 
-        for (source in userAgentImportant) {
-            current = current.ensureChild(root, source, CascadeLevel.USER_AGENT_IMPORTANT)
-        }
+        ImportantDeclarationsRecycler.release(importantDeclarations)
 
         return current
     }
 
-    fun root(): RuleNode {
-        return root
+    private val cycles = AtomicInteger(DORMANT_CYCLES)
+
+    fun gc() {
+        val cycle = cycles.updateAndGet { if (it == 0) DORMANT_CYCLES else (it - 1) }
+        if (cycle == DORMANT_CYCLES || root.isGcRequested) {
+            performGc()
+        }
+    }
+
+    private fun performGc() {
+        root.performGc()
+    }
+
+    fun clear() {
+        root.clear()
     }
 }
 
@@ -147,8 +160,8 @@ private val RULE_NODE_NUMBER_RANGE = AtomicInteger()
 class RuleNode private constructor(
     val root: RuleNode?,
     val parent: RuleNode?,
-    val source: StyleSource?,
-    val level: CascadeLevel
+    val declarations: WeakReference<ApplicableDeclarationBlock>?,
+    val level: CascadeLevel,
 ) {
 
     private val firstChildReference = AtomicReference<RuleNode?>()
@@ -157,35 +170,30 @@ class RuleNode private constructor(
 
     internal val number = RULE_NODE_NUMBER_RANGE.getAndIncrement()
 
-    companion object {
-        fun root(): RuleNode {
-            return RuleNode(
-                root = null,
-                parent = null,
-                source = null,
-                level = CascadeLevel.USER_AGENT_NORMAL
-            )
-        }
-    }
-
     fun ensureChild(
-        root: RuleNode,
-        source: StyleSource,
-        level: CascadeLevel
+        root: RuleNode?,
+        declarations: ApplicableDeclarationBlock,
+        level: CascadeLevel,
     ): RuleNode {
         // Find the last child to append the new node after it
-        var lastChild: RuleNode? = firstChild
+        var lastChild: RuleNode? = firstChildReference.get()
         while (lastChild != null) {
+            val declarationsReference = lastChild.declarations
+            if (declarationsReference != null && declarationsReference.get() == null) {
+                gc()
+            }
+
             // Check whether we've already inserted the rule to allow
             // for reusing of existing nodes and minimizing the tree
-            if (lastChild.level == level && lastChild.source == source) {
+            if (lastChild.level == level && declarationsReference?.get() == declarations) {
                 return lastChild
             }
-            lastChild = lastChild.nextSibling ?: break
+
+            lastChild = lastChild.nextSiblingReference.get() ?: break
         }
 
-        // We haven't found the a preexisting node, create new one
-        val node = RuleNode(root, this, source, level)
+        // We haven't found a preexisting node, create new one
+        val node = RuleNode(root, this, WeakReference(declarations), level)
 
         while (true) {
             // Retrieve the references of the sibling or first child,
@@ -195,18 +203,21 @@ class RuleNode private constructor(
                 else -> lastChild.nextSiblingReference
             }
 
-            // Try to append the node to the last sibling
-            if (siblingReference.compareAndSet(null, node)) {
-                lastChild?.previousSiblingReference?.set(node)
+            // Try to append the node to the last sibling. Synchronize
+            // only for the writing, reading might still have been dirty.
+            synchronized(this) {
+                if (siblingReference.compareAndSet(null, node)) {
+                    lastChild?.previousSiblingReference?.set(node)
 
-                return node
+                    return node
+                }
             }
 
             // Some other thread appended some node to the last sibling
             val next = siblingReference.get()
 
             // Check the appended node on whether we can reuse it
-            if (next?.level == level && next.source == source) {
+            if (next?.level == level && next.declarations?.get() == declarations) {
                 return next
             }
 
@@ -215,10 +226,64 @@ class RuleNode private constructor(
         }
     }
 
-    val importance: Importance get() = if (level.isImportant()) Importance.IMPORTANT else Importance.NORMAL
+    private val gcRequested = AtomicBoolean(false)
+    val isGcRequested: Boolean
+        get() = gcRequested.get()
 
-    val nextSibling: RuleNode? get() = nextSiblingReference.get()
+    fun gc() {
+        if (!gcRequested.getAndSet(true)) {
+            parent?.gc()
+        }
+    }
+
+    internal fun performGc() {
+        var child = firstChildReference.get()
+
+        while (child != null) {
+            // contents of this node have unrecoverably vacated, remove the node
+            val declarationsReference = child.declarations
+            if (declarationsReference != null && declarationsReference.get() == null) {
+                do {
+                    // consistency is guarded by the forward reference, find who's referring
+                    // to the node
+                    val previousSibling = child.previousSiblingReference.get()
+                    val nextSiblingReference = when (previousSibling) {
+                        null -> firstChildReference
+                        else -> previousSibling.nextSiblingReference
+                    }
+
+                    val target = nextSiblingReference.get()
+
+                    // someone else might already have removed this child
+                    if (target !== child) break
+
+                    val successful = synchronized(this) {
+                        val nextSibling = target.nextSiblingReference.get()
+                        if (nextSiblingReference.compareAndSet(target, nextSibling)) {
+                            nextSibling?.previousSiblingReference?.set(previousSibling)
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                } while (!successful)
+            }
+
+            child.performGc()
+
+            child = child.nextSiblingReference.get()
+        }
+    }
+
+    fun clear() {
+        firstChildReference.set(null)
+        previousSiblingReference.set(null)
+        nextSiblingReference.set(null)
+    }
+
     val firstChild: RuleNode? get() = firstChildReference.get()
+    val previousSibling: RuleNode? get() = previousSiblingReference.get()
+    val nextSibling: RuleNode? get() = nextSiblingReference.get()
 
     fun selfAndAncestors(): SelfAndAncestors {
         return SelfAndAncestors(this)
@@ -229,7 +294,18 @@ class RuleNode private constructor(
     }
 
     override fun toString(): String {
-        return "RuleNode[$number source: $source]"
+        return "RuleNode[$number](source: ${declarations?.get()?.source} level: $level)"
+    }
+
+    companion object {
+        fun root(): RuleNode {
+            return RuleNode(
+                root = null,
+                parent = null,
+                declarations = null,
+                level = CascadeLevel.UserAgentNormal,
+            )
+        }
     }
 }
 
@@ -239,12 +315,12 @@ class SelfAndAncestors(private val current: RuleNode) : Sequence<RuleNode> {
         return SelfAndAncestorsIterator(current)
     }
 
-    inner class SelfAndAncestorsIterator(private var current: RuleNode?) : Iterator<RuleNode> {
+    class SelfAndAncestorsIterator(private var current: RuleNode?) : Iterator<RuleNode> {
 
         override fun hasNext(): Boolean = current != null
 
         override fun next(): RuleNode {
-            val next = current ?: error("no more rule nodes left")
+            val next = current ?: throw NoSuchElementException()
             current = next.parent
             return next
         }

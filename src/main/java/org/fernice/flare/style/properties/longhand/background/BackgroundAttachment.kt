@@ -15,65 +15,46 @@ import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
+import org.fernice.std.map
 import java.io.Writer
 
-object BackgroundAttachmentId : LonghandId() {
+object BackgroundAttachmentId : AbstractLonghandId<BackgroundAttachmentDeclaration>(
+    name = "background-attachment",
+    declarationType = BackgroundAttachmentDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "background-attachment"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated {
-            Attachment.parse(
-                context,
-                it
-            )
-        }.map { BackgroundAttachmentDeclaration(it) }
+    override fun parseValue(context: ParserContext, input: Parser): Result<BackgroundAttachmentDeclaration, ParseError> {
+        return input.parseCommaSeparated { scopedInput -> Attachment.parse(context, scopedInput) }
+            .map { BackgroundAttachmentDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BackgroundAttachmentDeclaration -> {
-                context.builder.setBackgroundAttachment(declaration.attachment)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundAttachment()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundAttachment()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+    override fun cascadeProperty(context: Context, declaration: BackgroundAttachmentDeclaration) {
+        context.builder.setBackgroundAttachment(declaration.attachment)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBackgroundAttachment()
     }
 
-    override fun toString(): String {
-        return "LonghandId::BackgroundAttachment"
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBackgroundAttachment()
     }
 }
 
-class BackgroundAttachmentDeclaration(val attachment: List<Attachment>) : PropertyDeclaration() {
-
-    override fun id(): LonghandId {
-        return BackgroundAttachmentId
-    }
+class BackgroundAttachmentDeclaration(val attachment: List<Attachment>) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BackgroundAttachmentId),
+) {
 
     override fun toCssInternally(writer: Writer) = attachment.toCssJoining(writer, ", ")
 
     companion object {
 
-        val initialValue: List<Attachment> by lazy { listOf(Attachment.Scroll) }
+        val InitialValue: List<Attachment> by lazy { listOf(Attachment.Scroll) }
         val InitialSingleValue by lazy { Attachment.Scroll }
     }
 }

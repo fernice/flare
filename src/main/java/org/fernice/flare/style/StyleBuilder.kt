@@ -7,7 +7,8 @@ package org.fernice.flare.style
 
 import org.fernice.flare.cssparser.RGBA
 import org.fernice.flare.dom.Device
-import org.fernice.flare.font.WritingMode
+import org.fernice.flare.style.properties.CustomPropertiesList
+import org.fernice.flare.style.properties.PropertiesList
 import org.fernice.flare.style.properties.longhand.background.Attachment
 import org.fernice.flare.style.properties.longhand.background.Clip
 import org.fernice.flare.style.properties.longhand.background.Origin
@@ -23,6 +24,7 @@ import org.fernice.flare.style.properties.stylestruct.MutFont
 import org.fernice.flare.style.properties.stylestruct.MutMargin
 import org.fernice.flare.style.properties.stylestruct.MutPadding
 import org.fernice.flare.style.properties.stylestruct.Padding
+import org.fernice.flare.style.ruletree.RuleNode
 import org.fernice.flare.style.value.computed.BackgroundRepeat
 import org.fernice.flare.style.value.computed.BackgroundSize
 import org.fernice.flare.style.value.computed.BorderCornerRadius
@@ -35,7 +37,7 @@ import org.fernice.flare.style.value.computed.ImageLayer
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto
 import org.fernice.flare.style.value.computed.NonNegativeLength
 import org.fernice.flare.style.value.computed.NonNegativeLengthOrPercentage
-import org.fernice.flare.style.value.computed.Style
+import org.fernice.flare.style.value.computed.BorderStyle
 import org.fernice.flare.style.value.computed.VerticalPosition
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 
@@ -172,25 +174,35 @@ class StyleStructRef<T, M> private constructor(private var state: State<T, M>)
 
 class StyleBuilder(
     val device: Device,
-    var writingMode: WritingMode,
+    val ruleNode: RuleNode,
+
+    val customProperties: CustomPropertiesList?,
+    val properties: PropertiesList,
+
     private val inheritStyle: ComputedValues,
     private val inheritStyleIgnoringFirstLine: ComputedValues,
     private val resetStyle: ComputedValues,
+
     private val font: StyleStructRef<Font, MutFont>,
     private val color: StyleStructRef<Color, MutColor>,
     private val background: StyleStructRef<Background, MutBackground>,
     private val border: StyleStructRef<Border, MutBorder>,
     private val margin: StyleStructRef<Margin, MutMargin>,
-    private val padding: StyleStructRef<Padding, MutPadding>
+    private val padding: StyleStructRef<Padding, MutPadding>,
 ) {
 
     companion object {
 
-        fun new(
+        fun from(
             device: Device,
-            writingMode: WritingMode,
+
+            customProperties: CustomPropertiesList?,
+            properties: PropertiesList,
+
+            ruleNode: RuleNode,
+
             parentStyle: ComputedValues?,
-            parentStyleIgnoringFirstLine: ComputedValues?
+            parentStyleIgnoringFirstLine: ComputedValues?,
         ): StyleBuilder {
             val resetStyle = device.defaultComputedValues()
             val inheritStyle = parentStyle ?: resetStyle
@@ -198,10 +210,15 @@ class StyleBuilder(
 
             return StyleBuilder(
                 device,
-                writingMode,
+                ruleNode,
+
+                customProperties,
+                properties,
+
                 inheritStyle,
                 inheritStyleIgnoringFirstList,
                 resetStyle,
+
                 StyleStructRef.borrowed(inheritStyle.font),
                 StyleStructRef.borrowed(inheritStyle.color),
                 StyleStructRef.borrowed(resetStyle.background),
@@ -543,7 +560,7 @@ class StyleBuilder(
 
     // border-top-style
 
-    fun setBorderTopStyle(style: Style) {
+    fun setBorderTopStyle(style: BorderStyle) {
         border.mutate().topStyle = style
     }
 
@@ -633,7 +650,7 @@ class StyleBuilder(
 
     // border-right-style
 
-    fun setBorderRightStyle(style: Style) {
+    fun setBorderRightStyle(style: BorderStyle) {
         border.mutate().rightStyle = style
     }
 
@@ -687,7 +704,7 @@ class StyleBuilder(
 
     // border-bottom-style
 
-    fun setBorderBottomStyle(style: Style) {
+    fun setBorderBottomStyle(style: BorderStyle) {
         border.mutate().bottomStyle = style
     }
 
@@ -777,7 +794,7 @@ class StyleBuilder(
 
     // border-bottom-style
 
-    fun setBorderLeftStyle(style: Style) {
+    fun setBorderLeftStyle(style: BorderStyle) {
         border.mutate().leftStyle = style
     }
 
@@ -952,7 +969,10 @@ class StyleBuilder(
             background.build(),
             border.build(),
             margin.build(),
-            padding.build()
+            padding.build(),
+            customProperties,
+            properties,
+            ruleNode,
         )
     }
 }

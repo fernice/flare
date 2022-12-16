@@ -8,29 +8,20 @@ package org.fernice.flare.style
 import org.fernice.flare.dom.Element
 import org.fernice.flare.selector.BloomFilter
 import org.fernice.flare.selector.CountingBloomFilter
+import java.util.LinkedList
 import java.util.Stack
 
 class StyleBloom(
-    private val filter: BloomFilter,
-    private val elements: Stack<PushedElement>,
-    private val pushedHashes: Stack<Int>,
+    private val filter: BloomFilter = CountingBloomFilter(),
 ) {
-
-    companion object {
-        fun new(): StyleBloom {
-            return StyleBloom(
-                CountingBloomFilter(),
-                Stack(),
-                Stack()
-            )
-        }
-    }
+    private val elements = LinkedList<PushedElement>()
+    private val pushedHashes = LinkedList<Int>()
 
     fun filter(): BloomFilter {
         return filter
     }
 
-    private fun forEachHash(element: Element, function: (Int) -> Unit) {
+    private inline fun forEachHash(element: Element, function: (Int) -> Unit) {
         element.namespace?.let { namespace ->
             function(namespace.hashCode())
         }
@@ -149,6 +140,7 @@ class StyleBloom(
 
         rebuild(element)
     }
+
+    private class PushedElement(val element: Element, val hashes: Int)
 }
 
-class PushedElement(val element: Element, val hashes: Int)

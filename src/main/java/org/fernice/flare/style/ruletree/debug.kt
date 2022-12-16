@@ -9,7 +9,7 @@ package org.fernice.flare.style.ruletree
 fun RuleTree.printTree() = println(toFormattedString())
 fun RuleNode.printTree() = println((root ?: this).toFormattedString())
 
-fun RuleTree.toFormattedString(): String = root().toFormattedString()
+fun RuleTree.toFormattedString(): String = root.toFormattedString()
 
 fun RuleNode.toFormattedString(): String = buildString { write { append(it) } }
 

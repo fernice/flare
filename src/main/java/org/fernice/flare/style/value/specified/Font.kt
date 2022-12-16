@@ -27,7 +27,8 @@ import org.fernice.flare.style.value.computed.FontFamilyList
 import org.fernice.flare.style.value.computed.NonNegativeLength
 import org.fernice.flare.style.value.computed.PixelLength
 import org.fernice.flare.style.value.computed.SingleFontFamily
-import org.fernice.flare.style.value.computed.intoNonNegative
+import org.fernice.flare.style.value.computed.toNonNegative
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.FontFamily as ComputedFontFamily
 import org.fernice.flare.style.value.computed.FontSize as ComputedFontSize
@@ -145,7 +146,7 @@ sealed class FontFamily : SpecifiedValue<ComputedFontFamily>, ToCss {
 
         fun parse(input: Parser): Result<FontFamily, ParseError> {
             return input.parseCommaSeparated(SingleFontFamily.Contract::parse)
-                .map { values -> Values(FontFamilyList(values)) }
+                .map { Values(FontFamilyList(it)) }
         }
     }
 }
@@ -167,7 +168,7 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
                 .getParentFont()
                 .fontSize
                 .keywordInfo
-                ?.compose(factor, Au(0).intoNonNegative())
+                ?.compose(factor, Au(0).toNonNegative())
         }
 
         return when (this) {
@@ -182,16 +183,16 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
                                     info = composeKeyword(context, length.length.value)
                                 }
 
-                                length.length.toComputedValue(context, baseSize).intoNonNegative()
+                                length.length.toComputedValue(context, baseSize).toNonNegative()
                             }
-                            else -> length.toComputedValue(context).intoNonNegative()
+                            else -> length.toComputedValue(context).toNonNegative()
                         }
                     }
                     is LengthOrPercentage.Percentage -> {
                         info = composeKeyword(context, lop.percentage.value)
                         baseSize.resolve(context)
                             .scaleBy(lop.percentage.value)
-                            .intoNonNegative()
+                            .toNonNegative()
                     }
                     is LengthOrPercentage.Calc -> {
                         val calc = lop.calc
@@ -202,14 +203,14 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
 
                             val abs = calc.toComputedValue(context, FontBaseSize.InheritStyleButStripEmUnits)
                                 .lengthComponent()
-                                .intoNonNegative()
+                                .toNonNegative()
 
                             info = parent.keywordInfo?.compose(ratio, abs)
                         }
 
                         val computed = calc.toComputedValue(context, baseSize)
                         val used = computed.toUsedValue(baseSize.resolve(context)) ?: error("conversion should have resulted in size")
-                        used.intoNonNegative()
+                        used.toNonNegative()
                     }
                 }
 
@@ -228,14 +229,14 @@ sealed class FontSize : SpecifiedValue<ComputedFontSize>, ToCss {
                 ComputedFontSize(
                     FontRelativeLength.Em(1f / LARGE_FONT_SIZE_RATION)
                         .toComputedValue(context, baseSize)
-                        .intoNonNegative(),
+                        .toNonNegative(),
                     composeKeyword(context, 1f / LARGE_FONT_SIZE_RATION)
                 )
             }
             is Larger -> ComputedFontSize(
                 FontRelativeLength.Em(LARGE_FONT_SIZE_RATION)
                     .toComputedValue(context, baseSize)
-                    .intoNonNegative(),
+                    .toNonNegative(),
                 composeKeyword(context, LARGE_FONT_SIZE_RATION)
             )
         }
@@ -342,14 +343,15 @@ sealed class KeywordSize : SpecifiedValue<NonNegativeLength>, ToCss {
     object XXLarge : KeywordSize()
 
     final override fun toComputedValue(context: Context): NonNegativeLength {
+        val systemFontSize = context.style().device.systemFontSize
         return when (this) {
-            is XXSmall -> (Au.fromPx(FONT_MEDIUM_PX) * 3 / 5).intoNonNegative()
-            is XSmall -> (Au.fromPx(FONT_MEDIUM_PX) * 3 / 4).intoNonNegative()
-            is Small -> (Au.fromPx(FONT_MEDIUM_PX) * 8 / 9).intoNonNegative()
-            is Medium -> (Au.fromPx(FONT_MEDIUM_PX)).intoNonNegative()
-            is Large -> (Au.fromPx(FONT_MEDIUM_PX) * 6 / 5).intoNonNegative()
-            is XLarge -> (Au.fromPx(FONT_MEDIUM_PX) * 3 / 2).intoNonNegative()
-            is XXLarge -> (Au.fromPx(FONT_MEDIUM_PX) * 2).intoNonNegative()
+            is XXSmall -> (systemFontSize * 3 / 5).toNonNegative()
+            is XSmall -> (systemFontSize * 3 / 4).toNonNegative()
+            is Small -> (systemFontSize * 8 / 9).toNonNegative()
+            is Medium -> (systemFontSize).toNonNegative()
+            is Large -> (systemFontSize * 6 / 5).toNonNegative()
+            is XLarge -> (systemFontSize * 3 / 2).toNonNegative()
+            is XXLarge -> (systemFontSize * 2).toNonNegative()
         }
     }
 

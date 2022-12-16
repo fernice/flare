@@ -142,6 +142,6 @@ data class FontSize(
 ) : ComputedValue {
 
     fun size(): Au {
-        return size.into()
+        return size.toAu()
     }
 }

@@ -25,12 +25,18 @@ import org.fernice.flare.style.properties.longhand.padding.PaddingTopId
 import org.fernice.flare.style.value.generic.Rect
 import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentage
 
-object PaddingId : ShorthandId() {
-
-    override val name: String = "padding"
+object PaddingId : ShorthandId(
+    name = "padding",
+    longhands = listOf(
+        PaddingTopId,
+        PaddingRightId,
+        PaddingBottomId,
+        PaddingLeftId,
+    ),
+) {
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
-        val result = Rect.parseWith(context, input, NonNegativeLengthOrPercentage.Companion::parse)
+        val result = input.parseEntirely { Rect.parseWith(context, input, NonNegativeLengthOrPercentage.Companion::parse) }
 
         val sides = when (result) {
             is Ok -> result.value
@@ -59,14 +65,5 @@ object PaddingId : ShorthandId() {
         )
 
         return Ok()
-    }
-
-    override val longhands: List<LonghandId> by lazy {
-        listOf(
-            PaddingTopId,
-            PaddingRightId,
-            PaddingBottomId,
-            PaddingLeftId
-        )
     }
 }

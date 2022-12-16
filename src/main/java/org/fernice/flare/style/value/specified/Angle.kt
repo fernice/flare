@@ -14,6 +14,7 @@ import org.fernice.flare.cssparser.Token
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
+import org.fernice.std.mapErr
 import kotlin.math.PI
 import org.fernice.flare.style.value.computed.Angle as ComputedAngle
 

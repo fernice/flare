@@ -8,6 +8,7 @@ package org.fernice.flare.cssparser
 import org.fernice.std.Err
 import org.fernice.std.Ok
 import org.fernice.std.Result
+import org.fernice.std.mapErr
 
 /**
  * Marks a parser that is capable of parsing any kind of at-rule.

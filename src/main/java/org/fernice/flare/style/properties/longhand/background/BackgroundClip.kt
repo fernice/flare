@@ -14,54 +14,40 @@ import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
+import org.fernice.std.unwrap
+import org.fernice.std.map
 import java.io.Writer
 
-object BackgroundClipId : LonghandId() {
+object BackgroundClipId : AbstractLonghandId<BackgroundClipDeclaration>(
+    name = "background-clip",
+    declarationType = BackgroundClipDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "background-clip"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return Clip.parse(input).map(::BackgroundClipDeclaration)
+    override fun parseValue(context: ParserContext, input: Parser): Result<BackgroundClipDeclaration, ParseError> {
+        return Clip.parse(input).map { BackgroundClipDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BackgroundClipDeclaration -> {
-                context.builder.setBackgroundClip(declaration.clip)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundClip()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundClip()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+    override fun cascadeProperty(context: Context, declaration: BackgroundClipDeclaration) {
+        context.builder.setBackgroundClip(declaration.clip)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBackgroundClip()
     }
 
-    override fun toString(): String {
-        return "LonghandId::BackgroundAttachment"
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBackgroundClip()
     }
 }
 
-class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration() {
-
-    override fun id(): LonghandId {
-        return BackgroundClipId
-    }
+class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BackgroundClipId),
+) {
 
     override fun toCssInternally(writer: Writer) {
         clip.toCss(writer)
@@ -69,8 +55,8 @@ class BackgroundClipDeclaration(val clip: Clip) : PropertyDeclaration() {
 
     companion object {
 
-        val initialValue: Clip by lazy { Clip.BorderBox }
-        val InitialSingleValue by lazy { Clip.BorderBox }
+        val InitialValue: Clip = Clip.BorderBox
+        val InitialSingleValue: Clip = Clip.BorderBox
     }
 }
 
@@ -94,12 +80,8 @@ enum class Clip : ToCss {
 
         fun parse(input: Parser): Result<Clip, ParseError> {
             val location = input.sourceLocation()
-            val identifierResult = input.expectIdentifier()
-
-            val identifier = when (identifierResult) {
-                is Ok -> identifierResult.value
-                is Err -> return identifierResult
-            }
+            val identifier = input.expectIdentifier()
+                .unwrap { return it }
 
             return when (identifier.lowercase()) {
                 "border-box" -> Ok(BorderBox)

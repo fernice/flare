@@ -14,15 +14,15 @@ interface FontMetricsProvider {
     fun query(
         font: Font,
         fontSize: Au,
-        device: Device
+        device: Device,
     ): FontMetricsQueryResult
 }
 
 sealed class FontMetricsQueryResult {
 
-    class Available(val metrics: FontMetrics) : FontMetricsQueryResult()
+    data class Available(val metrics: FontMetrics) : FontMetricsQueryResult()
 
-    class NotAvailable : FontMetricsQueryResult()
+    object NotAvailable : FontMetricsQueryResult()
 }
 
 class FontMetrics(val xHeight: Au, val zeroAdvanceMeasure: Au)

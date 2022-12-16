@@ -9,58 +9,48 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.BorderSideWidth
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
 
-object BorderBottomWidthId : LonghandId() {
+object BorderBottomWidthId : AbstractLonghandId<BorderBottomWidthDeclaration>(
+    name = "border-bottom-width",
+    declarationType = BorderBottomWidthDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "border-bottom-width"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return BorderSideWidth.parse(context, input).map { width -> BorderBottomWidthDeclaration(width) }
+    override fun parseValue(context: ParserContext, input: Parser): Result<BorderBottomWidthDeclaration, ParseError> {
+        return BorderSideWidth.parse(context, input).map { BorderBottomWidthDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BorderBottomWidthDeclaration -> {
-                val width = declaration.width.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: BorderBottomWidthDeclaration) {
+        val width = declaration.width.toComputedValue(context)
 
-                context.builder.setBorderBottomWidth(width)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBorderBottomWidth()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBorderBottomWidth()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setBorderBottomWidth(width)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBorderBottomWidth()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBorderBottomWidth()
     }
 }
 
-class BorderBottomWidthDeclaration(val width: BorderSideWidth) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return BorderBottomWidthId
-    }
+class BorderBottomWidthDeclaration(val width: BorderSideWidth) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BorderBottomWidthId),
+) {
 
     override fun toCssInternally(writer: Writer) = width.toCss(writer)
 
     companion object {
 
-        val initialValue: ComputedNonNegativeLength by lazy { ComputedNonNegativeLength.zero() }
+        val InitialValue: ComputedNonNegativeLength by lazy { ComputedNonNegativeLength.zero() }
     }
 }

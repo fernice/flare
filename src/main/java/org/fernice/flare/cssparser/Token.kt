@@ -5,6 +5,7 @@
  */
 package org.fernice.flare.cssparser
 
+import kotlin.String
 import kotlin.String as Str
 
 sealed class Token {
@@ -16,6 +17,7 @@ sealed class Token {
     data class BadString(val value: Str) : Token()
 
     data class Url(val url: Str) : Token()
+    data class UnquotedUrl(val url: Str) : Token()
 
     data class BadUrl(val url: Str) : Token()
 
@@ -125,10 +127,10 @@ sealed class Token {
  * CSS specification conform representation of a parse number.
  */
 data class Number(
-        val type: Str,
-        val text: Str,
-        val value: Double,
-        val negative: Boolean
+    val type: Str,
+    val text: Str,
+    val value: Double,
+    val negative: Boolean,
 ) {
 
     fun int(): Int {
@@ -159,6 +161,22 @@ sealed class BlockType {
      * Block consisting out of opening ('{') and a closing brace ('}')
      */
     object Brace : BlockType()
+
+    val opening: String
+        get() = when (this) {
+            Parenthesis -> "("
+            Bracket -> "["
+            Brace -> "{"
+        }
+
+    val closing: String
+        get() = when (this) {
+            Parenthesis -> ")"
+            Bracket -> "]"
+            Brace -> "}"
+        }
+
+    override fun toString(): String = "$opening...$closing"
 
     companion object {
 
@@ -202,16 +220,16 @@ class Delimiters private constructor(val bits: Int) {
 
     companion object {
 
-        val None: Delimiters by lazy { Delimiters(0) }
+        val None = Delimiters(0)
 
-        val LeftBrace: Delimiters by lazy { Delimiters(1 shl 1) }
-        val SemiColon: Delimiters by lazy { Delimiters(1 shl 2) }
-        val Bang: Delimiters by lazy { Delimiters(1 shl 3) }
-        val Comma: Delimiters by lazy { Delimiters(1 shl 4) }
+        val LeftBrace = Delimiters(1 shl 1)
+        val SemiColon = Delimiters(1 shl 2)
+        val Bang = Delimiters(1 shl 3)
+        val Comma = Delimiters(1 shl 4)
 
-        val RightParenthesis: Delimiters by lazy { Delimiters(1 shl 5) }
-        val RightBrace: Delimiters by lazy { Delimiters(1 shl 6) }
-        val RightBracket: Delimiters by lazy { Delimiters(1 shl 7) }
+        val RightParenthesis = Delimiters(1 shl 5)
+        val RightBrace = Delimiters(1 shl 6)
+        val RightBracket = Delimiters(1 shl 7)
 
         fun from(token: Token): Delimiters {
             return when (token) {

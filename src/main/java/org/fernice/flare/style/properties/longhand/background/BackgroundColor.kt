@@ -9,58 +9,47 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.Color
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.Color as ComputedColor
 
-object BackgroundColorId : LonghandId() {
+object BackgroundColorId : AbstractLonghandId<BackgroundColorDeclaration>(
+    name = "background-color",
+    declarationType = BackgroundColorDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "background-color"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
+    override fun parseValue(context: ParserContext, input: Parser): Result<BackgroundColorDeclaration, ParseError> {
         return Color.parse(context, input).map { color -> BackgroundColorDeclaration(color) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BackgroundColorDeclaration -> {
-                val color = declaration.color.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: BackgroundColorDeclaration) {
+        val color = declaration.color.toComputedValue(context)
 
-                context.builder.setBackgroundColor(color)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundColor()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundColor()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setBackgroundColor(color)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBackgroundColor()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBackgroundColor()
     }
 }
 
-class BackgroundColorDeclaration(val color: Color) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return BackgroundColorId
-    }
-
-    companion object {
-
-        val initialValue: ComputedColor by lazy { ComputedColor.transparent() }
-    }
+class BackgroundColorDeclaration(val color: Color) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BackgroundColorId)
+) {
 
     override fun toCssInternally(writer: Writer) = color.toCss(writer)
+
+    companion object {
+        val InitialValue: ComputedColor = ComputedColor.Transparent
+    }
 }

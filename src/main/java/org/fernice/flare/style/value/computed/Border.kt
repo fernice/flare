@@ -36,39 +36,39 @@ data class BorderCornerRadius(
     }
 }
 
-sealed class Style : ToCss {
+sealed class BorderStyle : ToCss {
 
-    object None : Style()
-    object Hidden : Style()
-    object Dotted : Style()
-    object Dashed : Style()
-    object Solid : Style()
-    object Double : Style()
-    object Groove : Style()
-    object Ride : Style()
-    object Inset : Style()
-    object Outset : Style()
+    object None : BorderStyle()
+    object Hidden : BorderStyle()
+    object Dotted : BorderStyle()
+    object Dashed : BorderStyle()
+    object Solid : BorderStyle()
+    object Double : BorderStyle()
+    object Groove : BorderStyle()
+    object Ride : BorderStyle()
+    object Inset : BorderStyle()
+    object Outset : BorderStyle()
 
     override fun toCss(writer: Writer) {
         writer.append(
             when (this) {
-                is Style.None -> "none"
-                is Style.Hidden -> "hidden"
-                is Style.Dotted -> "dotted"
-                is Style.Dashed -> "dashed"
-                is Style.Solid -> "solid"
-                is Style.Double -> "double"
-                is Style.Groove -> "groove"
-                is Style.Ride -> "ride"
-                is Style.Inset -> "inset"
-                is Style.Outset -> "outset"
+                is BorderStyle.None -> "none"
+                is BorderStyle.Hidden -> "hidden"
+                is BorderStyle.Dotted -> "dotted"
+                is BorderStyle.Dashed -> "dashed"
+                is BorderStyle.Solid -> "solid"
+                is BorderStyle.Double -> "double"
+                is BorderStyle.Groove -> "groove"
+                is BorderStyle.Ride -> "ride"
+                is BorderStyle.Inset -> "inset"
+                is BorderStyle.Outset -> "outset"
             }
         )
     }
 
     companion object {
 
-        fun parse(input: Parser): Result<Style, ParseError> {
+        fun parse(input: Parser): Result<BorderStyle, ParseError> {
             val location = input.sourceLocation()
             val identifierResult = input.expectIdentifier()
 

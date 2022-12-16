@@ -56,15 +56,15 @@ interface Background : StyleStruct<MutBackground> {
 
         val Initial: Background by lazy {
             StaticBackground(
-                BackgroundColorDeclaration.initialValue,
-                BackgroundImageDeclaration.initialValue,
-                BackgroundAttachmentDeclaration.initialValue,
-                BackgroundPositionXDeclaration.initialValue,
-                BackgroundPositionYDeclaration.initialValue,
-                BackgroundSizeDeclaration.initialValue,
-                BackgroundRepeatDeclaration.initialValue,
-                BackgroundOriginDeclaration.initialValue,
-                BackgroundClipDeclaration.initialValue
+                BackgroundColorDeclaration.InitialValue,
+                BackgroundImageDeclaration.InitialValue,
+                BackgroundAttachmentDeclaration.InitialValue,
+                BackgroundPositionXDeclaration.InitialValue,
+                BackgroundPositionYDeclaration.InitialValue,
+                BackgroundSizeDeclaration.InitialValue,
+                BackgroundRepeatDeclaration.InitialValue,
+                BackgroundOriginDeclaration.InitialValue,
+                BackgroundClipDeclaration.InitialValue
             )
         }
     }
@@ -134,36 +134,34 @@ class BackgroundImageLayer(
     val origin: Origin
 )
 
-class ImageLayerIterator(private val background: Background, private val indices: Array<Int>) : Iterator<BackgroundImageLayer> {
+class ImageLayerIterator(private val background: Background, private val indices: Iterator<Int>) : Iterator<BackgroundImageLayer> {
 
     companion object {
 
         fun new(background: Background): ImageLayerIterator {
-            val indices = background.image.withIndex()
+            val indices = background.image
+                .asSequence()
+                .withIndex()
                 .filter { (_, layer) -> layer is Second }
                 .map { (index, _) -> index }
-                .toTypedArray()
+                .iterator()
 
             return ImageLayerIterator(background, indices)
         }
     }
 
-    private var index: Int = 0
-
-    override fun hasNext(): Boolean {
-        return index < indices.size
-    }
+    override fun hasNext(): Boolean = indices.hasNext()
 
     override fun next(): BackgroundImageLayer {
-        val i = indices[index++]
+        val index = indices.next()
 
-        val image = (background.image[i] as Second).value
-        val attachment = background.attachment.drag(i)
-        val positionX = background.positionX.drag(i)
-        val positionY = background.positionY.drag(i)
-        val size = background.size.drag(i)
-        val repeat = background.repeat.drag(i)
-        val origin = background.origin.drag(i)
+        val image = (background.image[index] as Second).value
+        val attachment = background.attachment.drag(index)
+        val positionX = background.positionX.drag(index)
+        val positionY = background.positionY.drag(index)
+        val size = background.size.drag(index)
+        val repeat = background.repeat.drag(index)
+        val origin = background.origin.drag(index)
 
         return BackgroundImageLayer(
             image,

@@ -8,7 +8,6 @@ package org.fernice.flare.cssparser
 import org.fernice.std.Err
 import org.fernice.std.Ok
 import org.fernice.std.Result
-import org.fernice.std.unwrap
 
 /**
  * A CSS assistive, partial [Parser], that provides common parse functions and keeps track of nested blocks.
@@ -21,7 +20,7 @@ class Parser private constructor(
 
     companion object {
 
-        fun new(input: ParserInput): Parser {
+        fun from(input: ParserInput): Parser {
             return Parser(
                 Tokenizer.new(input.text),
                 blockType = null,
@@ -121,20 +120,13 @@ class Parser private constructor(
             tokenizer.consumeUntilEndOfBlock(blockType)
         }
 
-        val state = state()
-
-        val token = when (val token = tokenizer.nextToken()) {
-            is Err -> {
-                reset(state)
-                return Err(newError(ParseErrorKind.EndOfFile))
-            }
-            is Ok -> token.value
-        }
+        val token = tokenizer.peekToken(1) ?: return Err(newError(ParseErrorKind.EndOfFile))
 
         if (delimiters and Delimiters.from(token).bits != 0) {
-            reset(state)
             return Err(newError(ParseErrorKind.EndOfFile))
         }
+
+        tokenizer.nextToken()
 
         blockType = BlockType.opening(token)
 
@@ -153,6 +145,7 @@ class Parser private constructor(
                     reset(state)
                     return
                 }
+
                 is Ok -> {
                     if (result.value !is Token.Whitespace) {
                         reset(state)
@@ -179,9 +172,7 @@ class Parser private constructor(
     fun expectExhausted(): Result<Unit, ParseError> {
         val state = state()
 
-        val tokenResult = next()
-
-        val result = when (tokenResult) {
+        val result = when (val tokenResult = next()) {
             is Err -> {
                 if (tokenResult.value.kind is ParseErrorKind.EndOfFile) {
                     Ok()
@@ -189,6 +180,7 @@ class Parser private constructor(
                     tokenResult
                 }
             }
+
             is Ok -> {
                 Err(state.location().newUnexpectedTokenError(tokenResult.value))
             }
@@ -219,6 +211,7 @@ class Parser private constructor(
                     Err(location.newUnexpectedTokenError(token))
                 }
             }
+
             else -> Err(location.newUnexpectedTokenError(token))
         }
     }
@@ -255,6 +248,7 @@ class Parser private constructor(
 
         return when (token) {
             is Token.Url -> Ok(token.url)
+            is Token.UnquotedUrl -> Ok(token.url)
             else -> Err(location.newUnexpectedTokenError(token))
         }
     }
@@ -484,11 +478,7 @@ class Parser private constructor(
             }
 
             when (val token = next()) {
-                is Ok -> {
-                    if (token.value !is Token.Comma) {
-                        throw IllegalStateException("unreachable")
-                    }
-                }
+                is Ok -> if (token.value !is Token.Comma) error("unreachable")
                 is Err -> return Ok(values)
             }
         }
@@ -525,11 +515,11 @@ class Parser private constructor(
 
         val token = tokenizer.peekToken(1)
 
-        if (token is Ok && this.delimiters and Delimiters.from(token.unwrap()).bits != 0) {
+        if (token != null && this.delimiters and Delimiters.from(token).bits != 0) {
             // make sure to take the next token not some token
             tokenizer.nextToken()
 
-            BlockType.opening(token.unwrap())?.let { blockType ->
+            BlockType.opening(token)?.let { blockType ->
                 tokenizer.consumeUntilEndOfBlock(blockType)
             }
         }
@@ -573,6 +563,9 @@ class Parser private constructor(
         this.blockType = null
         return blockType
     }
+
+    fun lookForVarFunctions() = tokenizer.lookForVarFunctions()
+    fun seenVarFunctions(): Boolean = tokenizer.seenVarFunctions()
 
     override fun toString(): String {
         return "Parser($tokenizer)"
@@ -620,6 +613,12 @@ data class ParserState(internal val state: State, internal val blockType: BlockT
     fun location(): SourceLocation {
         return state.sourceLocation
     }
+}
+
+enum class SeenStatus {
+    Ignore,
+    Looking,
+    Seen,
 }
 
 /**

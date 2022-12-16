@@ -308,8 +308,8 @@ class LengthParseTest {
     }
 
     private inline fun <T> withInput(text: String, parse: (ParserContext, Parser) -> Result<T, ParseError>): T {
-        val input = Parser.new(ParserInput(text))
-        val context = ParserContext(ParseMode.Default, QuirksMode.NO_QUIRKS, Url(""))
+        val input = Parser.from(ParserInput(text))
+        val context = ParserContext(ParseMode.Default, QuirksMode.NoQuirks, Url(""))
 
         val result = parse(context, input)
 

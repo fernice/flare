@@ -10,53 +10,43 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.Fill
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.Fill as ComputedFill
 
-object FillId : LonghandId() {
+object FillId : AbstractLonghandId<FillDeclaration>(
+    name = "fill",
+    declarationType = FillDeclaration::class,
+    isInherited = true,
+) {
 
-    override val name: String = "fill"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return Fill.parse(input).map(::FillDeclaration)
+    override fun parseValue(context: ParserContext, input: Parser): Result<FillDeclaration, ParseError> {
+        return Fill.parse(input).map { FillDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is FillDeclaration -> {
-                val fill = declaration.fill.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: FillDeclaration) {
+        val fill = declaration.fill.toComputedValue(context)
 
-                context.builder.setFill(fill)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetFill()
-                    }
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritFill()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setFill(fill)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetFill()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritFill()
     }
 }
 
-class FillDeclaration(val fill: Fill) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return FillId
-    }
+class FillDeclaration(val fill: Fill) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(FillId),
+) {
 
     override fun toCssInternally(writer: Writer) {}
 

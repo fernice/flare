@@ -7,7 +7,6 @@ package org.fernice.flare.style
 
 import org.fernice.flare.selector.PSEUDO_COUNT
 import org.fernice.flare.selector.PseudoElement
-import org.fernice.flare.style.stylesheet.Origin
 
 class PerPseudoElementMap<E> {
 
@@ -43,46 +42,5 @@ class PerPseudoElementMap<E> {
     @Suppress("UNCHECKED_CAST")
     fun iterator(): Iterator<E?> {
         return entries.map { it as E? }.iterator()
-    }
-}
-
-class PerOrigin<E>(
-    val userAgent: E,
-    val user: E,
-    val author: E
-) {
-
-    fun get(origin: Origin): E {
-        return when (origin) {
-            Origin.USER_AGENT -> userAgent
-            Origin.USER -> user
-            Origin.AUTHOR -> author
-        }
-    }
-
-    fun iterator(): PerOriginIterator<E> {
-        val indices = Origin.values().indices
-        return PerOriginIterator(this, indices.iterator())
-    }
-
-    fun reversedIterator(): PerOriginIterator<E> {
-        val indices = Origin.values().indices.reversed()
-        return PerOriginIterator(
-            this,
-            indices.iterator()
-        )
-    }
-}
-
-class PerOriginIterator<E>(
-    private val perOrigin: PerOrigin<E>,
-    private val iterator: Iterator<Int>
-) : Iterator<E> {
-
-    override fun hasNext(): Boolean = iterator.hasNext()
-
-    override fun next(): E {
-        val index = iterator.next()
-        return perOrigin.get(Origin.values()[index])
     }
 }

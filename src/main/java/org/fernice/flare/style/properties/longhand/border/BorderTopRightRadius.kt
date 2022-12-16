@@ -9,58 +9,48 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.BorderCornerRadius
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
 
-object BorderTopRightRadiusId : LonghandId() {
+object BorderTopRightRadiusId : AbstractLonghandId<BorderTopRightRadiusDeclaration>(
+    name = "border-top-right-radius",
+    declarationType = BorderTopRightRadiusDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "border-top-right-radius"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return BorderCornerRadius.parse(context, input).map { width -> BorderTopRightRadiusDeclaration(width) }
+    override fun parseValue(context: ParserContext, input: Parser): Result<BorderTopRightRadiusDeclaration, ParseError> {
+        return BorderCornerRadius.parse(context, input).map { BorderTopRightRadiusDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BorderTopRightRadiusDeclaration -> {
-                val radius = declaration.radius.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: BorderTopRightRadiusDeclaration) {
+        val radius = declaration.radius.toComputedValue(context)
 
-                context.builder.setBorderTopRightRadius(radius)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBorderTopRightRadius()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBorderTopRightRadius()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setBorderTopRightRadius(radius)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBorderTopRightRadius()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBorderTopRightRadius()
     }
 }
 
-class BorderTopRightRadiusDeclaration(val radius: BorderCornerRadius) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return BorderTopRightRadiusId
-    }
+class BorderTopRightRadiusDeclaration(val radius: BorderCornerRadius) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BorderTopRightRadiusId),
+) {
 
     override fun toCssInternally(writer: Writer) = radius.toCss(writer)
 
     companion object {
 
-        val initialValue: ComputedBorderCornerRadius by lazy { ComputedBorderCornerRadius.zero() }
+        val InitialValue: ComputedBorderCornerRadius by lazy { ComputedBorderCornerRadius.zero() }
     }
 }

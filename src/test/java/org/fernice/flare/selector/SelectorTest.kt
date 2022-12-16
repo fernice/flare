@@ -414,7 +414,7 @@ class SelectorParseTest {
     }
 
     private fun parse(text: String, vararg asserts: (Component) -> Unit) {
-        val input = Parser.new(ParserInput(text))
+        val input = Parser.from(ParserInput(text))
 
         val parser = SelectorParser()
 
