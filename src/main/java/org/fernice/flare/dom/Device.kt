@@ -12,11 +12,12 @@ import org.fernice.flare.style.value.generic.Size2D
 interface Device {
 
     fun defaultComputedValues(): ComputedValues {
-        return ComputedValues.initial
+        return ComputedValues.Initial
     }
 
     val viewportSize: Size2D<Au>
     var rootFontSize: Au
+    val systemFontSize: Au
 
     fun invalidate()
 }

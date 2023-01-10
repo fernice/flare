@@ -21,7 +21,7 @@ import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.computed.PixelLength
-import org.fernice.flare.style.value.computed.intoNonNegative
+import org.fernice.flare.style.value.computed.toNonNegative
 import java.io.Writer
 import org.fernice.flare.style.value.computed.BorderCornerRadius as ComputedBorderCornerRadius
 import org.fernice.flare.style.value.computed.NonNegativeLength as ComputedNonNegativeLength
@@ -35,9 +35,9 @@ sealed class BorderSideWidth : SpecifiedValue<ComputedNonNegativeLength>, ToCss 
 
     final override fun toComputedValue(context: Context): org.fernice.flare.style.value.computed.NonNegativeLength {
         return when (this) {
-            is BorderSideWidth.Thin -> PixelLength(1f).intoNonNegative()
-            is BorderSideWidth.Medium -> PixelLength(3f).intoNonNegative()
-            is BorderSideWidth.Thick -> PixelLength(5f).intoNonNegative()
+            is BorderSideWidth.Thin -> PixelLength(1f).toNonNegative()
+            is BorderSideWidth.Medium -> PixelLength(3f).toNonNegative()
+            is BorderSideWidth.Thick -> PixelLength(5f).toNonNegative()
 
             is BorderSideWidth.Length -> length.toComputedValue(context)
         }

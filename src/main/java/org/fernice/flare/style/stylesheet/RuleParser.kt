@@ -12,14 +12,13 @@ import org.fernice.flare.cssparser.QualifiedRuleParser
 import org.fernice.flare.cssparser.SourceLocation
 import org.fernice.flare.selector.SelectorList
 import org.fernice.flare.selector.SelectorParser
+import org.fernice.flare.style.Origin
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
-import org.fernice.flare.style.properties.parsePropertyDeclarationList
+import org.fernice.flare.style.source.StyleRule
 import org.fernice.std.Err
 import org.fernice.std.Ok
 import org.fernice.std.Result
-import org.fernice.flare.cssparser.toCssString
-import java.net.URI
 
 class AtRulePrelude
 
@@ -27,7 +26,7 @@ class QualifiedRulePrelude(val selectors: SelectorList, val location: SourceLoca
 
 sealed class CssRule {
 
-    class AtRule : CssRule()
+    object AtRule : CssRule()
 
     data class Style(val styleRule: StyleRule) : CssRule()
 
@@ -39,22 +38,13 @@ sealed class CssRule {
     }
 }
 
-class StyleRule(
-    val selectors: SelectorList,
-    val declarations: PropertyDeclarationBlock,
-    val location: SourceLocation,
-    val source: URI?
-) {
-
-    override fun toString(): String {
-        return "StyleRule(${selectors.toCssString()}, ${declarations.count} declarations, location: $location source: $source)"
-    }
-}
-
-class TopLevelRuleParser(private val context: ParserContext) : AtRuleParser<AtRulePrelude, CssRule>, QualifiedRuleParser<QualifiedRulePrelude, CssRule> {
+class TopLevelRuleParser(
+    private val context: ParserContext,
+    private val origin: Origin,
+) : AtRuleParser<AtRulePrelude, CssRule>, QualifiedRuleParser<QualifiedRulePrelude, CssRule> {
 
     private fun nested(): NestedRuleParser {
-        return NestedRuleParser(context)
+        return NestedRuleParser(context, origin)
     }
 
     override fun parseQualifiedRulePrelude(input: Parser): Result<QualifiedRulePrelude, ParseError> {
@@ -66,7 +56,10 @@ class TopLevelRuleParser(private val context: ParserContext) : AtRuleParser<AtRu
     }
 }
 
-class NestedRuleParser(private val context: ParserContext) : AtRuleParser<AtRulePrelude, CssRule>, QualifiedRuleParser<QualifiedRulePrelude, CssRule> {
+class NestedRuleParser(
+    private val context: ParserContext,
+    private val origin: Origin,
+) : AtRuleParser<AtRulePrelude, CssRule>, QualifiedRuleParser<QualifiedRulePrelude, CssRule> {
 
     override fun parseQualifiedRulePrelude(input: Parser): Result<QualifiedRulePrelude, ParseError> {
         val parser = SelectorParser()
@@ -81,13 +74,14 @@ class NestedRuleParser(private val context: ParserContext) : AtRuleParser<AtRule
     }
 
     override fun parseQualifiedRule(input: Parser, prelude: QualifiedRulePrelude): Result<CssRule, ParseError> {
-        val declarations = parsePropertyDeclarationList(context, input)
+        val declarations = PropertyDeclarationBlock.parse(context, input)
 
         return Ok(
             CssRule.Style(
                 StyleRule(
                     prelude.selectors,
                     declarations,
+                    origin,
                     prelude.location,
                     context.source
                 )

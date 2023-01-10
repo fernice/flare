@@ -5,59 +5,9 @@
  */
 package org.fernice.flare
 
-import org.fernice.flare.style.properties.PropertyDeclarationBlock
+import org.fernice.flare.style.source.StyleSource
 import org.fernice.flare.style.ruletree.CascadeLevel
-import org.fernice.flare.style.ruletree.StyleSource
 import kotlin.math.min
-
-data class ApplicableDeclarationBlock(
-    val source: StyleSource,
-    val bits: ApplicableDeclarationBits,
-    val specificity: Int
-) {
-
-    companion object {
-        fun fromDeclarations(
-            declarations: PropertyDeclarationBlock,
-            cascadeLevel: CascadeLevel
-        ): ApplicableDeclarationBlock {
-            return ApplicableDeclarationBlock(
-                StyleSource.fromDeclarations(declarations),
-                ApplicableDeclarationBits.new(0, cascadeLevel),
-                0
-            )
-        }
-
-        fun new(
-            source: StyleSource,
-            sourceOrder: Int,
-            cascadeLevel: CascadeLevel,
-            specificity: Int
-        ): ApplicableDeclarationBlock {
-            return ApplicableDeclarationBlock(
-                source,
-                ApplicableDeclarationBits.new(sourceOrder, cascadeLevel),
-                specificity
-            )
-        }
-    }
-
-    fun sourceOrder(): Int {
-        return bits.sourceOrder()
-    }
-
-    fun cascadeLevel(): CascadeLevel {
-        return bits.cascadeLevel()
-    }
-
-    fun specificity(): Int {
-        return specificity
-    }
-
-    fun forRuleTree(): RuleTreeValues {
-        return RuleTreeValues(source, cascadeLevel())
-    }
-}
 
 data class RuleTreeValues(val source: StyleSource, val cascadeLevel: CascadeLevel)
 

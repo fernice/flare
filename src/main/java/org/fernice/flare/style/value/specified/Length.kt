@@ -25,8 +25,10 @@ import org.fernice.flare.style.value.FontBaseSize
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.computed.Au
 import org.fernice.flare.style.value.computed.PixelLength
-import org.fernice.flare.style.value.computed.into
+import org.fernice.flare.style.value.computed.toAu
 import org.fernice.flare.style.value.generic.Size2D
+import org.fernice.std.map
+import org.fernice.std.mapErr
 import java.io.Writer
 import org.fernice.flare.style.value.computed.LengthOrPercentage as ComputedLengthOrPercentage
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
@@ -188,9 +190,8 @@ sealed class FontRelativeLength : ToCss {
             }
             is FontRelativeLength.Ex -> {
                 val referencedFontSize = baseSize.resolve(context)
-                val metricsResult = queryFontMetrics(context, referencedFontSize)
 
-                val referenceSize = when (metricsResult) {
+                val referenceSize = when (val metricsResult = queryFontMetrics(context, referencedFontSize)) {
                     is FontMetricsQueryResult.Available -> metricsResult.metrics.xHeight
                     is FontMetricsQueryResult.NotAvailable -> referencedFontSize.scaleBy(0.5f)
                 }
@@ -199,17 +200,10 @@ sealed class FontRelativeLength : ToCss {
             }
             is FontRelativeLength.Ch -> {
                 val referencedFontSize = baseSize.resolve(context)
-                val metricsResult = queryFontMetrics(context, referencedFontSize)
 
-                val referenceSize = when (metricsResult) {
+                val referenceSize = when (val metricsResult = queryFontMetrics(context, referencedFontSize)) {
                     is FontMetricsQueryResult.Available -> metricsResult.metrics.zeroAdvanceMeasure
-                    is FontMetricsQueryResult.NotAvailable -> {
-                        if (context.style().writingMode.isVertical()) {
-                            referencedFontSize
-                        } else {
-                            referencedFontSize.scaleBy(0.5f)
-                        }
-                    }
+                    is FontMetricsQueryResult.NotAvailable -> referencedFontSize.scaleBy(0.5f)
                 }
 
                 Pair(referenceSize, value)
@@ -270,22 +264,22 @@ sealed class ViewportPercentageLength : ToCss {
             is ViewportPercentageLength.Vw -> {
                 val au = (viewportSize.width.value * value / 100.0).trunc()
 
-                Au.fromAu64(au).into()
+                Au.fromAu64(au).toAu()
             }
             is ViewportPercentageLength.Vh -> {
                 val au = (viewportSize.height.value * value / 100.0).trunc()
 
-                Au.fromAu64(au).into()
+                Au.fromAu64(au).toAu()
             }
             is ViewportPercentageLength.Vmin -> {
                 val au = (viewportSize.width.max(viewportSize.height).value * value / 100.0).trunc()
 
-                Au.fromAu64(au).into()
+                Au.fromAu64(au).toAu()
             }
             is ViewportPercentageLength.Vmax -> {
                 val au = (viewportSize.width.min(viewportSize.height).value * value / 100.0).trunc()
 
-                Au.fromAu64(au).into()
+                Au.fromAu64(au).toAu()
             }
         }
     }

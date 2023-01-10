@@ -5,184 +5,174 @@
  */
 package org.fernice.flare.style
 
-import org.fernice.flare.ApplicableDeclarationBlock
 import org.fernice.flare.dom.Element
+import org.fernice.flare.dom.ElementStyles
 import org.fernice.flare.selector.MatchingContext
 import org.fernice.flare.selector.PseudoElement
 import org.fernice.flare.style.context.StyleContext
 import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.flare.style.ruletree.RuleNode
-
-class ResolvedStyle(val style: ComputedValues)
+import org.fernice.flare.style.source.StyleAttribute
+import org.fernice.flare.style.source.StyleSource
+import org.fernice.std.Recycler
 
 class MatchingResult(val ruleNode: RuleNode)
 
-class PrimaryStyle(val style: ResolvedStyle) {
-
-    fun style(): ComputedValues {
-        return style.style
-    }
-}
-
 class CascadeInputs(val rules: RuleNode?)
-
-class ResolvedElementStyles(val primary: PrimaryStyle, val pseudos: PerPseudoElementMap<ComputedValues>)
 
 class ElementStyleResolver(val element: Element, val context: StyleContext) {
 
-    inline fun <R> withDefaultParentStyles(run: (ComputedValues?, ComputedValues?) -> R): R {
+    private inline fun <R> withDefaultParentStyles(run: (ComputedValues?) -> R): R {
         val parentElement = element.inheritanceParent
-        val parentData = parentElement?.getDataOrNull()
-        val parentStyle = parentData?.styles?.primary()
+        val parentStyle = parentElement?.styles?.primary
 
-        return run(parentStyle, parentStyle)
+        return run(parentStyle)
     }
 
-    fun resolvePrimaryStyleWithDefaultParentStyles(): ResolvedElementStyles {
-        return withDefaultParentStyles { parentStyle, layoutStyle ->
-            resolveStyle(parentStyle, layoutStyle)
+    fun resolveStyleWithDefaultParentStyles(): ElementStyles {
+        return withDefaultParentStyles { parentStyle ->
+            resolveStyle(parentStyle)
         }
     }
 
-    fun resolveStyle(parentStyle: ComputedValues?, layoutStyle: ComputedValues?): ResolvedElementStyles {
-        val primaryStyle = resolvePrimaryStyle(parentStyle, layoutStyle)
+    fun resolveStyle(parentStyle: ComputedValues?): ElementStyles {
+        val previousPrimaryStyle = element.styles?.primary
+        val primaryStyle = resolvePrimaryStyle(previousPrimaryStyle, parentStyle)
 
         val pseudoElements = PerPseudoElementMap<ComputedValues>()
 
-        PseudoElement.forEachEagerCascadedPseudoElement { pseudo ->
-            val pseudoStyle = resolvePseudoStyle(
-                pseudo,
-                primaryStyle,
-                primaryStyle.style()
-            )
+        PseudoElement.forEachEagerCascadedPseudoElement { pseudoElement ->
+            // prevent computation for a pseudo-element that doesn't even match
+            if (element.hasPseudoElement(pseudoElement)) {
+                val previousStyle = element.styles?.pseudos?.get(pseudoElement)
+                val pseudoStyle = resolvePseudoStyle(
+                    pseudoElement,
+                    previousStyle,
+                    primaryStyle,
+                )
 
-            if (pseudoStyle != null) {
-                pseudoElements.set(pseudo, pseudoStyle.style)
+                if (pseudoStyle != null) {
+                    pseudoElements.set(pseudoElement, pseudoStyle)
+                }
             }
         }
 
-        return ResolvedElementStyles(
+        return ElementStyles(
             primaryStyle,
             pseudoElements
         )
     }
 
     fun resolvePrimaryStyle(
+        previousStyle: ComputedValues?,
         parentStyle: ComputedValues?,
-        layoutStyle: ComputedValues?
-    ): PrimaryStyle {
-        val primaryStyle = matchPrimary()
+    ): ComputedValues {
+        val primaryStyle = matchPrimaryStyle()
 
-        return cascadePrimaryStyle(
-            CascadeInputs(
-                primaryStyle.ruleNode
-            ),
-            parentStyle,
-            layoutStyle
+        return cascadeStyleAndVisited(
+            inputs = CascadeInputs(primaryStyle.ruleNode),
+            previousStyle = previousStyle,
+            parentStyle = parentStyle,
+            pseudoElement = null
         )
     }
 
-    fun matchPrimary(): MatchingResult {
-        val declarations = mutableListOf<ApplicableDeclarationBlock>()
+    fun matchPrimaryStyle(): MatchingResult {
+        return matchStyle(element, element.pseudoElement, element.styleAttribute)
+    }
 
+    fun resolvePseudoStyle(
+        pseudoElement: PseudoElement,
+        previousStyle: ComputedValues?,
+        primaryStyle: ComputedValues?,
+    ): ComputedValues? {
+        val style = matchPseudoStyle(pseudoElement) ?: return null
+
+        return cascadeStyleAndVisited(
+            inputs = CascadeInputs(style.ruleNode),
+            previousStyle = previousStyle,
+            parentStyle = primaryStyle,
+            pseudoElement = pseudoElement
+        )
+    }
+
+    fun matchPseudoStyle(pseudoElement: PseudoElement): MatchingResult? {
+        val style = matchStyle(element, pseudoElement, null)
+        if (style.ruleNode.parent == null) return null
+        return style
+    }
+
+    private fun matchStyle(element: Element, pseudoElement: PseudoElement?, styleAttribute: StyleAttribute?): MatchingResult {
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
             bloomFilter,
-            QuirksMode.NO_QUIRKS
+            QuirksMode.NoQuirks
         )
+
+        val styleContainer = StyleContainerRecycler.acquire()
+
+        for (origin in Origin.values) {
+            for (styleRoot in context.styleRoots.reversedIterator()) {
+                styleRoot.contributeMatchingStyles(
+                    origin,
+                    element,
+                    pseudoElement,
+                    matchingContext,
+                    styleContainer,
+                )
+            }
+
+            if (origin == Origin.Author && styleAttribute != null) {
+                styleContainer.collect(styleAttribute)
+            }
+        }
 
         val stylist = context.stylist
+        val ruleNode = stylist.ruleTree.computedRuleNode(styleContainer.iterator())
 
-        stylist.pushApplicableDeclarations(
-            element,
-            element.pseudoElement,
-            element.styleAttribute,
-            declarations,
-            matchingContext
-        )
+        stylist.ruleTree.gc()
 
-        val ruleNode = stylist.ruleTree.computedRuleNode(declarations)
+        StyleContainerRecycler.release(styleContainer)
 
         return MatchingResult(ruleNode)
     }
 
-    fun cascadePrimaryStyle(
+    private fun cascadeStyleAndVisited(
         inputs: CascadeInputs,
+        previousStyle: ComputedValues?,
         parentStyle: ComputedValues?,
-        layoutStyle: ComputedValues?
-    ): PrimaryStyle {
-        return PrimaryStyle(
-            cascadeStyleAndVisited(
-                inputs,
-                parentStyle,
-                layoutStyle,
-                pseudoElement = null
-            )
-        )
-    }
-
-    fun resolvePseudoStyle(
-        pseudo: PseudoElement,
-        primaryStyle: PrimaryStyle,
-        layoutParentStyle: ComputedValues?
-    ): ResolvedStyle? {
-        val style = matchPseudo(pseudo) ?: return null
-        return cascadeStyleAndVisited(
-            CascadeInputs(
-                style
-            ),
-            primaryStyle.style(),
-            layoutParentStyle,
-            pseudo
-        )
-
-    }
-
-    fun matchPseudo(pseudo: PseudoElement): RuleNode? {
-        val declarations = mutableListOf<ApplicableDeclarationBlock>()
-
-        val bloomFilter = context.bloomFilter.filter()
-        val matchingContext = MatchingContext(
-            bloomFilter,
-            QuirksMode.NO_QUIRKS
-        )
-
-        val stylist = context.stylist
-
-        stylist.pushApplicableDeclarations(
-            element,
-            pseudo,
-            null,
-            declarations,
-            matchingContext
-        )
-
-        if (declarations.isEmpty()) {
-            return null
-        }
-
-        return stylist.ruleTree.computedRuleNode(declarations)
-    }
-
-    fun cascadeStyleAndVisited(
-        inputs: CascadeInputs,
-        parentStyle: ComputedValues?,
-        layoutStyle: ComputedValues?,
-        pseudoElement: PseudoElement?
-    ): ResolvedStyle {
-        val values = context.stylist.cascadeStyleAndVisited(
-            context.device,
-            element,
-            pseudoElement,
-            inputs,
-            parentStyle,
-            parentStyle,
-            layoutStyle,
-            context.fontMetricsProvider
-        )
-
-        return ResolvedStyle(
-            values
+        pseudoElement: PseudoElement?,
+    ): ComputedValues {
+        return context.stylist.cascadeStyleAndVisited(
+            device = context.device,
+            element = element,
+            pseudoElement = pseudoElement,
+            inputs = inputs,
+            previousStyle = previousStyle,
+            parentStyle = parentStyle,
+            parentStyleIgnoringFirstLine = parentStyle,
+            fontMetricsProvider = context.fontMetricsProvider
         )
     }
 }
+
+private class StyleContainer : StyleCollector, Iterable<StyleSource> {
+    private val styles: MutableList<StyleSource> = arrayListOf()
+
+    override fun collect(style: StyleSource) {
+        styles.add(style)
+    }
+
+    fun isEmpty(): Boolean = styles.isEmpty()
+
+    override fun iterator(): Iterator<StyleSource> = styles.iterator()
+
+    fun clear() {
+        styles.clear()
+    }
+}
+
+private val StyleContainerRecycler = Recycler(
+    factory = { StyleContainer() },
+    reset = { it.clear() },
+)

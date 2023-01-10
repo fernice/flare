@@ -5,64 +5,50 @@
  */
 package org.fernice.flare.style.properties.longhand.background
 
-import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.toCssJoining
-import org.fernice.flare.style.parser.AllowQuirks
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.BackgroundRepeat
-import org.fernice.flare.style.value.specified.HorizontalPosition
-import org.fernice.flare.style.value.specified.X
 import org.fernice.flare.style.value.toComputedValue
+import org.fernice.std.Result
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.BackgroundRepeat as ComputedBackgroundRepeat
 
-object BackgroundRepeatId : LonghandId() {
+object BackgroundRepeatId : AbstractLonghandId<BackgroundRepeatDeclaration>(
+    name = "background-repeat",
+    declarationType = BackgroundRepeatDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "background-repeat"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { HorizontalPosition.parseQuirky(context, it, AllowQuirks.Yes, X.Companion) }
-            .map(::BackgroundPositionXDeclaration)
+    override fun parseValue(context: ParserContext, input: Parser): Result<BackgroundRepeatDeclaration, ParseError> {
+        return input.parseCommaSeparated { scopedInput -> BackgroundRepeat.parse(context, scopedInput) }
+            .map { BackgroundRepeatDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BackgroundRepeatDeclaration -> {
-                val computed = declaration.repeat.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: BackgroundRepeatDeclaration) {
+        val computed = declaration.repeat.toComputedValue(context)
 
-                context.builder.setBackgroundRepeat(computed)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundRepeat()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundRepeat()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setBackgroundRepeat(computed)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBackgroundRepeat()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBackgroundRepeat()
     }
 }
 
-class BackgroundRepeatDeclaration(val repeat: List<BackgroundRepeat>) : PropertyDeclaration() {
-
-    override fun id(): LonghandId {
-        return BackgroundRepeatId
-    }
+class BackgroundRepeatDeclaration(val repeat: List<BackgroundRepeat>) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BackgroundRepeatId)
+) {
 
     override fun toCssInternally(writer: Writer) {
         repeat.toCssJoining(writer, ", ")
@@ -70,7 +56,7 @@ class BackgroundRepeatDeclaration(val repeat: List<BackgroundRepeat>) : Property
 
     companion object {
 
-        val initialValue: List<ComputedBackgroundRepeat> by lazy { listOf(ComputedBackgroundRepeat.repeat()) }
+        val InitialValue: List<ComputedBackgroundRepeat> by lazy { listOf(ComputedBackgroundRepeat.repeat()) }
         val InitialSingleValue: BackgroundRepeat by lazy { BackgroundRepeat.Repeat }
 
     }

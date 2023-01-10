@@ -46,9 +46,9 @@ class Lexer(private val reader: Reader) {
     /**
      * [spec](https://www.w3.org/TR/css-syntax-3/#consume-a-token)
      */
-    fun nextToken(): Result<Token, Unit> {
+    fun nextToken(): Token? {
         if (reader.isEoF) {
-            return Err()
+            return null
         }
 
         val token = when (reader.c) {
@@ -275,7 +275,7 @@ class Lexer(private val reader: Reader) {
             }
         }
 
-        return Ok(token)
+        return token
     }
 
     /**
@@ -374,12 +374,12 @@ class Lexer(private val reader: Reader) {
             when (reader.c) {
                 '\u001a' -> {
                     if (reader.isEoF) {
-                        return Token.Url(reader.text())
+                        return Token.UnquotedUrl(reader.text())
                     }
                 }
                 ')' -> {
                     reader.nextChar()
-                    return Token.Url(reader.text())
+                    return Token.UnquotedUrl(reader.text())
                 }
                 '\\' -> {
                     if (isEscape(reader.c, reader.peekChar())) {
@@ -396,7 +396,7 @@ class Lexer(private val reader: Reader) {
                     } while (isWhitespace(reader.c))
 
                     return if (reader.c == ')' || reader.isEoF) {
-                        Token.Url(reader.text())
+                        Token.UnquotedUrl(reader.text())
                     } else {
                         consumeUrlRemnants()
                         Token.BadUrl(reader.text())
@@ -695,12 +695,12 @@ class Lexer(private val reader: Reader) {
             val code = Integer.parseInt(reader.text(), 16)
 
             return if (code == 0 || isSurrogate(code.toChar()) || code > 0x10ffff) {
-                '\ufffd'
+                '\uFFFD'
             } else {
                 code.toChar()
             }
         } else if (reader.isEoF) {
-            return '\ufffd'
+            return '\uFFFD'
         } else {
             val c = reader.c
             reader.nextChar()
@@ -769,7 +769,11 @@ class Lexer(private val reader: Reader) {
      */
     private fun startsIdentifier(c0: Char, c1: Char, c2: Char): Boolean {
         return if (c0 == '-') {
-            isNameStart(c1) || isEscape(c1, c2)
+            if (c1 == '-') {
+                true
+            } else {
+                isNameStart(c1) || isEscape(c1, c2)
+            }
         } else {
             isNameStart(c0) || isEscape(c0, c1)
         }

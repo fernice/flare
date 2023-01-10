@@ -22,10 +22,10 @@ interface Font : StyleStruct<MutFont> {
 
     companion object {
 
-        val initial: Font by lazy {
+        val Initial: Font by lazy {
             StaticFont(
-                FontFamilyDeclaration.initialValue,
-                FontSizeDeclaration.initialValue,
+                FontFamilyDeclaration.InitialValue,
+                FontSizeDeclaration.InitialValue,
                 FontWeightDeclaration.InitialValue
             )
         }

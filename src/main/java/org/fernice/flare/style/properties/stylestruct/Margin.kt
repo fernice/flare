@@ -33,10 +33,10 @@ interface Margin : StyleStruct<MutMargin> {
 
         val initial: Margin by lazy {
             StaticMargin(
-                MarginTopDeclaration.initialValue,
-                MarginRightDeclaration.initialValue,
-                MarginBottomDeclaration.initialValue,
-                MarginLeftDeclaration.initialValue
+                MarginTopDeclaration.InitialValue,
+                MarginRightDeclaration.InitialValue,
+                MarginBottomDeclaration.InitialValue,
+                MarginLeftDeclaration.InitialValue
             )
         }
     }

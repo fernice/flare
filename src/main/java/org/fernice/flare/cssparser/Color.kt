@@ -8,6 +8,7 @@ package org.fernice.flare.cssparser
 import org.fernice.std.Err
 import org.fernice.std.Ok
 import org.fernice.std.Result
+import org.fernice.std.mapErr
 import org.fernice.std.trunc
 import java.io.Writer
 import kotlin.math.roundToInt
@@ -15,26 +16,26 @@ import kotlin.math.roundToInt
 /**
  * Represents a 8 bit, int based RGBA color.
  */
-data class RGBA(val red: Int, val green: Int, val blue: Int, val alpha: Int) : ToCss {
+data class RGBA(val red: Float, val green: Float, val blue: Float, val alpha: Float) : ToCss {
 
     override fun toCss(writer: Writer) {
-        val hasAlpha = alpha != 255
+        val hasAlpha = alpha != 1f
 
         writer.append(if (hasAlpha) "rgba" else "rgb")
 
         writer.append('(')
-        writer.append("$red")
+        writer.append("${red * 255}")
         writer.append(", ")
-        writer.append("$green")
+        writer.append("${green * 255}")
         writer.append(", ")
-        writer.append("$blue")
+        writer.append("${blue * 255}")
 
         if (hasAlpha) {
             writer.append(", ")
 
-            var roundedAlpha = (alpha.toFloat() * 100f).roundToInt() / 100f
+            var roundedAlpha = (alpha * 100f).roundToInt() / 100f
             if (clampUnit(roundedAlpha) != alpha) {
-                roundedAlpha = (alpha.toFloat() * 1000f).roundToInt() / 1000f
+                roundedAlpha = (alpha * 1000f).roundToInt() / 1000f
             }
 
             writer.append("$roundedAlpha")
@@ -79,19 +80,23 @@ sealed class Color {
                     parseHash(token.value)
                         .mapErr { location.newUnexpectedTokenError(token) }
                 }
+
                 is Token.Hash -> {
                     parseHash(token.value)
                         .mapErr { location.newUnexpectedTokenError(token) }
                 }
+
                 is Token.Identifier -> {
                     parseColorKeyword(token.name)
                         .mapErr { location.newUnexpectedTokenError(token) }
                 }
+
                 is Token.Function -> {
                     input.parseNestedBlock {
                         parseColorFunction(it, parser, token.name)
                     }
                 }
+
                 else -> {
                     Err(location.newUnexpectedTokenError(token))
                 }
@@ -177,9 +182,11 @@ interface ColorComponentParser {
             is Token.Number -> {
                 Ok(NumberOrPercentage.Number(token.number.float()))
             }
+
             is Token.Percentage -> {
                 Ok(NumberOrPercentage.Percentage(token.number.float()))
             }
+
             else -> {
                 Err(location.newUnexpectedTokenError(token))
             }
@@ -206,6 +213,7 @@ interface ColorComponentParser {
             is Token.Number -> {
                 Ok(AngleOrNumber.Number(token.number.float()))
             }
+
             is Token.Dimension -> {
                 val degrees = when (token.unit.lowercase()) {
                     "deg" -> token.number.float()
@@ -217,6 +225,7 @@ interface ColorComponentParser {
 
                 Ok(AngleOrNumber.Angle(degrees))
             }
+
             else -> {
                 Err(location.newUnexpectedTokenError(token))
             }
@@ -240,6 +249,7 @@ private fun parseHash(hash: String): Result<Color, Unit> {
                     fromHex(chars[6]) * 16 + fromHex(chars[7])
                 )
             )
+
             6 -> Ok(
                 rgb(
                     fromHex(chars[0]) * 16 + fromHex(chars[1]),
@@ -247,6 +257,7 @@ private fun parseHash(hash: String): Result<Color, Unit> {
                     fromHex(chars[4]) * 16 + fromHex(chars[5])
                 )
             )
+
             4 -> Ok(
                 rgba(
                     fromHex(chars[0]) * 17,
@@ -255,6 +266,7 @@ private fun parseHash(hash: String): Result<Color, Unit> {
                     fromHex(chars[3]) * 17
                 )
             )
+
             3 -> Ok(
                 rgb(
                     fromHex(chars[0]) * 17,
@@ -262,6 +274,7 @@ private fun parseHash(hash: String): Result<Color, Unit> {
                     fromHex(chars[2]) * 17
                 )
             )
+
             else -> Err()
         }
     } catch (e: NumberFormatException) {
@@ -282,7 +295,7 @@ private inline fun rgb(red: Int, green: Int, blue: Int): Color {
  */
 @Suppress("NOTHING_TO_INLINE")
 private inline fun rgba(red: Int, green: Int, blue: Int, alpha: Int): Color {
-    return Color.RGBA(RGBA(red, green, blue, alpha))
+    return Color.RGBA(RGBA(red / 255f, green / 255f, blue / 255f, alpha / 255f))
 }
 
 /**
@@ -478,7 +491,7 @@ private fun parseColorKeyword(keyword: String): Result<Color, Unit> {
  * Represents the RGB part of a [RGBA], including a flag [usesCommas] indicating whether the arguments were comma
  * separated.
  */
-private data class RGBF(val red: Int, val green: Int, val blue: Int, val usesCommas: Boolean)
+private data class RGBF(val red: Float, val green: Float, val blue: Float, val usesCommas: Boolean)
 
 /**
  * Parses the arguments [input] of the color function with the specified [name] into a [RGBA] color. Supports
@@ -516,10 +529,10 @@ private fun parseColorFunction(input: Parser, parser: ColorComponentParser, name
             is Err -> return numberOrPercentageResult
         }
     } else {
-        255
+        1f
     }
 
-    return Ok(rgba(red, green, blue, alpha))
+    return Ok(Color.RGBA(RGBA(red, green, blue, alpha)))
 }
 
 /**
@@ -534,8 +547,9 @@ private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): 
 
     val (red, isNumber) = when (numberOrPercentage) {
         is NumberOrPercentage.Number -> {
-            Pair(clampFloor(numberOrPercentage.value), true)
+            Pair(clampNumber(numberOrPercentage.value), true)
         }
+
         is NumberOrPercentage.Percentage -> {
             Pair(clampUnit(numberOrPercentage.value), false)
         }
@@ -543,12 +557,12 @@ private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): 
 
     val usesCommas = input.tryParse { it.expectComma() }.isOk()
 
-    val green: Int
-    val blue: Int
+    val green: Float
+    val blue: Float
 
     if (isNumber) {
         green = when (val greenResult = parser.parseNumber(input)) {
-            is Ok -> clampFloor(greenResult.value)
+            is Ok -> clampNumber(greenResult.value)
             is Err -> return greenResult
         }
 
@@ -561,7 +575,7 @@ private fun parseRGBColorFunction(input: Parser, parser: ColorComponentParser): 
         }
 
         blue = when (val blueResult = parser.parseNumber(input)) {
-            is Ok -> clampFloor(blueResult.value)
+            is Ok -> clampNumber(blueResult.value)
             is Err -> return blueResult
         }
     } else {
@@ -654,18 +668,13 @@ private fun hueToRgb(m1: Float, m2: Float, h3i: Float): Float {
     }
 }
 
-/**
- * Clamps a percentage depicted as a value from 0 to 1 corresponding to 0% and 100% respectively to a value ranging
- * from 0 to 255.
- * @see clampFloor
- */
-private fun clampUnit(value: Float): Int {
-    return clampFloor(value * 255)
+private fun clampUnit(value: Float): Float {
+    return value.coerceAtLeast(0f).coerceAtMost(1f)
 }
 
 /**
  * Clamps [value] to a value ranging from 0 to 255.
  */
-private fun clampFloor(value: Float): Int {
-    return value.roundToInt().coerceAtLeast(0).coerceAtMost(255)
+private fun clampNumber(value: Float): Float {
+    return clampUnit(value / 255f)
 }

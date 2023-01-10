@@ -51,7 +51,7 @@ sealed class AllowQuirks {
 
     object Yes : AllowQuirks() {
         override fun allowed(quirksMode: QuirksMode): Boolean {
-            return quirksMode == QuirksMode.QUIRKS
+            return quirksMode == QuirksMode.Quirks
         }
     }
 
@@ -64,11 +64,11 @@ sealed class AllowQuirks {
 
 enum class QuirksMode {
 
-    QUIRKS,
+    Quirks,
 
-    LIMITED_QUIRKS,
+    LimitedQuirks,
 
-    NO_QUIRKS
+    NoQuirks,
 }
 
 sealed class ClampingMode {

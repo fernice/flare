@@ -33,10 +33,10 @@ interface Padding : StyleStruct<MutPadding> {
 
         val initial: Padding by lazy {
             StaticPadding(
-                PaddingTopDeclaration.initialValue,
-                PaddingRightDeclaration.initialValue,
-                PaddingBottomDeclaration.initialValue,
-                PaddingLeftDeclaration.initialValue
+                PaddingTopDeclaration.InitialValue,
+                PaddingRightDeclaration.InitialValue,
+                PaddingBottomDeclaration.InitialValue,
+                PaddingLeftDeclaration.InitialValue
             )
         }
     }

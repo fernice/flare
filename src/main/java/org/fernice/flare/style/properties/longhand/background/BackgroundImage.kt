@@ -12,74 +12,58 @@ import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.std.First
 import org.fernice.std.Second
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.Image
 import org.fernice.flare.style.value.specified.ImageLayer
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.ImageLayer as ComputedImageLayer
 
-object BackgroundImageId : LonghandId() {
+object BackgroundImageId : AbstractLonghandId<BackgroundImageDeclaration>(
+    name = "background-image",
+    declarationType = BackgroundImageDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "background-image"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { Image.parse(context, it).map(::Second) }.map {
-            BackgroundImageDeclaration(
-                it
-            )
-        }
+    override fun parseValue(context: ParserContext, input: Parser): Result<BackgroundImageDeclaration, ParseError> {
+        return input.parseCommaSeparated { scopedInput -> Image.parse(context, scopedInput).map { Second(it) } }
+            .map { BackgroundImageDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BackgroundImageDeclaration -> {
-                val computed = declaration.image.map { layer ->
-                    when (layer) {
-                        is First -> First(Unit)
-                        is Second -> Second(layer.value.toComputedValue(context))
-                    }
-                }
-
-                context.builder.setBackgroundImage(computed)
+    override fun cascadeProperty(context: Context, declaration: BackgroundImageDeclaration) {
+        val computed = declaration.image.map { layer ->
+            when (layer) {
+                is First -> First(Unit)
+                is Second -> Second(layer.value.toComputedValue(context))
             }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundImage()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundImage()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
         }
+
+        context.builder.setBackgroundImage(computed)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBackgroundImage()
     }
 
-    override fun toString(): String {
-        return "LonghandId::BackgroundImage"
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBackgroundImage()
     }
 }
 
-class BackgroundImageDeclaration(val image: List<ImageLayer>) : PropertyDeclaration() {
+class BackgroundImageDeclaration(val image: List<ImageLayer>) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BackgroundImageId)
+) {
 
-    override fun id(): LonghandId {
-        return BackgroundImageId
+    override fun toCssInternally(writer: Writer) {
+        image.filterIsInstance<Second<Image>>().map { it.value }.toCssJoining(writer, ", ")
     }
-
-    override fun toCssInternally(writer: Writer) = image.filter { it is Second }.map { (it as Second).value }.toCssJoining(writer, ", ")
 
     companion object {
 
-        val initialValue: List<ComputedImageLayer> by lazy { listOf<ComputedImageLayer>() }
+        val InitialValue: List<ComputedImageLayer> by lazy { listOf() }
         val InitialSingleValue by lazy { First(Unit) }
     }
 }

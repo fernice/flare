@@ -25,12 +25,18 @@ import org.fernice.flare.style.properties.longhand.margin.MarginTopId
 import org.fernice.flare.style.value.generic.Rect
 import org.fernice.flare.style.value.specified.LengthOrPercentageOrAuto
 
-object MarginId : ShorthandId() {
-
-    override val name: String = "margin"
+object MarginId : ShorthandId(
+    name = "margin",
+    longhands = listOf(
+        MarginTopId,
+        MarginRightId,
+        MarginBottomId,
+        MarginLeftId,
+    ),
+) {
 
     override fun parseInto(declarations: MutableList<PropertyDeclaration>, context: ParserContext, input: Parser): Result<Unit, ParseError> {
-        val result = Rect.parseWith(context, input, LengthOrPercentageOrAuto.Companion::parse)
+        val result = input.parseEntirely { Rect.parseWith(context, input, LengthOrPercentageOrAuto.Companion::parse) }
 
         val sides = when (result) {
             is Ok -> result.value
@@ -59,14 +65,5 @@ object MarginId : ShorthandId() {
         )
 
         return Ok()
-    }
-
-    override val longhands: List<LonghandId> by lazy {
-        listOf(
-            MarginTopId,
-            MarginRightId,
-            MarginBottomId,
-            MarginLeftId
-        )
     }
 }

@@ -18,6 +18,7 @@ import org.fernice.flare.cssparser.newError
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.cssparser.parseNth
 import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.std.map
 
 /**
  * The selector specific error kinds
@@ -615,7 +616,7 @@ private fun parseFunctionalPseudoClass(
                 parseNegation(context, input)
             }
         }
-        else -> parseNonTSFunctionalPseudoClass(input, location, name).map(Component::NonTSPseudoClass)
+        else -> parseNonTSFunctionalPseudoClass(input, location, name).map (Component::NonTSPseudoClass)
     }
 }
 

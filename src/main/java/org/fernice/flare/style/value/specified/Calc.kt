@@ -22,6 +22,8 @@ import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.FontBaseSize
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.computed.PixelLength
+import org.fernice.std.map
+import org.fernice.std.mapErr
 import java.io.Writer
 import kotlin.Number
 import org.fernice.flare.style.value.computed.CalcLengthOrPercentage as ComputedCalcLengthOrPercentage

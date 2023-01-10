@@ -10,56 +10,45 @@ import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.BackgroundSize
 import org.fernice.flare.style.value.toComputedValue
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.BackgroundSize as ComputedBackgroundSize
 
-object BackgroundSizeId : LonghandId() {
+object BackgroundSizeId : AbstractLonghandId<BackgroundSizeDeclaration>(
+    name = "background-size",
+    declarationType = BackgroundSizeDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "background-size"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return input.parseCommaSeparated { BackgroundSize.parse(context, it) }
-            .map(::BackgroundSizeDeclaration)
+    override fun parseValue(context: ParserContext, input: Parser): Result<BackgroundSizeDeclaration, ParseError> {
+        return input.parseCommaSeparated { scopedInput -> BackgroundSize.parse(context, scopedInput) }
+            .map { BackgroundSizeDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BackgroundSizeDeclaration -> {
-                val computed = declaration.size.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: BackgroundSizeDeclaration) {
+        val computed = declaration.size.toComputedValue(context)
 
-                context.builder.setBackgroundSize(computed)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundSize()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundSize()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setBackgroundSize(computed)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBackgroundSize()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBackgroundSize()
     }
 }
 
-class BackgroundSizeDeclaration(val size: List<BackgroundSize>) : PropertyDeclaration() {
-
-    override fun id(): LonghandId {
-        return BackgroundSizeId
-    }
+class BackgroundSizeDeclaration(val size: List<BackgroundSize>) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BackgroundSizeId),
+) {
 
     override fun toCssInternally(writer: Writer) {
         size.toCssJoining(writer, ", ")
@@ -67,6 +56,6 @@ class BackgroundSizeDeclaration(val size: List<BackgroundSize>) : PropertyDeclar
 
     companion object {
 
-        val initialValue: List<ComputedBackgroundSize> by lazy { listOf(ComputedBackgroundSize.auto()) }
+        val InitialValue: List<ComputedBackgroundSize> by lazy { listOf(ComputedBackgroundSize.auto()) }
     }
 }

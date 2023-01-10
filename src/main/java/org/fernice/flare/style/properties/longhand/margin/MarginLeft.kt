@@ -9,58 +9,48 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.LengthOrPercentageOrAuto
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto
 
-object MarginLeftId : LonghandId() {
+object MarginLeftId : AbstractLonghandId<MarginLeftDeclaration>(
+    name = "margin-left",
+    declarationType = MarginLeftDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "margin-left"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return LengthOrPercentageOrAuto.parse(context, input).map { width -> MarginLeftDeclaration(width) }
+    override fun parseValue(context: ParserContext, input: Parser): Result<MarginLeftDeclaration, ParseError> {
+        return LengthOrPercentageOrAuto.parse(context, input).map { MarginLeftDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is MarginLeftDeclaration -> {
-                val length = declaration.length.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: MarginLeftDeclaration) {
+        val length = declaration.length.toComputedValue(context)
 
-                context.builder.setMarginLeft(length)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetMarginLeft()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritMarginLeft()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setMarginLeft(length)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetMarginLeft()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritMarginLeft()
     }
 }
 
-class MarginLeftDeclaration(val length: LengthOrPercentageOrAuto) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return MarginLeftId
-    }
+class MarginLeftDeclaration(val length: LengthOrPercentageOrAuto) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(MarginLeftId),
+) {
 
     override fun toCssInternally(writer: Writer) = length.toCss(writer)
 
     companion object {
 
-        val initialValue: ComputedLengthOrPercentageOrAuto by lazy { ComputedLengthOrPercentageOrAuto.zero() }
+        val InitialValue: ComputedLengthOrPercentageOrAuto by lazy { ComputedLengthOrPercentageOrAuto.zero() }
     }
 }

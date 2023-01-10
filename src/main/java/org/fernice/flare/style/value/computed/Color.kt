@@ -21,12 +21,7 @@ sealed class Color {
     }
 
     companion object {
-
-        private val transparent: Color by lazy { Color.RGBA(RGBAColor(0, 0, 0, 0)) }
-
-        fun transparent(): Color {
-            return transparent
-        }
+        val Transparent: Color  =  RGBA(RGBAColor(0f, 0f, 0f, 0f))
     }
 }
 

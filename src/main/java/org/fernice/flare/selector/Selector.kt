@@ -93,8 +93,8 @@ sealed class Component : ToCss {
             is DefaultNamespace -> hashString(namespace.url)
             is Namespace -> hashString(namespace.url)
             is LocalName -> if (localName == localNameLower) hashString(localName) else null
-            is ID -> if (quirksMode != QuirksMode.QUIRKS) hashString(id) else null
-            is Class -> if (quirksMode != QuirksMode.QUIRKS) hashString(styleClass) else null
+            is ID -> if (quirksMode != QuirksMode.Quirks) hashString(id) else null
+            is Class -> if (quirksMode != QuirksMode.Quirks) hashString(styleClass) else null
             else -> null
         }
     }
@@ -135,10 +135,12 @@ sealed class Component : ToCss {
                 writer.append('#')
                 writer.append(this.id)
             }
+
             is Class -> {
                 writer.append(".")
                 writer.append(this.styleClass)
             }
+
             is LocalName -> writer.append(localName)
             is ExplicitUniversalType -> writer.append('*')
 
@@ -155,6 +157,7 @@ sealed class Component : ToCss {
                 writer.append(this.localName)
                 writer.append(']')
             }
+
             is AttributeInNoNamespace -> {
                 writer.append('[')
                 writer.append(this.localName)
@@ -167,6 +170,7 @@ sealed class Component : ToCss {
                 }
                 writer.append(']')
             }
+
             is AttributeOther -> TODO("Implement toCss(Writer)")
 
             is Negation -> {
@@ -263,7 +267,7 @@ sealed class PseudoElement : ToCss {
 
     companion object {
 
-        fun forEachEagerCascadedPseudoElement(function: (PseudoElement) -> Unit) {
+        inline fun forEachEagerCascadedPseudoElement(function: (PseudoElement) -> Unit) {
             for (pseudoElement in values) {
                 function(pseudoElement)
             }

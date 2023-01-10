@@ -10,56 +10,46 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.FontWeight
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.FontWeight as ComputedFontWeight
 
-object FontWeightId : LonghandId() {
+object FontWeightId : AbstractLonghandId<FontWeightDeclaration>(
+    name = "font-weight",
+    declarationType = FontWeightDeclaration::class,
+    isInherited = true,
+    isEarlyProperty = true,
+) {
 
-    override val name: String = "font-weight"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return FontWeight.parse(context, input).map(::FontWeightDeclaration)
+    override fun parseValue(context: ParserContext, input: Parser): Result<FontWeightDeclaration, ParseError> {
+        return FontWeight.parse(context, input).map { FontWeightDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is FontWeightDeclaration -> {
-                val fontWeight = declaration.fontWeight.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: FontWeightDeclaration) {
+        val fontWeight = declaration.fontWeight.toComputedValue(context)
 
-                context.builder.setFontWeight(fontWeight)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetFontWeight()
-                    }
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritFontWeight()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setFontWeight(fontWeight)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return true
+    override fun resetProperty(context: Context) {
+        context.builder.resetFontWeight()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritFontWeight()
     }
 }
 
-class FontWeightDeclaration(val fontWeight: FontWeight) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return FontWeightId
-    }
+class FontWeightDeclaration(val fontWeight: FontWeight) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(FontWeightId),
+) {
 
     override fun toCssInternally(writer: Writer) {
-
     }
 
     companion object {

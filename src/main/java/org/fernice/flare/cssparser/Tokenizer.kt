@@ -7,8 +7,6 @@ package org.fernice.flare.cssparser
 
 import org.fernice.std.Err
 import org.fernice.std.Ok
-import org.fernice.std.Result
-import org.fernice.std.unwrap
 import org.fernice.std.systemFlag
 import org.fernice.logging.FLogging
 import java.util.Stack
@@ -29,14 +27,14 @@ class Tokenizer private constructor(
     private var state: State,
 ) {
 
+    private var seenVarFunctions = SeenStatus.Ignore
+
     init {
         if (print_token) {
             var iter = state
 
             while (true) {
-                if (iter.token is Err) {
-                    break
-                }
+                iter.token ?: break
 
                 LOG.trace("${iter.token} ${iter.sourceLocation}")
 
@@ -46,6 +44,7 @@ class Tokenizer private constructor(
                         state.next = nextState
                         nextState
                     }
+
                     else -> next
                 }
             }
@@ -55,12 +54,8 @@ class Tokenizer private constructor(
     /**
      * Advances the token stream by one [Token] and returns it. Returns [Err], if the stream is exhausted or an error occurred.
      */
-    fun nextToken(): Result<Token, Unit> {
-        val token = state.token
-
-        if (token is Err) {
-            return token
-        }
+    fun nextToken(): Token? {
+        val token = state.token ?: return null
 
         state = when (val next = state.next) {
             null -> {
@@ -68,7 +63,14 @@ class Tokenizer private constructor(
                 state.next = nextState
                 nextState
             }
+
             else -> next
+        }
+
+        if (seenVarFunctions == SeenStatus.Looking) {
+            if (token is Token.Function && token.name == "var") {
+                seenVarFunctions = SeenStatus.Seen
+            }
         }
 
         return token
@@ -78,13 +80,11 @@ class Tokenizer private constructor(
      * Retrieves the next [Token] without advancing the token stream and returns it. Returns [Err], if the stream is exhausted
      * or an error occurred.
      */
-    fun peekToken(count: Int): Result<Token, Unit> {
+    fun peekToken(count: Int): Token? {
         var state = state
 
-        for (i in 0 until count) {
-            if (state.token is Err) {
-                return state.token
-            }
+        for (i in 1 until count) {
+            state.token ?: return null
 
             state = when (val next = state.next) {
                 null -> {
@@ -92,6 +92,7 @@ class Tokenizer private constructor(
                     state.next = nextState
                     nextState
                 }
+
                 else -> next
             }
         }
@@ -154,6 +155,16 @@ class Tokenizer private constructor(
         return Tokenizer(text, lexer, state)
     }
 
+    fun lookForVarFunctions() {
+        seenVarFunctions = SeenStatus.Looking
+    }
+
+    fun seenVarFunctions(): Boolean {
+        val seenVarFunctions = this.seenVarFunctions
+        this.seenVarFunctions = SeenStatus.Ignore
+        return seenVarFunctions == SeenStatus.Seen
+    }
+
     /**
      * Advances the token stream until a closing [Token] occurs, that matches the specified [BlockType]. Keeps track of any
      * additional nested blocks, to prevent early returns on closing Tokens.
@@ -162,27 +173,20 @@ class Tokenizer private constructor(
         val stack = Stack<BlockType>()
         stack.push(type)
 
-        loop@
         while (true) {
-            val token = when (val token = nextToken()) {
-                is Ok -> token.value
-                is Err -> break@loop
+            val token = nextToken() ?: break
+
+            val opening = BlockType.opening(token)
+            if (opening != null) {
+                stack.push(opening)
+                continue
             }
 
             val closing = BlockType.closing(token)
-
             if (closing != null && stack.peek() == closing) {
                 stack.pop()
 
-                if (stack.isEmpty()) {
-                    return
-                }
-            } else {
-                val opening = BlockType.opening(token)
-
-                if (opening != null) {
-                    stack.push(opening)
-                }
+                if (stack.isEmpty()) return
             }
         }
     }
@@ -191,19 +195,14 @@ class Tokenizer private constructor(
      * Advances the token stream until the next [Token] is one of specified [delimiters] or the end of file is reached.
      */
     fun consumeUntilBefore(delimiters: Int) {
-        loop@
         while (true) {
-            val peekResult = peekToken(0)
+            val peekToken = peekToken(0) ?: break
 
-            if (peekResult is Err || delimiters and Delimiters.from(peekResult.unwrap()).bits != 0) {
-                break
-            }
+            if (delimiters and Delimiters.from(peekToken).bits != 0) break
 
-            val blockType = when (val token = nextToken()) {
-                is Ok -> BlockType.opening(token.value)
-                is Err -> break@loop
-            }
+            val nextToken = nextToken() ?: break
 
+            val blockType = BlockType.opening(nextToken)
             if (blockType != null) {
                 consumeUntilEndOfBlock(blockType)
             }
@@ -238,7 +237,7 @@ class Tokenizer private constructor(
  * Represents a concrete state of a [Tokenizer] bearing the [Token], [SourcePosition] and [SourceLocation] at that very state.
  */
 data class State(
-    val token: Result<Token, Unit>,
+    val token: Token?,
     val sourcePosition: SourcePosition,
     val sourceLocation: SourceLocation,
 ) {

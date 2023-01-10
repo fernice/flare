@@ -10,9 +10,9 @@ import org.fernice.flare.selector.NonTSPseudoClass
 import org.fernice.flare.selector.PseudoElement
 import org.fernice.flare.style.ComputedValues
 import org.fernice.flare.style.PerPseudoElementMap
-import org.fernice.flare.style.ResolvedElementStyles
+import org.fernice.flare.style.StyleRoot
 import org.fernice.flare.style.context.StyleContext
-import org.fernice.flare.style.properties.PropertyDeclarationBlock
+import org.fernice.flare.style.source.StyleAttribute
 
 interface Element {
 
@@ -24,7 +24,9 @@ interface Element {
     fun hasID(id: String): Boolean
     fun hasClass(styleClass: String): Boolean
 
+    fun hasPseudoElement(pseudoElement: PseudoElement): Boolean
     fun matchPseudoElement(pseudoElement: PseudoElement): Boolean
+
     fun matchNonTSPseudoClass(pseudoClass: NonTSPseudoClass): Boolean
 
     fun isRoot(): Boolean
@@ -43,46 +45,14 @@ interface Element {
     val nextSibling: Element?
     val children: List<Element>
 
-    val styleAttribute: PropertyDeclarationBlock?
     val pseudoElement: PseudoElement?
 
-    fun getData(): ElementData
+    val styleAttribute: StyleAttribute?
+    val styleRoot: StyleRoot?
 
-    fun getDataOrNull(): ElementData?
+    val styles: ElementStyles?
 
-    fun clearData()
-
-    fun finishRestyle(context: StyleContext, data: ElementData, elementStyles: ResolvedElementStyles)
+    fun finishRestyle(context: StyleContext, previousStyles: ElementStyles?, styles: ElementStyles)
 }
 
-class ElementData(var styles: ElementStyles) {
-
-    fun setStyles(resolvedStyles: ResolvedElementStyles): ElementStyles {
-        val oldStyles = styles
-
-        styles = resolvedStyles.toElementStyles()
-
-        return oldStyles
-    }
-
-    fun hasStyles(): Boolean {
-        return styles.primary != null
-    }
-}
-
-class ElementStyles(val primary: ComputedValues?, val pseudos: PerPseudoElementMap<ComputedValues>) {
-
-    /**
-     * Returns the primary style, panics if unavailable.
-     */
-    fun primary(): ComputedValues {
-        return primary ?: error("expected primary styles to be present")
-    }
-}
-
-fun ResolvedElementStyles.toElementStyles(): ElementStyles {
-    return ElementStyles(
-        this.primary.style(),
-        this.pseudos
-    )
-}
+data class ElementStyles(val primary: ComputedValues, val pseudos: PerPseudoElementMap<ComputedValues>)

@@ -15,6 +15,7 @@ import org.fernice.flare.style.properties.longhand.background.BackgroundImageId
 import org.fernice.flare.style.properties.longhand.background.BackgroundOriginId
 import org.fernice.flare.style.properties.longhand.background.BackgroundPositionXId
 import org.fernice.flare.style.properties.longhand.background.BackgroundPositionYId
+import org.fernice.flare.style.properties.longhand.background.BackgroundRepeatId
 import org.fernice.flare.style.properties.longhand.background.BackgroundSizeId
 import org.fernice.flare.style.properties.shorthand.background.BackgroundId
 
@@ -30,6 +31,7 @@ class BackgroundPropertyContainerContributor : PropertyContainerContributor {
             BackgroundPositionYId,
             BackgroundSizeId,
 
+            BackgroundRepeatId,
             BackgroundAttachmentId,
             BackgroundClipId,
             BackgroundOriginId

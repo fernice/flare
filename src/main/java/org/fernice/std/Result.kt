@@ -33,18 +33,6 @@ sealed class Result<out T, out E> {
     abstract fun expect(message: String): T
 
     /**
-     * Maps the value of this Result using the specified [mapper] function and returns a Result
-     * containing it. If the Result is [Err], the result of this function will also be [Err].
-     */
-    abstract fun <U> map(mapper: (T) -> U): Result<U, E>
-
-    /**
-     * Maps the error of this Result using the specified [mapper] function and returns a Result
-     * containing it. If the Result is [Ok], the result of this function will also be [Ok].
-     */
-    abstract fun <F> mapErr(mapper: (E) -> F): Result<T, F>
-
-    /**
      * Turns the Result into a nullable value under the premise that [Ok] is expected. If the Result
      * is [Err], the function will return [None] instead.
      */
@@ -72,16 +60,8 @@ sealed class Result<out T, out E> {
  */
 data class Ok<out T>(val value: T) : Result<T, Nothing>() {
 
-    override fun <U> map(mapper: (T) -> U): Result<U, Nothing> {
-        return Ok(mapper(value))
-    }
-
     override fun expect(message: String): T {
         return value
-    }
-
-    override fun <F> mapErr(mapper: (Nothing) -> F): Result<T, F> {
-        return Ok(value)
     }
 
     override fun ok(): T {
@@ -110,14 +90,6 @@ data class Err<out E>(val value: E) : Result<Nothing, E>() {
         throw IllegalStateException("result is err")
     }
 
-    override fun <U> map(mapper: (Nothing) -> U): Result<U, E> {
-        return Err(value)
-    }
-
-    override fun <F> mapErr(mapper: (E) -> F): Result<Nothing, F> {
-        return Err(mapper(value))
-    }
-
     override fun ok(): Nothing? {
         return null
     }
@@ -135,10 +107,48 @@ data class Err<out E>(val value: E) : Result<Nothing, E>() {
     }
 }
 
+/**
+ * Maps the value of this Result using the specified [mapper] function and returns a Result
+ * containing it. If the Result is [Err], the result of this function will also be [Err].
+ */
+inline fun <T, R, E> Result<T, E>.map(mapper: (T) -> R): Result<R, E> = when (this) {
+    is Ok -> Ok(mapper(value))
+    is Err -> this
+}
+
+/**
+ * Maps the error of this Result using the specified [mapper] function and returns a Result
+ * containing it. If the Result is [Ok], the result of this function will also be [Ok].
+ */
+inline fun <T, E, F> Result<T, E>.mapErr(mapper: (E) -> F): Result<T, F> = when (this) {
+    is Ok -> this
+    is Err -> Err(mapper(value))
+}
+
 fun <T, E> Result<T, E>.unwrap(): T {
     return when (this) {
         is Ok -> this.value
         is Err -> error("result was err: $value")
+    }
+}
+
+inline fun <T, E> Result<T, E>.unwrap(block: (Err<E>) -> Nothing): T = when (this) {
+    is Ok -> value
+    is Err -> block(this)
+}
+
+fun <T, E> Result<T, E>.unwrapOr(alternative: T): T {
+    return when (this) {
+        is Ok -> this.value
+        is Err -> alternative
+    }
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun <T, E> Result<T, E>.unwrapOrNull(): T? {
+    return when (this) {
+        is Ok -> this.value
+        is Err -> null
     }
 }
 
@@ -149,6 +159,11 @@ inline fun <T, E> Result<T, E>.unwrapOrElse(closure: (E) -> T): T {
     }
 }
 
+inline fun <T, E> Result<T, E>.unwrapErr(block: (Ok<T>) -> Nothing): E = when (this) {
+    is Ok -> block(this)
+    is Err -> value
+}
+
 fun <T, E> Result<T, E>.unwrapErr(): E {
     return when (this) {
         is Ok -> error("result was ok: $value")
@@ -156,9 +171,30 @@ fun <T, E> Result<T, E>.unwrapErr(): E {
     }
 }
 
-fun <T, E> Result<T, E>.unwrapOr(alternative: T): T {
+fun <T, E> Result<T, E>.unwrapErrOr(alternative: E): E {
     return when (this) {
-        is Ok -> this.value
-        is Err -> alternative
+        is Ok -> alternative
+        is Err -> this.value
     }
 }
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun <T, E> Result<T, E>.unwrapErrOrNull(): E? {
+    return when (this) {
+        is Ok -> null
+        is Err -> this.value
+    }
+}
+
+inline fun <T, E> Result<T, E>.unwrapErrOrElse(closure: (T) -> E): E {
+    return when (this) {
+        is Ok -> closure(this.value)
+        is Err -> this.value
+    }
+}
+
+inline fun <T, E, F> Result<T, E>.orElse(block: (E) -> Result<T, F>): Result<T, F> {
+    if (this is Err) return block(this.value)
+    return this as Ok
+}
+

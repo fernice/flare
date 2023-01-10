@@ -9,55 +9,45 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
-import org.fernice.flare.style.value.computed.Style
+import org.fernice.flare.style.value.computed.BorderStyle
+import org.fernice.std.map
 import java.io.Writer
 
-object BorderRightStyleId : LonghandId() {
+object BorderRightStyleId : AbstractLonghandId<BorderRightStyleDeclaration>(
+    name = "border-right-style",
+    declarationType = BorderRightStyleDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "border-right-style"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return Style.parse(input).map { style -> BorderRightStyleDeclaration(style) }
+    override fun parseValue(context: ParserContext, input: Parser): Result<BorderRightStyleDeclaration, ParseError> {
+        return BorderStyle.parse(input).map { BorderRightStyleDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BorderRightStyleDeclaration -> {
-                context.builder.setBorderRightStyle(declaration.style)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBorderRightStyle()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBorderRightStyle()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+    override fun cascadeProperty(context: Context, declaration: BorderRightStyleDeclaration) {
+        context.builder.setBorderRightStyle(declaration.style)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBorderRightStyle()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBorderRightStyle()
     }
 }
 
-class BorderRightStyleDeclaration(val style: Style) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return BorderRightStyleId
-    }
+class BorderRightStyleDeclaration(val style: BorderStyle) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BorderRightStyleId),
+) {
 
     override fun toCssInternally(writer: Writer) = style.toCss(writer)
 
     companion object {
 
-        val initialValue: Style by lazy { Style.None }
+        val InitialValue: BorderStyle by lazy { BorderStyle.None }
     }
 }

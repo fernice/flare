@@ -9,62 +9,48 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.NonNegativeLengthOrPercentage
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage
 
-object PaddingRightId : LonghandId() {
+object PaddingRightId : AbstractLonghandId<PaddingRightDeclaration>(
+    name = "padding-right",
+    declarationType = PaddingRightDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "padding-right"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return NonNegativeLengthOrPercentage.parse(context, input).map { width ->
-            PaddingRightDeclaration(
-                width
-            )
-        }
+    override fun parseValue(context: ParserContext, input: Parser): Result<PaddingRightDeclaration, ParseError> {
+        return NonNegativeLengthOrPercentage.parse(context, input).map { PaddingRightDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is PaddingRightDeclaration -> {
-                val length = declaration.length.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: PaddingRightDeclaration) {
+        val length = declaration.length.toComputedValue(context)
 
-                context.builder.setPaddingRight(length)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetPaddingRight()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritPaddingRight()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setPaddingRight(length)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetPaddingRight()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritPaddingRight()
     }
 }
 
-class PaddingRightDeclaration(val length: NonNegativeLengthOrPercentage) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return PaddingRightId
-    }
+class PaddingRightDeclaration(val length: NonNegativeLengthOrPercentage) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(PaddingRightId),
+) {
 
     override fun toCssInternally(writer: Writer) = length.toCss(writer)
 
     companion object {
 
-        val initialValue: ComputedNonNegativeLengthOrPercentage by lazy { ComputedNonNegativeLengthOrPercentage.zero() }
+        val InitialValue: ComputedNonNegativeLengthOrPercentage by lazy { ComputedNonNegativeLengthOrPercentage.zero() }
     }
 }

@@ -11,61 +11,51 @@ import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.toCssJoining
 import org.fernice.flare.style.parser.AllowQuirks
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.specified.HorizontalPosition
 import org.fernice.flare.style.value.specified.X
 import org.fernice.flare.style.value.toComputedValue
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.HorizontalPosition as ComputedHorizontalPosition
 
-object BackgroundPositionXId : LonghandId() {
+object BackgroundPositionXId : AbstractLonghandId<BackgroundPositionXDeclaration>(
+    name = "background-position-x",
+    declarationType = BackgroundPositionXDeclaration::class,
+    isInherited = false,
+) {
 
-    override val name: String = "background-position-x"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
+    override fun parseValue(context: ParserContext, input: Parser): Result<BackgroundPositionXDeclaration, ParseError> {
         return input.parseCommaSeparated { HorizontalPosition.parseQuirky(context, it, AllowQuirks.Yes, X.Companion) }
-            .map(::BackgroundPositionXDeclaration)
+            .map { BackgroundPositionXDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is BackgroundPositionXDeclaration -> {
-                val computed = declaration.position.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: BackgroundPositionXDeclaration) {
+        val computed = declaration.position.toComputedValue(context)
 
-                context.builder.setBackgroundPositionX(computed)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetBackgroundPositionX()
-                    }
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritBackgroundPositionX()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setBackgroundPositionX(computed)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return false
+    override fun resetProperty(context: Context) {
+        context.builder.resetBackgroundPositionX()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritBackgroundPositionX()
     }
 }
 
-class BackgroundPositionXDeclaration(val position: List<HorizontalPosition>) : PropertyDeclaration() {
-    override fun id(): LonghandId {
-        return BackgroundPositionXId
-    }
+class BackgroundPositionXDeclaration(val position: List<HorizontalPosition>) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(BackgroundPositionXId),
+) {
 
     override fun toCssInternally(writer: Writer) = position.toCssJoining(writer, ", ")
 
     companion object {
 
-        val initialValue: List<ComputedHorizontalPosition> by lazy { listOf(ComputedHorizontalPosition.zero()) }
+        val InitialValue: List<ComputedHorizontalPosition> by lazy { listOf(ComputedHorizontalPosition.zero()) }
     }
 }

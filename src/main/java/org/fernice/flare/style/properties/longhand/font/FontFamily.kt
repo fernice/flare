@@ -9,62 +9,52 @@ import org.fernice.std.Result
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.CssWideKeyword
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
+import org.fernice.flare.style.properties.PropertyDeclarationId
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.computed.FontFamilyList
 import org.fernice.flare.style.value.computed.SingleFontFamily
 import org.fernice.flare.style.value.specified.FontFamily
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.style.value.computed.FontFamily as ComputedFontFamily
 
-object FontFamilyId : LonghandId() {
+object FontFamilyId : AbstractLonghandId<FontFamilyDeclaration>(
+    name = "font-family",
+    declarationType = FontFamilyDeclaration::class,
+    isInherited = true,
+    isEarlyProperty = true,
+) {
 
-    override val name: String = "font-family"
-
-    override fun parseValue(context: ParserContext, input: Parser): Result<PropertyDeclaration, ParseError> {
-        return FontFamily.parse(input).map(::FontFamilyDeclaration)
+    override fun parseValue(context: ParserContext, input: Parser): Result<FontFamilyDeclaration, ParseError> {
+        return FontFamily.parse(input).map { FontFamilyDeclaration(it) }
     }
 
-    override fun cascadeProperty(declaration: PropertyDeclaration, context: Context) {
-        when (declaration) {
-            is FontFamilyDeclaration -> {
-                val fontFamily = declaration.fontFamily.toComputedValue(context)
+    override fun cascadeProperty(context: Context, declaration: FontFamilyDeclaration) {
+        val fontFamily = declaration.fontFamily.toComputedValue(context)
 
-                context.builder.setFontFamily(fontFamily)
-            }
-            is PropertyDeclaration.CssWideKeyword -> {
-                when (declaration.keyword) {
-                    CssWideKeyword.Initial -> {
-                        context.builder.resetFontFamily()
-                    }
-                    CssWideKeyword.Unset,
-                    CssWideKeyword.Inherit -> {
-                        context.builder.inheritFontFamily()
-                    }
-                }
-            }
-            else -> throw IllegalStateException("wrong cascade")
-        }
+        context.builder.setFontFamily(fontFamily)
     }
 
-    override fun isEarlyProperty(): Boolean {
-        return true
+    override fun resetProperty(context: Context) {
+        context.builder.resetFontFamily()
+    }
+
+    override fun inheritProperty(context: Context) {
+        context.builder.inheritFontFamily()
     }
 }
 
-class FontFamilyDeclaration(val fontFamily: FontFamily) : PropertyDeclaration() {
-
-    override fun id(): LonghandId {
-        return FontFamilyId
-    }
+class FontFamilyDeclaration(val fontFamily: FontFamily) : PropertyDeclaration(
+    id = PropertyDeclarationId.Longhand(FontFamilyId),
+) {
 
     override fun toCssInternally(writer: Writer) = fontFamily.toCss(writer)
 
     companion object {
 
-        val initialValue: ComputedFontFamily by lazy {
+        val InitialValue: ComputedFontFamily by lazy {
             ComputedFontFamily(
                 FontFamilyList(
                     listOf(

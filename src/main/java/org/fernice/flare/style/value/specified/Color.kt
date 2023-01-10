@@ -15,6 +15,7 @@ import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.style.parser.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
+import org.fernice.std.map
 import java.io.Writer
 import org.fernice.flare.cssparser.Color as ParserColor
 import org.fernice.flare.style.value.computed.Color as ComputedColor
@@ -41,6 +42,7 @@ sealed class Color : SpecifiedValue<ComputedColor>, ToCss {
                     rgba.toCss(writer)
                 }
             }
+
             is CurrentColor -> writer.append("currentcolor")
         }
     }
@@ -63,23 +65,17 @@ sealed class Color : SpecifiedValue<ComputedColor>, ToCss {
             }
         }
 
-        private val transparent: Color by lazy {
-            RGBA(
-                RGBA(0, 0, 0, 0),
-                "transparent"
-            )
-        }
-
-        fun transparent(): Color {
-            return transparent
-        }
+        val Transparent: Color = RGBA(
+            RGBA(0f, 0f, 0f, 0f),
+            "transparent"
+        )
     }
 }
 
 data class RGBAColor(val color: Color) : SpecifiedValue<RGBA>, ToCss {
     companion object {
         fun parse(context: ParserContext, input: Parser): Result<RGBAColor, ParseError> {
-            return Color.parse(context, input).map(::RGBAColor)
+            return Color.parse(context, input).map { RGBAColor(it) }
         }
     }
 

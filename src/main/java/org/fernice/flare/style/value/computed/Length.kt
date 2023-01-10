@@ -57,11 +57,11 @@ value class PixelLength(val value: Float) : ComputedValue {
 
 typealias Length = PixelLength
 
-fun PixelLength.into(): Au {
+fun PixelLength.toAu(): Au {
     return Au.fromPx(this.value)
 }
 
-fun Au.into(): PixelLength {
+fun Au.toAu(): PixelLength {
     return PixelLength(this.toPx())
 }
 
@@ -95,15 +95,15 @@ data class NonNegativeLength(val length: PixelLength) : ComputedValue {
     }
 }
 
-fun NonNegativeLength.into(): Au {
-    return this.length.into()
+fun NonNegativeLength.toAu(): Au {
+    return this.length.toAu()
 }
 
-fun Au.intoNonNegative(): NonNegativeLength {
-    return NonNegativeLength(this.into())
+fun Au.toNonNegative(): NonNegativeLength {
+    return NonNegativeLength(this.toAu())
 }
 
-fun PixelLength.intoNonNegative(): NonNegativeLength {
+fun PixelLength.toNonNegative(): NonNegativeLength {
     return NonNegativeLength(this)
 }
 
@@ -113,7 +113,8 @@ private const val AU_PER_PX = 60
  * Int-based unit primarily used for layouting. An AU is 1/60 of a pixel, removing the inaccuracy of floating-point
  * conversions.
  */
-inline class Au(val value: Int) {
+@JvmInline
+value class Au(val value: Int) {
 
     fun toPx(): Float {
         return value / AU_PER_PX.toFloat()
@@ -228,7 +229,7 @@ sealed class LengthOrPercentage : ComputedValue {
                 length
             }
             is LengthOrPercentage.Percentage -> {
-                containingLength.scaleBy(percentage.value).into()
+                containingLength.scaleBy(percentage.value).toAu()
             }
             is LengthOrPercentage.Calc -> {
                 calc.toPixelLength(containingLength) ?: error("calculation should have resulted in length")
@@ -277,7 +278,7 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
                 length
             }
             is LengthOrPercentageOrAuto.Percentage -> {
-                containingLength.scaleBy(percentage.value).into()
+                containingLength.scaleBy(percentage.value).toAu()
             }
             is LengthOrPercentageOrAuto.Calc -> {
                 calc.toPixelLength(containingLength) ?: error("calculation should have resulted in length")
@@ -294,13 +295,13 @@ sealed class LengthOrPercentageOrAuto : ComputedValue {
                 length
             }
             is LengthOrPercentageOrAuto.Percentage -> {
-                containingLength.scaleBy(percentage.value).into()
+                containingLength.scaleBy(percentage.value).toAu()
             }
             is LengthOrPercentageOrAuto.Calc -> {
                 calc.toPixelLength(containingLength) ?: error("calculation should have resulted in length")
             }
             is LengthOrPercentageOrAuto.Auto -> {
-                referenceLength.into()
+                referenceLength.toAu()
             }
         }
     }

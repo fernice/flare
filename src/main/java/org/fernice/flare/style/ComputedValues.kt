@@ -5,12 +5,15 @@
  */
 package org.fernice.flare.style
 
+import org.fernice.flare.style.properties.CustomPropertiesList
+import org.fernice.flare.style.properties.PropertiesList
 import org.fernice.flare.style.properties.stylestruct.Background
 import org.fernice.flare.style.properties.stylestruct.Border
 import org.fernice.flare.style.properties.stylestruct.Color
 import org.fernice.flare.style.properties.stylestruct.Font
 import org.fernice.flare.style.properties.stylestruct.Margin
 import org.fernice.flare.style.properties.stylestruct.Padding
+import org.fernice.flare.style.ruletree.RuleNode
 
 data class ComputedValues(
     val font: Font,
@@ -18,19 +21,25 @@ data class ComputedValues(
     val background: Background,
     val border: Border,
     val margin: Margin,
-    val padding: Padding
+    val padding: Padding,
+    val customProperties: CustomPropertiesList?,
+    val properties: PropertiesList?,
+    internal val ruleNode: RuleNode?,
 ) {
 
     companion object {
 
-        val initial: ComputedValues by lazy {
+        val Initial: ComputedValues by lazy {
             ComputedValues(
-                Font.initial,
-                Color.Initial,
-                Background.Initial,
-                Border.initial,
-                Margin.initial,
-                Padding.initial
+                font = Font.Initial,
+                color = Color.Initial,
+                background = Background.Initial,
+                border = Border.initial,
+                margin = Margin.initial,
+                padding = Padding.initial,
+                customProperties = null,
+                properties = null,
+                ruleNode = null,
             )
         }
     }
