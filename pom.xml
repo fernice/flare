@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.fernice</groupId>
         <artifactId>fernice-maven</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.2.0</version>
     </parent>
     <artifactId>fernice-flare</artifactId>
     <version>1.2.0-SNAPSHOT</version>
