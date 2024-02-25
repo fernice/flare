@@ -6,6 +6,11 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.debugAssert
+import org.fernice.std.resized
+import kotlin.experimental.and
+import kotlin.experimental.inv
+import kotlin.experimental.or
+import kotlin.math.max
 
 class SelectorBuilder {
 
@@ -33,14 +38,10 @@ class SelectorBuilder {
         return combinators.isNotEmpty() && currentLength == 0
     }
 
-    fun build(hasPseudoElement: Boolean): Selector {
-        val specificity = if (hasPseudoElement) {
-            specificity(simpleSelectors.iterator()) or PSEUDO_ELEMENT_BIT
-        } else {
-            specificity(simpleSelectors.iterator()) and PSEUDO_ELEMENT_BIT.inv()
-        }
+    fun build(): Selector {
+        val specificity = specificityAndFlags(simpleSelectors)
 
-        return buildWithSpecificityAndFlags(SpecificityAndFlags(specificity))
+        return buildWithSpecificityAndFlags(specificity)
     }
 
     fun buildWithSpecificityAndFlags(specificityAndFlags: SpecificityAndFlags): Selector {
@@ -51,11 +52,10 @@ class SelectorBuilder {
         var upper = simpleSelectors.size
         var lower = upper - currentLength
 
-        loop@
         do {
             selector.addAll(simpleSelectors.subList(lower, upper))
 
-            if (!combinatorIter.hasNext()) break@loop
+            if (!combinatorIter.hasNext()) break
 
             val (combinator, length) = combinatorIter.next()
 
@@ -65,91 +65,222 @@ class SelectorBuilder {
             selector.add(Component.Combinator(combinator))
         } while (true)
 
-        return Selector(specificityAndFlags, selector)
+        return Selector(specificityAndFlags, selector.resized())
     }
-}
-
-private class Specificity {
-
-    var idSelectors = 0
-    var classSelectors = 0
-    var elementSelectors = 0
 }
 
 private const val MAX_10_BIT = (1 shl 10) - 1
 
-private fun Specificity.into(): Int {
-    return (this.idSelectors.coerceAtMost(MAX_10_BIT) shl 20) or
-            (this.classSelectors.coerceAtMost(MAX_10_BIT) shl 10) or
-            (this.elementSelectors.coerceAtMost(MAX_10_BIT))
+private class Specificity(
+    var idSelectors: Int,
+    var classLikeSelectors: Int,
+    var elementSelectors: Int,
+) {
+
+    operator fun plusAssign(specificity: Specificity) {
+        idSelectors += specificity.idSelectors
+        classLikeSelectors += specificity.classLikeSelectors
+        elementSelectors += specificity.elementSelectors
+    }
+
+    fun toInt(): Int {
+        return (this.idSelectors.coerceAtMost(MAX_10_BIT) shl 20) or
+                (this.classLikeSelectors.coerceAtMost(MAX_10_BIT) shl 10) or
+                (this.elementSelectors.coerceAtMost(MAX_10_BIT))
+    }
+
+    companion object {
+        fun default(): Specificity {
+            return Specificity(
+                idSelectors = 0,
+                classLikeSelectors = 0,
+                elementSelectors = 0,
+            )
+        }
+
+        fun fromInt(value: Int): Specificity {
+            return Specificity(
+                idSelectors = (value shr 20) and MAX_10_BIT,
+                classLikeSelectors = (value shr 10) and MAX_10_BIT,
+                elementSelectors = value and MAX_10_BIT,
+            )
+        }
+    }
 }
 
-private fun specificity(iterator: Iterator<Component>): Int {
-    fun simpleSelectorSpecificity(simpleSelector: Component, specificity: Specificity) {
-        when (simpleSelector) {
-            is Component.Combinator -> throw IllegalStateException("unreachable")
+class Flags(
+    private var value: Byte,
+) {
 
-            is Component.LocalName,
-            is Component.PseudoElement,
-            -> {
+    fun add(flags: Byte) {
+        value = value or flags
+    }
+
+    fun remove(flags: Byte) {
+        value = value and flags.inv()
+    }
+
+    fun intersects(flags: Byte): Boolean {
+        return (value and flags) != 0.toByte()
+    }
+
+    fun toByte(): Byte = value
+
+    companion object {
+        const val HAS_PSEUDO_ELEMENT = (1 shl 0).toByte()
+        const val HAS_SLOTTED = (1 shl 1).toByte()
+        const val HAS_PART = (1 shl 2).toByte()
+        const val HAS_PARENT = (1 shl 3).toByte()
+
+        fun default(): Flags = Flags(0)
+
+        fun fromByte(value: Byte): Flags = Flags(value)
+    }
+}
+
+private fun specificityAndFlags(iterable: Iterable<Component>): SpecificityAndFlags {
+    return complexSelectorSpecificityAndFlags(iterable)
+}
+
+private fun selectorListSpecificityAndFlags(iterable: Iterable<Selector>): SpecificityAndFlags {
+    var specificity = 0
+    val flags = Flags.default()
+    for (selector in iterable) {
+        specificity = max(selector.specificity, specificity)
+        if (selector.hasParent) {
+            flags.add(Flags.HAS_PARENT)
+        }
+    }
+    return SpecificityAndFlags(specificity, flags.toByte())
+}
+
+private fun relativeSelectorListSpecificityAndFlags(iterable: Iterable<RelativeSelector>): SpecificityAndFlags {
+    return selectorListSpecificityAndFlags(iterable.map { it.selector })
+}
+
+private fun complexSelectorSpecificityAndFlags(iterable: Iterable<Component>): SpecificityAndFlags {
+    fun simpleSelectorSpecificity(simpleSelector: Component, specificity: Specificity, flags: Flags) {
+        when (simpleSelector) {
+            is Component.Combinator -> error("unreachable")
+            is Component.ParentSelector -> flags.add(Flags.HAS_PARENT)
+            is Component.Part -> {
+                flags.add(Flags.HAS_PART)
                 specificity.elementSelectors += 1
             }
 
-            is Component.ID -> {
-                specificity.idSelectors += 1
+            is Component.PseudoElement -> {
+                flags.add(Flags.HAS_PSEUDO_ELEMENT)
+                specificity.elementSelectors += 1
             }
+
+            is Component.LocalName -> specificity.elementSelectors += 1
+            is Component.Slotted -> {
+                flags.add(Flags.HAS_SLOTTED)
+                specificity.elementSelectors += 1
+
+                specificity += Specificity.fromInt(simpleSelector.selector.specificity)
+                if (simpleSelector.selector.hasParent) {
+                    flags.add(Flags.HAS_PARENT)
+                }
+            }
+
+            is Component.Host -> {
+                specificity.classLikeSelectors += 1
+
+                if (simpleSelector.selector != null) {
+                    specificity += Specificity.fromInt(simpleSelector.selector.specificity)
+                    if (simpleSelector.selector.hasParent) {
+                        flags.add(Flags.HAS_PARENT)
+                    }
+                }
+            }
+
+            is Component.ID -> specificity.idSelectors += 1
 
             is Component.Class,
             is Component.AttributeInNoNamespace,
             is Component.AttributeInNoNamespaceExists,
             is Component.AttributeOther,
-            is Component.FirstChild,
-            is Component.LastChild,
-            is Component.OnlyChild,
             is Component.Root,
             is Component.Empty,
             is Component.Scope,
-            is Component.Host,
-            is Component.NthChild,
-            is Component.NthLastChild,
-            is Component.NthOfType,
-            is Component.NthLastOfType,
-            is Component.FirstOfType,
-            is Component.LastOfType,
-            is Component.OnlyOfType,
+            is Component.Nth,
             is Component.NonTSPseudoClass,
+            is Component.NonTSFPseudoClass,
             -> {
-                specificity.classSelectors += 1
+                specificity.classLikeSelectors += 1
+            }
+
+            is Component.NthOfType -> {
+                specificity.classLikeSelectors += 1
+
+                val specificityAndFlags = selectorListSpecificityAndFlags(simpleSelector.selectors)
+                specificity += Specificity.fromInt(specificity.toInt())
+                flags.add(specificityAndFlags.flags)
+            }
+
+            is Component.Is -> {
+                val specificityAndFlags = selectorListSpecificityAndFlags(simpleSelector.selectors)
+                specificity += Specificity.fromInt(specificity.toInt())
+                flags.add(specificityAndFlags.flags)
+            }
+
+            is Component.Where -> {
+                val specificityAndFlags = selectorListSpecificityAndFlags(simpleSelector.selectors)
+                // where does not contribute the specificity of its selectors
+                flags.add(specificityAndFlags.flags)
             }
 
             is Component.Negation -> {
-                for (selector in simpleSelector.simpleSelector) {
-                    simpleSelectorSpecificity(selector, specificity)
-                }
+                val specificityAndFlags = selectorListSpecificityAndFlags(simpleSelector.selectors)
+                specificity += Specificity.fromInt(specificity.toInt())
+                flags.add(specificityAndFlags.flags)
             }
 
-            else -> {
+            is Component.Has -> {
+                val specificityAndFlags = relativeSelectorListSpecificityAndFlags(simpleSelector.selectors)
+                specificity += Specificity.fromInt(specificity.toInt())
+                flags.add(specificityAndFlags.flags)
+            }
+
+            is Component.ExplicitAnyNamespace,
+            is Component.ExplicitNoNamespace,
+            is Component.ExplicitUniversalType,
+            is Component.DefaultNamespace,
+            is Component.Namespace,
+            is Component.RelativeSelectorAnchor,
+            -> {
+                // do not contribute to specificity
             }
         }
     }
 
-    val specificity = Specificity()
-    for (simpleSelector in iterator) {
-        simpleSelectorSpecificity(simpleSelector, specificity)
+    val specificity = Specificity.default()
+    val flags = Flags.default()
+    for (simpleSelector in iterable) {
+        simpleSelectorSpecificity(simpleSelector, specificity, flags)
     }
-    return specificity.into()
+    return SpecificityAndFlags(specificity.toInt(), flags.toByte())
 }
 
+class SpecificityAndFlags(
+    val specificity: Int,
+    val flags: Byte,
+) {
 
-private const val PSEUDO_ELEMENT_BIT = 1 shl 31
-
-class SpecificityAndFlags(private val bits: Int) {
-
-    fun specificity(): Int {
-        return bits and PSEUDO_ELEMENT_BIT.inv()
+    private fun hasFlags(value: Byte): Boolean {
+        return (flags and value) != 0.toByte()
     }
 
-    fun hasPseudoElement(): Boolean {
-        return (bits and PSEUDO_ELEMENT_BIT) != 0
-    }
+    val hasPseudoElement: Boolean
+        get() = hasFlags(Flags.HAS_PSEUDO_ELEMENT)
+
+    val hasSlotted: Boolean
+        get() = hasFlags(Flags.HAS_SLOTTED)
+
+    val hasPart: Boolean
+        get() = hasFlags(Flags.HAS_PART)
+
+    val hasParent: Boolean
+        get() = hasFlags(Flags.HAS_PARENT)
 }

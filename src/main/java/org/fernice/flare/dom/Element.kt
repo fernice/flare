@@ -6,6 +6,7 @@
 package org.fernice.flare.dom
 
 import org.fernice.flare.selector.NamespaceUrl
+import org.fernice.flare.selector.NonTSFPseudoClass
 import org.fernice.flare.selector.NonTSPseudoClass
 import org.fernice.flare.selector.PseudoElement
 import org.fernice.flare.style.ComputedValues
@@ -28,9 +29,12 @@ interface Element {
     fun matchPseudoElement(pseudoElement: PseudoElement): Boolean
 
     fun matchNonTSPseudoClass(pseudoClass: NonTSPseudoClass): Boolean
+    fun matchNonTSFPseudoClass(pseudoClass: NonTSFPseudoClass): Boolean
 
     fun isRoot(): Boolean
     fun isEmpty(): Boolean
+
+    fun isLink(): Boolean
 
     /**
      * Returns the owner of this element. This is the case for pseudos elements.
@@ -43,6 +47,8 @@ interface Element {
 
     val previousSibling: Element?
     val nextSibling: Element?
+    val firstChild: Element?
+    val lastChild: Element?
     val children: List<Element>
 
     val pseudoElement: PseudoElement?

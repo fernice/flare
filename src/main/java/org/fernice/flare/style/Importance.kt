@@ -5,22 +5,16 @@
  */
 package org.fernice.flare.style
 
-import org.fernice.std.Ordinal
-import org.fernice.std.OrdinalUniverse
-import org.fernice.std.PerOrdinal
+import org.fernice.std.PerEnumLazy
 
-enum class Importance : Ordinal {
+enum class Importance {
 
     Normal,
 
     Important;
 
-    companion object {
-        val values = OrdinalUniverse(*values())
-    }
 }
 
-typealias PerImportance<E> = PerOrdinal<Importance, E>
+typealias PerImportance<E> = PerEnumLazy<Importance, E>
 
-fun <E : Any> PerImportance(): PerImportance<E> = PerOrdinal(Importance.values)
-fun <E : Any> PerImportance(initializer: (Importance) -> E): PerImportance<E> = PerOrdinal(Importance.values, initializer)
+fun <E : Any> PerImportance(initializer: (Importance) -> E): PerImportance<E> = PerEnumLazy(initializer)

@@ -51,7 +51,7 @@ class StyleRoot(val quirksMode: QuirksMode) {
 
     fun rebuild() {
         lock.writeLock().withLock {
-            for (origin in Origin.values) {
+            for (origin in Origin.entries) {
                 val collection = stylesheets.get(origin)
 
                 cascadeData.get(origin).rebuild(collection, quirksMode)
@@ -95,7 +95,7 @@ class CascadeData {
                     val styleRule = stylesheetRule.styleRule
 
                     for (selector in styleRule.selectors) {
-                        val pseudoElement = selector.pseudoElement()
+                        val pseudoElement = selector.pseudoElement
 
                         val rule = Rule(
                             selector,

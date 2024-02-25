@@ -9,6 +9,7 @@ import org.fernice.flare.dom.Element
 import org.fernice.flare.dom.ElementStyles
 import org.fernice.flare.selector.MatchingContext
 import org.fernice.flare.selector.PseudoElement
+import org.fernice.flare.selector.VisitedHandlingMode
 import org.fernice.flare.style.context.StyleContext
 import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.flare.style.ruletree.RuleNode
@@ -41,7 +42,7 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
 
         val pseudoElements = PerPseudoElementMap<ComputedValues>()
 
-        PseudoElement.forEachEagerCascadedPseudoElement { pseudoElement ->
+        for (pseudoElement in PseudoElement.entries) {
             // prevent computation for a pseudo-element that doesn't even match
             if (element.hasPseudoElement(pseudoElement)) {
                 val previousStyle = element.styles?.pseudos?.get(pseudoElement)
@@ -106,12 +107,13 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
             bloomFilter,
-            QuirksMode.NoQuirks
+            QuirksMode.NoQuirks,
+            VisitedHandlingMode.AllLinksVisitedAndUnvisited,
         )
 
         val styleContainer = StyleContainerRecycler.acquire()
 
-        for (origin in Origin.values) {
+        for (origin in Origin.entries) {
             for (styleRoot in context.styleRoots.reversedIterator()) {
                 styleRoot.contributeMatchingStyles(
                     origin,

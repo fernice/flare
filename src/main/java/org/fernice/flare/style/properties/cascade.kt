@@ -168,7 +168,7 @@ class CustomPropertiesListBuilder(
             val (name, value) = declaration.declaration
 
             val origin = level.origin
-            if (reverted.find(origin)?.contains(name) == true) {
+            if (reverted.peek(origin)?.contains(name) == true) {
                 continue
             }
 
@@ -278,7 +278,7 @@ class PropertiesListBuilder(
     private val substitutionCache = SubstitutionCache()
 
     private val seen = LonghandIdSet()
-    private val reverted = PerOrigin<LonghandIdSet>()
+    private val reverted = PerOrigin { LonghandIdSet() }
 
     private val properties = mutableListOf<Pair<LonghandId, PropertyDeclaration>>()
 
@@ -297,7 +297,7 @@ class PropertiesListBuilder(
 
             val origin = level.origin
 
-            if (reverted.find(origin)?.contains(longhandId) == true) {
+            if (reverted.peek(origin)?.contains(longhandId) == true) {
                 continue
             }
 

@@ -264,6 +264,10 @@ class Lexer(private val reader: Reader) {
                 reader.nextChar()
                 Token.Bang
             }
+            '&' -> {
+                reader.nextChar()
+                Token.Ampersand
+            }
             else -> {
                 if (isLetter(reader.c)) {
                     consumeIdentifier()

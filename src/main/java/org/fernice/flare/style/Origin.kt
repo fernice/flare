@@ -6,11 +6,9 @@
 
 package org.fernice.flare.style
 
-import org.fernice.std.Ordinal
-import org.fernice.std.OrdinalUniverse
-import org.fernice.std.PerOrdinal
+import org.fernice.std.PerEnumLazy
 
-enum class Origin : Ordinal {
+enum class Origin {
 
     UserAgent,
 
@@ -22,10 +20,6 @@ enum class Origin : Ordinal {
         val indices = ordinal downTo 0
         return OriginIterator(indices.iterator())
     }
-
-    companion object {
-        val values = OrdinalUniverse(*values())
-    }
 }
 
 private class OriginIterator(
@@ -33,10 +27,9 @@ private class OriginIterator(
 ) : Iterator<Origin> {
 
     override fun hasNext(): Boolean = iterator.hasNext()
-    override fun next(): Origin = Origin.values[iterator.next()]
+    override fun next(): Origin = Origin.entries[iterator.next()]
 }
 
-typealias PerOrigin<E> = PerOrdinal<Origin, E>
+typealias PerOrigin<E> = PerEnumLazy<Origin, E>
 
-fun <E : Any> PerOrigin(): PerOrigin<E> = PerOrdinal(Origin.values)
-fun <E : Any> PerOrigin(initializer: (Origin) -> E): PerOrigin<E> = PerOrdinal(Origin.values, initializer)
+fun <E : Any> PerOrigin(initializer: (Origin) -> E): PerOrigin<E> = PerEnumLazy(initializer)

@@ -38,7 +38,7 @@ class SelectorMap {
 
         val matchingRules = MatchingRulesRecycler.acquire()
 
-        val quirksMode = context.quirksMode()
+        val quirksMode = context.quirksMode
 
         element.id?.let { id ->
             idHash.get(id, quirksMode)?.let { rules ->
@@ -126,9 +126,23 @@ class SelectorMap {
                     is Component.ID -> return component
                     is Component.Class -> if (bucket == null || bucket !is Component.Class) bucket = component
                     is Component.LocalName -> if (bucket == null) bucket = component
-                    is Component.Negation -> if (bucket == null) bucket = findBucket(component.iterator())
-                    else -> {
+                    is Component.Is -> {
+                        for (selector in component.selectors) {
+                            if (bucket == null) bucket = findBucket(selector.iterator())
+                        }
                     }
+                    is Component.Where -> {
+                        for (selector in component.selectors) {
+                            if (bucket == null) bucket = findBucket(selector.iterator())
+                        }
+                    }
+                    is Component.Negation -> {
+                        for (selector in component.selectors) {
+                            if (bucket == null) bucket = findBucket(selector.iterator())
+                        }
+                    }
+
+                    else -> {}
                 }
             }
 

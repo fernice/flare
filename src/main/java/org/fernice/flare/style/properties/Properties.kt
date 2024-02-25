@@ -124,7 +124,7 @@ abstract class AbstractLonghandId<T : PropertyDeclaration>(
 
 class LonghandIdSet : AbstractMutableSet<LonghandId>() {
     private val allocation = Properties.longhandIds.size
-    private val storage = LongArray(allocation % 64)
+    private val storage = LongArray((allocation + 63) ushr 6)
 
     private fun get(ordinal: Int): Boolean {
         val bin = ordinal % 64

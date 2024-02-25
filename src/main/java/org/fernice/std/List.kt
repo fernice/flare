@@ -23,3 +23,8 @@ private class ReversedListSequence<T>(
         }
     }
 }
+
+
+fun <E> List<E>.resized(): List<E> {
+    return ArrayList(this)
+}

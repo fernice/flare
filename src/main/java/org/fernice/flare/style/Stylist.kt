@@ -25,7 +25,7 @@ class Rule(
 ) {
 
     val specificity: Int
-        get() = selector.specificity()
+        get() = selector.specificity
 }
 
 interface StyleCollector {
