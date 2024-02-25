@@ -6,6 +6,8 @@
 package org.fernice.flare.style.stylesheet
 
 import org.fernice.flare.style.Origin
+import org.fernice.flare.style.QuirksMode
+import org.fernice.flare.url.Url
 import org.junit.BeforeClass
 import org.junit.Test
 import java.net.URI
@@ -23,7 +25,13 @@ class StylesheetParseTest {
 
     @Test
     fun block() {
-        val stylesheet = Stylesheet.from(Origin.Author, "element > .p {\n background-attachment: fixed !important; background-color: #FFE }", URI("test"))
+        val stylesheet = Stylesheet.from(
+            "element > .p {\n background-attachment: fixed !important; background-color: #FFE }",
+            Url(""),
+            Origin.Author,
+            QuirksMode.NoQuirks,
+            URI("test")
+        )
 
         println(stylesheet)
     }

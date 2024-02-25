@@ -5,19 +5,10 @@
  */
 package org.fernice.flare.selector
 
-import org.fernice.std.Err
-import org.fernice.std.Ok
-import org.fernice.std.Result
-import org.fernice.flare.cssparser.Delimiters
-import org.fernice.flare.cssparser.Nth
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.ToCss
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.cssparser.toCssJoining
-import org.fernice.flare.cssparser.toCssString
+import org.fernice.flare.cssparser.*
 import org.fernice.flare.panic
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.style.QuirksMode
+import org.fernice.std.*
 import java.io.Writer
 
 data class NamespacePrefix(val prefix: String)
@@ -28,56 +19,15 @@ sealed class Component : ToCss {
 
     data class Combinator(val combinator: org.fernice.flare.selector.Combinator) : Component()
 
-    data class DefaultNamespace(val namespace: NamespaceUrl) : Component()
-
-    object ExplicitNoNamespace : Component()
-    object ExplicitAnyNamespace : Component()
-    data class Namespace(val prefix: NamespacePrefix, val namespace: NamespaceUrl) : Component()
-
     data class LocalName(val localName: String, val localNameLower: String) : Component()
 
-    object ExplicitUniversalType : Component()
-
     data class ID(val id: String) : Component()
-
     data class Class(val styleClass: String) : Component()
 
-    data class PseudoElement(val pseudoElement: org.fernice.flare.selector.PseudoElement) : Component()
-    data class NonTSPseudoClass(val pseudoClass: org.fernice.flare.selector.NonTSPseudoClass) : Component()
-
-    data class Negation(val simpleSelector: List<Component>) : Component() {
-
-        fun iterator(): SelectorIterator {
-            return SelectorIterator(simpleSelector)
-        }
-    }
-
-    object FirstChild : Component()
-    object LastChild : Component()
-    object OnlyChild : Component()
-    object FirstOfType : Component()
-    object LastOfType : Component()
-    object OnlyOfType : Component()
-
-    object Root : Component()
-    object Empty : Component()
-    object Scope : Component()
-    object Host : Component()
-
-    data class NthChild(val nth: Nth) : Component()
-    data class NthOfType(val nth: Nth) : Component()
-    data class NthLastChild(val nth: Nth) : Component()
-    data class NthLastOfType(val nth: Nth) : Component()
-
-    data class AttributeOther(
-        val namespace: NamespaceConstraint,
+    data class AttributeInNoNamespaceExists(
         val localName: String,
         val localNameLower: String,
-        val operation: AttributeSelectorOperation,
-        val neverMatches: Boolean,
     ) : Component()
-
-    data class AttributeInNoNamespaceExists(val localName: String, val localNameLower: String) : Component()
 
     data class AttributeInNoNamespace(
         val localName: String,
@@ -87,6 +37,46 @@ sealed class Component : ToCss {
         val caseSensitive: Boolean,
         val neverMatches: Boolean,
     ) : Component()
+
+    data class AttributeOther(
+        val namespace: NamespaceConstraint,
+        val localName: String,
+        val localNameLower: String,
+        val operation: AttributeSelectorOperation,
+        val neverMatches: Boolean,
+    ) : Component()
+
+    data object ExplicitNoNamespace : Component()
+    data object ExplicitAnyNamespace : Component()
+    data class DefaultNamespace(val namespace: NamespaceUrl) : Component()
+    data class Namespace(val prefix: NamespacePrefix, val namespace: NamespaceUrl) : Component()
+
+    data object ExplicitUniversalType : Component()
+
+    data class Negation(val selectors: List<Selector>) : Component()
+
+    data object ParentSelector : Component()
+
+    data object Root : Component()
+    data object Empty : Component()
+    data object Scope : Component()
+
+    data class Nth(val data: NthData, val selectors: List<Selector> = emptyList()) : Component()
+
+    data class NonTSPseudoClass(val pseudoClass: org.fernice.flare.selector.NonTSPseudoClass) : Component()
+    data class NonTSFPseudoClass(val pseudoClass: org.fernice.flare.selector.NonTSFPseudoClass) : Component()
+
+    data class Part(val names: List<String>) : Component()
+    data class Slotted(val selector: Selector) : Component()
+    data class Host(val selector: Selector?) : Component()
+
+    data class Where(val selectors: List<Selector>) : Component()
+    data class Is(val selectors: List<Selector>) : Component()
+    data class Has(val selectors: List<RelativeSelector>) : Component()
+
+    data class PseudoElement(val pseudoElement: org.fernice.flare.selector.PseudoElement) : Component()
+
+    data object RelativeSelectorAnchor : Component()
 
     fun ancestorHash(quirksMode: QuirksMode): Int? {
         return when (this) {
@@ -104,33 +94,35 @@ sealed class Component : ToCss {
             return if (this >= 0) "+$this" else this.toString()
         }
 
-        fun writeNth(prefix: String, nth: Nth, writer: Writer) {
-            writer.append(prefix)
-            writer.append('(')
+        fun Writer.appendNth(a: Int, b: Int) {
+            append(
+                when {
+                    a == 0 && b == 0 -> "0"
 
-            with(nth) {
-                writer.append(
-                    when {
-                        a == 0 && b == 0 -> "0"
+                    a == 1 && b == 0 -> "n"
+                    a == -1 && b == 0 -> "-n"
+                    b == 0 -> "${a}n"
 
-                        a == 1 && b == 0 -> "n"
-                        a == -1 && b == 0 -> "-n"
-                        b == 0 -> "${a}n"
+                    a == 0 -> b.toString()
+                    a == 1 -> "n${b.toStringWithSign()}"
+                    a == -1 -> "-n${b.toStringWithSign()}"
+                    else -> "${a}n${b.toStringWithSign()}"
+                }
+            )
+        }
 
-                        a == 0 -> b.toString()
-                        a == 1 -> "n${b.toStringWithSign()}"
-                        a == -1 -> "-n${b.toStringWithSign()}"
-                        else -> "${a}n${b.toStringWithSign()}"
-                    }
-                )
+        fun Writer.appendSelectors(selectors: List<Selector>) {
+            for ((index, selector) in selectors.withIndex()) {
+                selector.toCss(this)
+                if (index < selectors.lastIndex) append(", ")
             }
-
-            writer.append(')')
         }
 
         when (this) {
             is Combinator -> this.combinator.toCss(writer)
-            is PseudoElement -> this.pseudoElement.toCss(writer)
+
+            is LocalName -> writer.append(localName)
+
             is ID -> {
                 writer.append('#')
                 writer.append(this.id)
@@ -141,12 +133,11 @@ sealed class Component : ToCss {
                 writer.append(this.styleClass)
             }
 
-            is LocalName -> writer.append(localName)
             is ExplicitUniversalType -> writer.append('*')
 
-            is DefaultNamespace -> Unit
             is ExplicitNoNamespace -> writer.append('|')
             is ExplicitAnyNamespace -> writer.append("*|")
+            is DefaultNamespace -> Unit
             is Namespace -> {
                 writer.append(this.prefix.prefix)
                 writer.append('|')
@@ -175,169 +166,319 @@ sealed class Component : ToCss {
 
             is Negation -> {
                 writer.append(":not(")
-                for (component in this.simpleSelector) {
-                    component.toCss(writer)
-                }
+                writer.appendSelectors(selectors)
                 writer.append(")")
             }
 
-            is FirstChild -> writer.append(":first-child")
-            is LastChild -> writer.append(":last-child")
-            is OnlyChild -> writer.append(":only-child")
+            is ParentSelector -> writer.append("&")
+
             is Root -> writer.append(":root")
             is Empty -> writer.append(":empty")
             is Scope -> writer.append(":scope")
-            is Host -> TODO("Implement host selector")
-            is FirstOfType -> writer.append(":first-of-type")
-            is LastOfType -> writer.append(":last-of-type")
-            is OnlyOfType -> writer.append(":only-of-type")
-            is NthChild -> writeNth("nth-child", this.nth, writer)
-            is NthLastChild -> writeNth("nth-last-child", this.nth, writer)
-            is NthOfType -> writeNth("nth-of-type", this.nth, writer)
-            is NthLastOfType -> writeNth("nth-last-child", this.nth, writer)
 
-            is NonTSPseudoClass -> this.pseudoClass.toCss(writer)
+            is Nth -> {
+                if (!data.isFunction) {
+                    when (data.type) {
+                        NthType.Child -> writer.append(":first-child")
+                        NthType.LastChild -> writer.append(":last-child")
+                        NthType.OnlyChild -> writer.append(":only-child")
+                        NthType.OfType -> writer.append(":first-of-type")
+                        NthType.LastOfType -> writer.append(":last-of-type")
+                        NthType.OnlyOfType -> writer.append(":only-of-type")
+                    }
+                } else {
+                    when (data.type) {
+                        NthType.Child -> writer.append(":nth-child")
+                        NthType.LastChild -> writer.append(":nth-last-child")
+                        NthType.OnlyChild -> error("invalid case")
+                        NthType.OfType -> writer.append(":nth-of-type")
+                        NthType.LastOfType -> writer.append(":nth-last-of-type")
+                        NthType.OnlyOfType -> error("invalid case")
+                    }
+                    writer.append("(")
+                    writer.appendNth(data.a, data.b)
+
+                    if (selectors.isNotEmpty()) {
+                        writer.append(" of ")
+                        writer.appendSelectors(selectors)
+                    }
+
+                    writer.append(")")
+                }
+            }
+
+            is NonTSPseudoClass -> pseudoClass.toCss(writer)
+            is NonTSFPseudoClass -> pseudoClass.toCss(writer)
+
+            is Part -> {
+                writer.append(":part(")
+                writer.append(names.joinToString())
+                writer.append(")")
+            }
+
+            is Slotted -> {
+                writer.append(":slotted(")
+                selector.toCss(writer)
+                writer.append(")")
+            }
+
+            is Host -> {
+                writer.append(":host")
+                if (selector != null) {
+                    writer.append("(")
+                    selector.toCss(writer)
+                    writer.append(")")
+                }
+            }
+
+            is Where -> {
+                writer.append(":where(")
+                writer.appendSelectors(selectors)
+                writer.append(")")
+            }
+
+            is Is -> {
+                writer.append(":is(")
+                writer.appendSelectors(selectors)
+                writer.append(")")
+            }
+
+            is Has -> {
+                writer.append(":has(")
+                writer.appendSelectors(selectors.map { it.selector })
+                writer.append(")")
+            }
+
+            is PseudoElement -> this.pseudoElement.toCss(writer)
+
+            is RelativeSelectorAnchor -> {}
         }
     }
 }
 
-sealed class Combinator : ToCss {
+enum class Combinator : ToCss {
 
-    object Child : Combinator()
+    Child,
+    Descendant,
+    NextSibling,
+    LaterSibling,
+    Part,
+    SlotAssignment,
+    PseudoElement;
 
-    object Descendant : Combinator()
+    fun isSibling(): Boolean {
+        return when (this) {
+            Child,
+            Descendant,
+            -> false
 
-    object NextSibling : Combinator()
+            NextSibling,
+            LaterSibling,
+            -> true
 
-    object LaterSibling : Combinator()
-
-    object PseudoElement : Combinator()
+            Part,
+            SlotAssignment,
+            PseudoElement,
+            -> false
+        }
+    }
 
     override fun toCss(writer: Writer) {
         return when (this) {
-            is Child -> writer.write(" > ")
-            is Descendant -> writer.write(" ")
-            is NextSibling -> writer.write(" + ")
-            is LaterSibling -> writer.write(" ~ ")
-            is PseudoElement -> Unit
+            Child -> writer.write(" > ")
+            Descendant -> writer.write(" ")
+            NextSibling -> writer.write(" + ")
+            LaterSibling -> writer.write(" ~ ")
+            Part,
+            SlotAssignment,
+            PseudoElement,
+            -> {
+            }
         }
     }
 }
 
-const val PSEUDO_COUNT = 8
+enum class NthType {
+    Child,
+    LastChild,
+    OnlyChild,
+    OfType,
+    LastOfType,
+    OnlyOfType;
 
-sealed class PseudoElement : ToCss {
+    val isOfType: Boolean
+        get() = when (this) {
+            OfType, LastOfType, OnlyOfType -> true
+            Child, LastChild, OnlyChild -> false
+        }
 
-    object Before : PseudoElement()
-    object After : PseudoElement()
-    object Selection : PseudoElement()
-    object FirstLetter : PseudoElement()
-    object FirstLine : PseudoElement()
-    object Placeholder : PseudoElement()
+    val isOnly: Boolean
+        get() = when (this) {
+            OnlyChild, OnlyOfType -> true
+            Child, LastChild, OfType, LastOfType -> false
+        }
 
-    object Icon : PseudoElement()
+    val isFromEnd: Boolean
+        get() = when (this) {
+            LastChild, LastOfType -> true
+            Child, OnlyChild, OnlyOfType, OfType -> false
+        }
+}
 
-    fun ordinal(): Int {
-        return when (this) {
-            is Before -> 0
-            is After -> 1
-            is Selection -> 2
-            is FirstLetter -> 3
-            is FirstLine -> 4
-            is Placeholder -> 5
+data class NthData(
+    val type: NthType,
+    val a: Int,
+    val b: Int,
+    val isFunction: Boolean,
+) {
 
-            is Icon -> 6
+    companion object {
+        fun first(ofType: Boolean): NthData {
+            val type = when {
+                ofType -> NthType.OfType
+                else -> NthType.Child
+            }
+            return NthData(type, a = 0, b = 1, isFunction = false)
+        }
+
+        fun last(ofType: Boolean): NthData {
+            val type = when {
+                ofType -> NthType.LastOfType
+                else -> NthType.LastChild
+            }
+            return NthData(type, a = 0, b = 1, isFunction = false)
+        }
+
+        fun only(ofType: Boolean): NthData {
+            val type = when {
+                ofType -> NthType.OnlyOfType
+                else -> NthType.OnlyChild
+            }
+            return NthData(type, a = 0, b = 1, isFunction = false)
         }
     }
+}
+
+enum class PseudoElement : ToCss {
+
+    Before,
+    After,
+    Selection,
+    FirstLetter,
+    FirstLine,
+    Placeholder,
+
+    Flare_Icon;
+
+    fun acceptsStatePseudoClasses(): Boolean = false
+
+    fun validAfterSlotted(): Boolean = false
 
     override fun toCss(writer: Writer) {
         val css = when (this) {
-            is Before -> "::before"
-            is After -> "::after"
-            is Selection -> "::selection"
-            is FirstLetter -> "::first-letter"
-            is FirstLine -> "::first-line"
-            is Placeholder -> "::placeholder"
+            Before -> "::before"
+            After -> "::after"
+            Selection -> "::selection"
+            FirstLetter -> "::first-letter"
+            FirstLine -> "::first-line"
+            Placeholder -> "::placeholder"
 
-            is Icon -> "::icon"
+            Flare_Icon -> "::icon"
         }
 
         writer.write(css)
     }
-
-    companion object {
-
-        inline fun forEachEagerCascadedPseudoElement(function: (PseudoElement) -> Unit) {
-            for (pseudoElement in values) {
-                function(pseudoElement)
-            }
-        }
-
-        fun fromEagerOrdinal(ordinal: Int): PseudoElement {
-            return when (ordinal) {
-                0 -> Before
-                1 -> After
-                2 -> Selection
-                3 -> FirstLetter
-                4 -> FirstLine
-                5 -> Placeholder
-
-                6 -> Icon
-                else -> throw IndexOutOfBoundsException()
-            }
-        }
-
-        val values: Array<PseudoElement> by lazy {
-            arrayOf(
-                Before,
-                After,
-                Selection,
-                FirstLetter,
-                FirstLine,
-                Placeholder,
-
-                Icon
-            )
-        }
-    }
 }
 
-sealed class NonTSPseudoClass : ToCss {
+// NonTreeStructural-PseudoClass
+enum class NonTSPseudoClass : ToCss {
 
-    object Active : NonTSPseudoClass()
-    object Checked : NonTSPseudoClass()
-    object Disabled : NonTSPseudoClass()
-    object Enabled : NonTSPseudoClass()
-    object Focus : NonTSPseudoClass()
-    object Fullscreen : NonTSPseudoClass()
-    object Hover : NonTSPseudoClass()
-    object Indeterminate : NonTSPseudoClass()
-    data class Lang(val language: String) : NonTSPseudoClass()
-    object Link : NonTSPseudoClass()
-    object PlaceholderShown : NonTSPseudoClass()
-    object ReadWrite : NonTSPseudoClass()
-    object ReadOnly : NonTSPseudoClass()
-    object Target : NonTSPseudoClass()
-    object Visited : NonTSPseudoClass()
+    Active,
+    Checked,
+    Autofill,
+    Disabled,
+    Enabled,
+    Defined, // HTML specific
+    Focus,
+    FocusVisible,
+    FocusWithin,
+    Hover,
+    Target,
+    Indeterminate,
+    Fullscreen,
+    Modal,
+    Optional,
+    Required,
+    Valid,
+    Invalid,
+    UserValid,
+    UserInvalid,
+    InRange,
+    OutOfRange,
+    ReadWrite,
+    ReadOnly,
+    Default,
+    PlaceholderShown,
+    Link,
+    AnyLink,
+    Visited;
+
+    fun isActiveOrHover(): Boolean = when (this) {
+        Hover, Active -> true
+        else -> false
+    }
+
+    fun isUserActionState(): Boolean = when (this) {
+        Focus, Hover, Active -> true
+        else -> false
+    }
 
     override fun toCss(writer: Writer) {
         writer.append(
             when (this) {
-                is Active -> ":active"
-                is Checked -> ":checked"
-                is Disabled -> ":disabled"
-                is Enabled -> ":enabled"
-                is Focus -> ":focus"
-                is Fullscreen -> ":fullscreen"
-                is Hover -> ":hover"
-                is Indeterminate -> ":indeterminate"
+                Active -> ":active"
+                Checked -> ":checked"
+                Autofill -> ":autofilled"
+                Disabled -> ":disabled"
+                Enabled -> ":enabled"
+                Defined -> ":defined"
+                Focus -> ":focus"
+                FocusVisible -> ":focus-visible"
+                FocusWithin -> ":focus-visible"
+                Hover -> ":hover"
+                Target -> ":target"
+                Indeterminate -> ":indeterminate"
+                Fullscreen -> ":fullscreen"
+                Modal -> ":modal"
+                Optional -> ":optional"
+                Required -> ":required"
+                Valid -> ":valid"
+                Invalid -> ":invalid"
+                UserValid -> ":user-valid"
+                UserInvalid -> ":user-invalid"
+                InRange -> ":in-range"
+                OutOfRange -> ":out-of-range"
+                ReadWrite -> ":read-write"
+                ReadOnly -> ":read-only"
+                Default -> ":default"
+                PlaceholderShown -> ":placeholder-shown"
+                Link -> ":link"
+                AnyLink -> ":any-link"
+                Visited -> ":visited"
+            }
+        )
+    }
+}
+
+// NonTreeStructural-Functional-PseudoClass
+sealed class NonTSFPseudoClass : ToCss {
+
+    data class Lang(val language: String) : NonTSFPseudoClass()
+
+    override fun toCss(writer: Writer) {
+        writer.append(
+            when (this) {
                 is Lang -> ":lang($language)"
-                is Link -> ":link"
-                is PlaceholderShown -> ":placeholder-shown"
-                is ReadWrite -> ":read-write"
-                is ReadOnly -> ":read-only"
-                is Target -> ":target"
-                is Visited -> ":visited"
             }
         )
     }
@@ -345,26 +486,30 @@ sealed class NonTSPseudoClass : ToCss {
 
 sealed class NamespaceConstraint {
 
-    object Any : NamespaceConstraint()
+    data object Any : NamespaceConstraint()
 
     data class Specific(val prefix: NamespacePrefix, val url: NamespaceUrl) : NamespaceConstraint()
 }
 
 sealed class AttributeSelectorOperation {
 
-    object Exists : AttributeSelectorOperation()
+    data object Exists : AttributeSelectorOperation()
 
-    data class WithValue(val operator: AttributeSelectorOperator, val caseSensitive: Boolean, val expectedValue: String) : AttributeSelectorOperation()
+    data class WithValue(
+        val operator: AttributeSelectorOperator,
+        val caseSensitive: Boolean,
+        val expectedValue: String,
+    ) : AttributeSelectorOperation()
 }
 
 sealed class AttributeSelectorOperator : ToCss {
 
-    object Equal : AttributeSelectorOperator()
-    object Includes : AttributeSelectorOperator()
-    object DashMatch : AttributeSelectorOperator()
-    object Prefix : AttributeSelectorOperator()
-    object Substring : AttributeSelectorOperator()
-    object Suffix : AttributeSelectorOperator()
+    data object Equal : AttributeSelectorOperator()
+    data object Includes : AttributeSelectorOperator()
+    data object DashMatch : AttributeSelectorOperator()
+    data object Prefix : AttributeSelectorOperator()
+    data object Substring : AttributeSelectorOperator()
+    data object Suffix : AttributeSelectorOperator()
 
     override fun toCss(writer: Writer) {
         writer.append(
@@ -392,23 +537,26 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
      * Returns the specificity of this selector in a 4 Byte compressed format. For further information of the format
      * see [Specificity].
      */
-    fun specificity(): Int {
-        return header.specificity()
-    }
+    val specificity: Int
+        get() = header.specificity
 
-    fun pseudoElement(): PseudoElement? {
-        if (!header.hasPseudoElement()) {
-            return null
-        }
+    val hasParent: Boolean
+        get() = header.hasParent
 
-        for (component in components) {
-            if (component is Component.PseudoElement) {
-                return component.pseudoElement
+    val pseudoElement: PseudoElement?
+        get() {
+            if (!header.hasPseudoElement) {
+                return null
             }
-        }
 
-        panic("header.hasPseudoElement() resulted in true, but pseudoElement was not found")
-    }
+            for (component in components) {
+                if (component is Component.PseudoElement) {
+                    return component.pseudoElement
+                }
+            }
+
+            panic("header.hasPseudoElement() resulted in true, but pseudoElement was not found")
+        }
 
     /**
      * Returns a high-level [SelectorIterator]. Iterates over a single compound selector until it returns [None]. After that
@@ -425,6 +573,10 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
      */
     fun iterator(): SelectorIterator {
         return SelectorIterator(components)
+    }
+
+    fun rawIteratorMatchOrder(): Iterator<Component> {
+        return components.iterator()
     }
 
     /**
@@ -466,7 +618,6 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         val selector = mutableListOf<Component>()
         val compoundSelector = mutableListOf<Component>()
 
-        outer@
         while (true) {
             while (iterator.hasNext()) {
                 val next = iterator.next()
@@ -483,18 +634,195 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         return selector.iterator()
     }
 
-    private fun <E> MutableCollection<E>.drain(): List<E> {
-        val list = toList()
-        clear()
-        return list
+    fun iteratorSkipRelativeSelectorAnchor(): SelectorIterator {
+        debug {
+            val iterator = rawIteratorParseOrder()
+            assert(iterator.next() is Component.RelativeSelectorAnchor)
+            assert(iterator.next() is Component.Combinator)
+        }
+        return SelectorIterator(
+            components.dropLast(2),
+        )
+    }
+
+    fun combinatorOfRelativeSelectorAnchor(): Combinator {
+        debug {
+            val iterator = rawIteratorParseOrder()
+            assert(iterator.next() is Component.RelativeSelectorAnchor)
+            assert(iterator.next() is Component.Combinator)
+        }
+        return when (val component = components[components.lastIndex - 1]) {
+            is Component.Combinator -> component.combinator
+            else -> error("not a relative selector")
+        }
+    }
+
+    fun replaceParent(parent: List<Selector>): Selector {
+        val flags = SelectorFlags.of(header.flags) - SelectorFlags.HAS_PARENT
+        val specificity = Specificity.fromInt(header.specificity)
+
+        val parentSpecificity = Specificity.fromInt(selectorListSpecificityAndFlags(parent).specificity)
+
+        fun replaceParentOnSelectorList(
+            selectors: List<Selector>,
+            parent: List<Selector>,
+            specificity: Specificity,
+            withSpecificity: Boolean,
+        ): List<Selector> {
+            var any = false
+
+            val result = selectors.map { selector ->
+                if (!selector.hasParent) return@map selector
+
+                any = true
+                selector.replaceParent(parent)
+            }
+
+            if (any && withSpecificity) {
+                specificity += Specificity.fromInt(
+                    selectorListSpecificityAndFlags(result).specificity -
+                            selectorListSpecificityAndFlags(selectors).specificity
+                )
+            }
+
+            return result
+        }
+
+        fun replaceParentOnRelativeSelectorList(
+            relativeSelectors: List<RelativeSelector>,
+            parent: List<Selector>,
+            specificity: Specificity,
+        ): List<RelativeSelector> {
+            var any = false
+
+            val result = relativeSelectors.map { relativeSelector ->
+                if (!relativeSelector.selector.hasParent) return@map relativeSelector
+
+                any = true
+                RelativeSelector(
+                    relativeSelector.selector.replaceParent(parent),
+                    relativeSelector.matchHint,
+                )
+            }
+
+            if (any) {
+                specificity += Specificity.fromInt(
+                    relativeSelectorListSpecificityAndFlags(result).specificity -
+                            relativeSelectorListSpecificityAndFlags(relativeSelectors).specificity
+                )
+            }
+
+            return result
+        }
+
+        fun replaceParentOnSelector(
+            selector: Selector,
+            parent: List<Selector>,
+            specificity: Specificity,
+        ): Selector {
+            if (!selector.hasParent) return selector
+
+            val result = selector.replaceParent(parent)
+            specificity += Specificity.fromInt(result.specificity - selector.specificity)
+            return result
+        }
+
+        val components = if (!hasParent) {
+            specificity += parentSpecificity
+
+            components + listOf(Component.Combinator(Combinator.Descendant), Component.Is(parent))
+        } else {
+            components.map { component ->
+                when (component) {
+                    is Component.LocalName,
+                    is Component.ID,
+                    is Component.Class,
+                    is Component.AttributeInNoNamespace,
+                    is Component.AttributeInNoNamespaceExists,
+                    is Component.AttributeOther,
+                    is Component.ExplicitAnyNamespace,
+                    is Component.ExplicitNoNamespace,
+                    is Component.ExplicitUniversalType,
+                    is Component.DefaultNamespace,
+                    is Component.Namespace,
+                    is Component.Root,
+                    is Component.Empty,
+                    is Component.Scope,
+                    is Component.NonTSFPseudoClass,
+                    is Component.NonTSPseudoClass,
+                    is Component.PseudoElement,
+                    is Component.Combinator,
+                    is Component.Part,
+                    is Component.RelativeSelectorAnchor,
+                    -> component
+
+                    Component.ParentSelector -> {
+                        specificity += parentSpecificity
+                        Component.Is(parent)
+                    }
+
+                    is Component.Negation -> Component.Negation(
+                        replaceParentOnSelectorList(component.selectors, parent, specificity, withSpecificity = true)
+                    )
+
+                    is Component.Is -> Component.Is(
+                        replaceParentOnSelectorList(component.selectors, parent, specificity, withSpecificity = true)
+                    )
+
+                    is Component.Where -> Component.Is(
+                        replaceParentOnSelectorList(component.selectors, parent, specificity, withSpecificity = false)
+                    )
+
+                    is Component.Has -> Component.Has(
+                        replaceParentOnRelativeSelectorList(component.selectors, parent, specificity)
+                    )
+
+                    is Component.Host -> when {
+                        component.selector != null -> Component.Host(
+                            replaceParentOnSelector(component.selector, parent, specificity)
+                        )
+
+                        else -> component
+                    }
+
+                    is Component.Nth -> when {
+                        component.selectors.isNotEmpty() -> Component.Nth(
+                            component.data,
+                            replaceParentOnSelectorList(component.selectors, parent, specificity, withSpecificity = true),
+                        )
+
+                        else -> component
+                    }
+
+                    is Component.Slotted -> Component.Slotted(
+                        replaceParentOnSelector(component.selector, parent, specificity)
+                    )
+                }
+            }
+        }
+
+        return Selector(SpecificityAndFlags(specificity.toInt(), flags.bits), components)
     }
 
     override fun toCss(writer: Writer) {
         rawIteratorTrueParseOrder().toCssJoining(writer)
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Selector) return false
+
+        if (components != other.components) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return components.hashCode()
+    }
+
     override fun toString(): String {
-        return "Selector[sr=${toCssString()}, spec=${specificity()}]"
+        return "Selector['${toCssString()}' specificity: ${specificity}]"
     }
 }
 
@@ -504,21 +832,19 @@ class SelectorIterator(
     private var combinator: Combinator? = null,
 ) : Iterator<Component> {
 
-    override fun hasNext(): Boolean = combinator == null && index < components.size
-
-    override fun next(): Component {
-        if (combinator != null) throw NoSuchElementException("end of sequence")
-
-        val next = components[index++]
-
+    override fun hasNext(): Boolean {
         if (index < components.size) {
             val component = components[index]
             if (component is Component.Combinator) {
                 combinator = component.combinator
             }
         }
+        return combinator == null && index < components.size
+    }
 
-        return next
+    override fun next(): Component {
+        if (!hasNext()) throw NoSuchElementException("end of sequence")
+        return components[index++]
     }
 
     fun hasNextSequence(): Boolean = combinator != null || hasNext()
@@ -539,7 +865,144 @@ class SelectorIterator(
     }
 }
 
-class SelectorList(private val selectors: List<Selector>) : Iterable<Selector>, ToCss {
+class CombinatorIterator private constructor(
+    private val iterator: SelectorIterator,
+) : Iterator<Combinator> {
+
+    override fun hasNext(): Boolean = iterator.hasNextSequence()
+    override fun next(): Combinator {
+        val combinator = iterator.nextSequence()
+        drainNonCombinators()
+        return combinator
+    }
+
+    private fun drainNonCombinators() {
+        while (iterator.hasNext()) {
+            iterator.next()
+        }
+    }
+
+    companion object {
+        fun from(iterator: SelectorIterator): CombinatorIterator {
+            val combinatorIterator = CombinatorIterator(iterator)
+            combinatorIterator.drainNonCombinators()
+            return combinatorIterator
+        }
+    }
+}
+
+enum class RelativeSelectorMatchHint {
+    InChild,
+    InSubtree,
+    InSibling,
+    InSiblingSubtree,
+    InNextSibling,
+    InNextSiblingSubtree,
+}
+
+private class CombinatorComposition(value: UByte) : U8Bitflags(value) {
+
+    override val all: UByte get() = ALL
+
+    companion object {
+        const val DESCENDANTS: UByte = 0b0000_0001u
+        const val SIBLINGS: UByte = 0b0000_0010u
+
+        private val ALL = DESCENDANTS and SIBLINGS
+
+        fun empty(): CombinatorComposition = CombinatorComposition(0u)
+        fun all(): CombinatorComposition = CombinatorComposition(ALL)
+        fun of(value: UByte): CombinatorComposition = CombinatorComposition(value and ALL)
+    }
+}
+
+private fun CombinatorComposition.Companion.forRelativeSelector(selector: Selector): CombinatorComposition {
+    val result = empty()
+    for (combinator in CombinatorIterator.from(selector.iteratorSkipRelativeSelectorAnchor())) {
+        when (combinator) {
+            Combinator.Child, Combinator.Descendant -> result.add(DESCENDANTS)
+            Combinator.NextSibling, Combinator.LaterSibling -> result.add(SIBLINGS)
+            Combinator.Part, Combinator.SlotAssignment, Combinator.PseudoElement -> continue
+        }
+        if (result.isAll()) break
+    }
+    return result
+}
+
+data class RelativeSelector(
+    val selector: Selector,
+    val matchHint: RelativeSelectorMatchHint,
+) {
+
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is RelativeSelector) return false
+
+        if (selector != other.selector) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return selector.hashCode()
+    }
+
+    override fun toString(): String {
+        return "RelativeSelector['${selector.toCssString()}' specificity: ${selector.specificity}]"
+    }
+
+    companion object {
+        fun fromSelector(selector: Selector): RelativeSelector {
+            val matchHint = when (selector.combinatorOfRelativeSelectorAnchor()) {
+                Combinator.Descendant -> RelativeSelectorMatchHint.InSubtree
+                Combinator.Child -> {
+                    val composition = CombinatorComposition.forRelativeSelector(selector)
+                    if (composition.isEmpty() || composition.bits == CombinatorComposition.SIBLINGS) {
+                        RelativeSelectorMatchHint.InChild
+                    } else {
+                        RelativeSelectorMatchHint.InSubtree
+                    }
+                }
+
+                Combinator.NextSibling -> {
+                    val composition = CombinatorComposition.forRelativeSelector(selector)
+                    if (composition.isEmpty()) {
+                        RelativeSelectorMatchHint.InNextSibling
+                    } else if (composition.bits == CombinatorComposition.SIBLINGS) {
+                        RelativeSelectorMatchHint.InSibling
+                    } else if (composition.bits == CombinatorComposition.DESCENDANTS) {
+                        RelativeSelectorMatchHint.InNextSiblingSubtree
+                    } else {
+                        RelativeSelectorMatchHint.InSiblingSubtree
+                    }
+                }
+
+                Combinator.LaterSibling -> {
+                    val composition = CombinatorComposition.forRelativeSelector(selector)
+                    if (composition.isEmpty() || composition.bits == CombinatorComposition.SIBLINGS) {
+                        RelativeSelectorMatchHint.InSibling
+                    } else {
+                        RelativeSelectorMatchHint.InSiblingSubtree
+                    }
+                }
+
+                Combinator.Part, Combinator.SlotAssignment, Combinator.PseudoElement -> {
+                    assert(false) { "unexpected combinator in relative selector" }
+                    RelativeSelectorMatchHint.InSubtree
+                }
+            }
+
+            return RelativeSelector(selector, matchHint)
+        }
+
+        fun fromSelectorList(selectorList: SelectorList): List<RelativeSelector> {
+            return selectorList.selectors.map { selector -> fromSelector(selector) }
+        }
+    }
+}
+
+class SelectorList(val selectors: List<Selector>) : Iterable<Selector>, ToCss {
 
     override fun iterator(): Iterator<Selector> = selectors.iterator()
 
@@ -553,26 +1016,47 @@ class SelectorList(private val selectors: List<Selector>) : Iterable<Selector>, 
 
     companion object {
 
-        fun parse(context: SelectorParserContext, input: Parser): Result<SelectorList, ParseError> {
+        fun parse(
+            context: SelectorParserContext,
+            input: Parser,
+            parseRelative: ParseRelative,
+        ): Result<SelectorList, ParseError> {
+            return parseWithState(
+                context,
+                input,
+                SelectorParsingState.empty(),
+                ParseForgiving.No,
+                parseRelative,
+            )
+        }
+
+        fun parseWithState(
+            context: SelectorParserContext,
+            input: Parser,
+            state: SelectorParsingState,
+            recovery: ParseForgiving,
+            parseRelative: ParseRelative,
+        ): Result<SelectorList, ParseError> {
             val selectors = mutableListOf<Selector>()
 
-            loop@
+            val forgiving = recovery == ParseForgiving.Yes
             while (true) {
-                when (val selector = input.parseUntilBefore(Delimiters.Comma) { i -> parseSelector(context, i) }) {
+                when (val selector = input.parseUntilBefore(Delimiters.Comma) { i -> parseSelector(context, i, state, parseRelative) }) {
                     is Ok -> selectors.add(selector.value)
-                    is Err -> return selector
+                    is Err -> if (!forgiving) return selector
                 }
 
                 val token = when (val token = input.next()) {
                     is Ok -> token.value
-                    is Err -> return Ok(SelectorList(selectors))
+                    is Err -> break
                 }
 
                 when (token) {
-                    is Token.Comma -> continue@loop
-                    else -> throw IllegalStateException("unreachable")
+                    is Token.Comma -> continue
+                    else -> error("unreachable")
                 }
             }
+            return Ok(SelectorList(selectors.resized()))
         }
     }
 }

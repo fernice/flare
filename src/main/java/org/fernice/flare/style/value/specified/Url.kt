@@ -12,7 +12,7 @@ import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.panic
-import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.computed.ComputedUrl
@@ -43,7 +43,7 @@ class CssUrl(
     companion object {
 
         fun parseFromString(string: String, context: ParserContext): CssUrl {
-            val resolved = context.baseUrl.join(string).ok()
+            val resolved = context.urlData.join(string).ok()
 
             return CssUrl(
                 string,

@@ -9,42 +9,38 @@ package org.fernice.flare.style.source
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ParserInput
 import org.fernice.flare.dom.Element
-import org.fernice.flare.style.ApplicableDeclarationBlock
-import org.fernice.flare.style.Importance
 import org.fernice.flare.style.Origin
-import org.fernice.flare.style.parser.ParseMode
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.style.ParseMode
+import org.fernice.flare.style.ParserContext
+import org.fernice.flare.style.QuirksMode
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
+import org.fernice.flare.style.stylesheet.CssRuleType
 import org.fernice.flare.url.Url
 
 class StyleAttribute(
     override val declarations: PropertyDeclarationBlock,
-    val source: Element,
 ) : StyleSource {
-
-    override val origin: Origin
-        get() = Origin.Author
-
-    private val importantDeclarations = ApplicableDeclarationBlock(this, Importance.Important)
-    private val normalDeclarations = ApplicableDeclarationBlock(this, Importance.Normal)
-
-    override fun getApplicableDeclarations(importance: Importance): ApplicableDeclarationBlock {
-        return when (importance) {
-            Importance.Important -> importantDeclarations
-            Importance.Normal -> normalDeclarations
-        }
-    }
 
     companion object {
 
-        fun from(value: String, element: Element): StyleAttribute {
+        fun from(
+            value: String,
+            urlData: Url,
+            quirksMode: QuirksMode,
+            ruleType: CssRuleType,
+        ): StyleAttribute {
             val input = Parser.from(ParserInput(value))
-            val context = ParserContext(ParseMode.Default, QuirksMode.NoQuirks, Url(""))
+            val context = ParserContext.from(
+                Origin.Author,
+                urlData,
+                ruleType,
+                ParseMode.Default,
+                quirksMode,
+            )
 
-            val declarations = PropertyDeclarationBlock.parse(context, input)
+            val declarations = PropertyDeclarationBlock.parsePropertyDeclarationList(context, input, listOf())
 
-            return StyleAttribute(declarations, element)
+            return StyleAttribute(declarations)
         }
     }
 }

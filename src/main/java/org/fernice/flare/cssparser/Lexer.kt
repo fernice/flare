@@ -5,10 +5,6 @@
  */
 package org.fernice.flare.cssparser
 
-import org.fernice.std.Err
-import org.fernice.std.Ok
-import org.fernice.std.Result
-
 
 /**
  * Represents a one dimensional position in the source text defined by a [position] indexing the text as
@@ -263,6 +259,10 @@ class Lexer(private val reader: Reader) {
             '!' -> {
                 reader.nextChar()
                 Token.Bang
+            }
+            '&' -> {
+                reader.nextChar()
+                Token.Ampersand
             }
             else -> {
                 if (isLetter(reader.c)) {

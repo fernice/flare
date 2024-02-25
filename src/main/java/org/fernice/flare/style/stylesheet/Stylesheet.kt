@@ -5,17 +5,13 @@
  */
 package org.fernice.flare.style.stylesheet
 
-import org.fernice.std.Err
-import org.fernice.std.Ok
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ParserInput
-import org.fernice.flare.cssparser.RuleListParser
-import org.fernice.flare.style.Origin
-import org.fernice.flare.style.parser.ParseMode
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.cssparser.StylesheetParser
+import org.fernice.flare.style.*
 import org.fernice.flare.url.Url
-import org.fernice.logging.FLogging
+import org.fernice.std.Err
+import org.fernice.std.Ok
 import java.net.URI
 
 class Stylesheet(
@@ -28,29 +24,39 @@ class Stylesheet(
 
     companion object {
 
-        fun from(origin: Origin, text: String, source: URI): Stylesheet {
-
+        fun from(
+            text: String,
+            urlData: Url,
+            origin: Origin,
+            quirksMode: QuirksMode,
+            source: URI,
+        ): Stylesheet {
             val input = Parser.from(ParserInput(text))
-            val context = ParserContext(ParseMode.Default, QuirksMode.NoQuirks, Url(""), source)
 
-            val parser = TopLevelRuleParser(context, origin)
-            val iter = RuleListParser(input, parser, true)
+            val context = ParserContext.from(
+                origin,
+                urlData,
+                ruleType = null,
+                ParseMode.Default,
+                quirksMode,
+            )
 
-            val rules = mutableListOf<CssRule>()
+            val parser = TopLevelRuleParser.from(
+                context,
+            )
 
-            loop@
+            val iter = StylesheetParser(input, parser)
             while (true) {
-                val result = iter.next() ?: break@loop
-
-                when (result) {
-                    is Ok -> rules.add(result.value)
-                    is Err -> LOG.warn("rule parse error: ${result.value.error} '${result.value.slice}'")
+                when (val result = iter.next() ?: break) {
+                    is Ok -> {}
+                    is Err -> {
+                        val (error, slice) = result.value
+                        context.reportError(error.location, ContextualError.InvalidRule(slice, error))
+                    }
                 }
             }
 
-            return Stylesheet(origin, rules, source)
+            return Stylesheet(origin, parser.level.rules, source)
         }
-
-        private val LOG = FLogging.logger { }
     }
 }

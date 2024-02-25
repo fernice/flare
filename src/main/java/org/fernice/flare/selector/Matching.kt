@@ -6,17 +6,19 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.dom.Element
+import org.fernice.std.checkedDiv
+import org.fernice.std.checkedSub
 
 /**
  * Checks if the [selector] matches the [element]. Performs a fast reject if both the [AncestorHashes]
  * of the selector and the [BloomFilter] of the element's parent is given. See [mayMatch] for the premise
  * of fast rejecting.
  */
-fun matchesSelector(
+internal fun matchesSelector(
     selector: Selector,
     hashes: AncestorHashes?,
     element: Element,
-    context: MatchingContext
+    context: MatchingContext,
 ): Boolean {
 
     if (hashes != null) {
@@ -31,10 +33,10 @@ fun matchesSelector(
 }
 
 /**
- * Performs a fast reject if the any of the [AncestorHashes] is not contained in the bloom filter. This work on
+ * Performs a fast reject if any of the [AncestorHashes] is not contained in the bloom filter. This work on
  * the premise that the AncestorHashes are an excerpt of all relevant components in a selector that match a parent
  * and are hashable. In combination with a [BloomFilter], filled with all corresponding hashes of all parents,
- * a selector can be fast rejected if a ancestor hash is not contained the BloomFilter as that would be the
+ * a selector can be fast rejected if an ancestor hash is not contained the BloomFilter as that would be the
  * requirement for them to match. This optimization does only work for selector that do have a parental combinator.
  */
 private fun mayMatch(hashes: AncestorHashes, bloomFilter: BloomFilter): Boolean {
@@ -64,10 +66,23 @@ private enum class MatchResult {
     NOT_MATCHED_RESTART_FROM_CLOSET_LATER_SIBLING
 }
 
+private fun matchesComplexSelectors(
+    selectors: List<Selector>,
+    element: Element,
+    context: MatchingContext,
+): Boolean {
+    for (selector in selectors) {
+        if (matchesComplexSelector(selector.iterator(), element, context)) {
+            return true
+        }
+    }
+    return false
+}
+
 private fun matchesComplexSelector(
     iterator: SelectorIterator,
     element: Element,
-    context: MatchingContext
+    context: MatchingContext,
 ): Boolean {
     return when (matchesComplexSelectorInternal(iterator, element, context)) {
         MatchResult.MATCHED -> true
@@ -78,7 +93,7 @@ private fun matchesComplexSelector(
 private fun matchesComplexSelectorInternal(
     iterator: SelectorIterator,
     element: Element,
-    context: MatchingContext
+    context: MatchingContext,
 ): MatchResult {
     val matchesCompoundSelector = matchesCompoundSelector(iterator, element, context)
 
@@ -88,50 +103,104 @@ private fun matchesComplexSelectorInternal(
     val combinator = iterator.nextSequence()
 
     val candidateNotFound = when (combinator) {
-        is Combinator.NextSibling,
-        is Combinator.LaterSibling -> MatchResult.NOT_MATCHED_RESTART_FROM_CLOSEST_DESCENDANT
-        is Combinator.Descendant,
-        is Combinator.Child,
-        is Combinator.PseudoElement -> MatchResult.NOT_MATCHED_GLOBALLY
+        Combinator.NextSibling,
+        Combinator.LaterSibling,
+        -> MatchResult.NOT_MATCHED_RESTART_FROM_CLOSEST_DESCENDANT
+
+        Combinator.Descendant,
+        Combinator.Child,
+        Combinator.Part,
+        Combinator.SlotAssignment,
+        Combinator.PseudoElement,
+        -> MatchResult.NOT_MATCHED_GLOBALLY
     }
 
-    var nextElement = nextElementForCombinator(element, combinator)
+    var visitedHandling = when {
+        combinator.isSibling() -> VisitedHandlingMode.AllLinksUnvisited
+        else -> context.visitedHandling
+    }
 
+    var nextElement = element
     while (true) {
-        if (nextElement == null) return candidateNotFound
+        if (nextElement.isLink()) {
+            visitedHandling = VisitedHandlingMode.AllLinksUnvisited
+        }
 
-        val result = matchesComplexSelectorInternal(iterator.clone(), nextElement, context)
+        nextElement = nextElementForCombinator(nextElement, combinator)
+            ?: return candidateNotFound
+
+        val result = context.withVisitedHandling(visitedHandling) {
+            matchesComplexSelectorInternal(iterator.clone(), nextElement, context)
+        }
 
         when {
             result == MatchResult.MATCHED ||
                     result == MatchResult.NOT_MATCHED_GLOBALLY ||
-                    combinator is Combinator.NextSibling -> {
+                    combinator == Combinator.NextSibling -> {
                 return result
             }
-            combinator is Combinator.PseudoElement ||
-                    combinator is Combinator.Child -> {
+
+            combinator == Combinator.PseudoElement ||
+                    combinator == Combinator.Child -> {
                 return MatchResult.NOT_MATCHED_RESTART_FROM_CLOSEST_DESCENDANT
             }
+
             result == MatchResult.NOT_MATCHED_RESTART_FROM_CLOSEST_DESCENDANT &&
-                    combinator is Combinator.LaterSibling -> {
+                    combinator == Combinator.LaterSibling -> {
                 return result
             }
         }
 
-        nextElement = nextElementForCombinator(nextElement, combinator)
     }
 }
 
 private fun nextElementForCombinator(element: Element, combinator: Combinator): Element? {
     return when (combinator) {
-        is Combinator.NextSibling, is Combinator.LaterSibling -> element.previousSibling
-        is Combinator.Child, is Combinator.Descendant -> element.parent
-        is Combinator.PseudoElement -> element.owner
+        Combinator.NextSibling, Combinator.LaterSibling -> element.previousSibling
+        Combinator.Child, Combinator.Descendant -> element.parent
+        Combinator.Part -> null
+        Combinator.SlotAssignment -> null
+        Combinator.PseudoElement -> element.owner
     }
 }
 
-private fun matchesLocalName(element: Element, localName: String, localNameLower: String): Boolean {
-    return element.localName == localName
+private fun matchesRelativeSelectors(
+    selectors: List<RelativeSelector>,
+    element: Element,
+    context: MatchingContext,
+): Boolean {
+    for ((selector, matchHint) in selectors) {
+        var (traverseSubtree, traverseSiblings, nextElement) = when (matchHint) {
+            RelativeSelectorMatchHint.InChild -> Triple(false, true, element.firstChild)
+            RelativeSelectorMatchHint.InSubtree -> Triple(true, true, element.firstChild)
+            RelativeSelectorMatchHint.InSibling -> Triple(false, true, element.nextSibling)
+            RelativeSelectorMatchHint.InSiblingSubtree -> Triple(true, true, element.nextSibling)
+            RelativeSelectorMatchHint.InNextSibling -> Triple(false, false, element.nextSibling)
+            RelativeSelectorMatchHint.InNextSiblingSubtree -> Triple(true, false, element.nextSibling)
+        }
+        while (nextElement != null) {
+            if (matchesComplexSelector(selector.iterator(), nextElement, context)) return true
+            if (traverseSubtree && matchesRelativeSelectorSubtree(selector, element, context)) return true
+            if (!traverseSiblings) break
+            nextElement = nextElement.nextSibling
+        }
+    }
+
+    return false
+}
+
+private fun matchesRelativeSelectorSubtree(
+    selector: Selector,
+    element: Element,
+    context: MatchingContext,
+): Boolean {
+    var nextElement = element.firstChild
+    while (nextElement != null) {
+        if (matchesComplexSelector(selector.iterator(), element, context)) return true
+        if (matchesRelativeSelectorSubtree(selector, element, context)) return true
+        nextElement = element.nextSibling
+    }
+    return false
 }
 
 private fun matchesCompoundSelector(iterator: SelectorIterator, element: Element, context: MatchingContext): Boolean {
@@ -149,14 +218,10 @@ private fun matchesCompoundSelector(iterator: SelectorIterator, element: Element
         nextSelector = iterator.nextOrNull() ?: return true
     }
 
-    while (true) {
-        if (nextSelector is Component.Class) {
-            if (!element.hasClass(nextSelector.styleClass)) return false
+    while (nextSelector is Component.Class) {
+        if (!element.hasClass(nextSelector.styleClass)) return false
 
-            nextSelector = iterator.nextOrNull() ?: return true
-            continue
-        }
-        break
+        nextSelector = iterator.nextOrNull() ?: return true
     }
 
     while (true) {
@@ -166,97 +231,138 @@ private fun matchesCompoundSelector(iterator: SelectorIterator, element: Element
     }
 }
 
-private fun matchesSimpleSelector(selector: Component, element: Element, context: MatchingContext): Boolean {
-    return when (selector) {
-        is Component.Combinator -> throw IllegalStateException("unreachable")
-        is Component.PseudoElement -> element.matchPseudoElement(selector.pseudoElement)
-        is Component.LocalName -> matchesLocalName(element, selector.localName, selector.localNameLower)
-        is Component.ExplicitUniversalType, is Component.ExplicitAnyNamespace -> true
-        is Component.DefaultNamespace -> element.namespace == selector.namespace
-        is Component.Namespace -> element.namespace == selector.namespace
+private fun matchesSimpleSelector(component: Component, element: Element, context: MatchingContext): Boolean {
+    return when (component) {
+        is Component.ID -> element.hasID(component.id)
+        is Component.Class -> element.hasClass(component.styleClass)
+        is Component.LocalName -> matchesLocalName(element, component.localName, component.localNameLower)
+
+        is Component.DefaultNamespace -> element.namespace == component.namespace
+        is Component.Namespace -> element.namespace == component.namespace
         is Component.ExplicitNoNamespace -> element.namespace == null
-        is Component.ID -> element.hasID(selector.id)
-        is Component.Class -> element.hasClass(selector.styleClass)
-        is Component.AttributeOther,
-        is Component.AttributeInNoNamespaceExists,
-        is Component.AttributeInNoNamespace -> false
-        is Component.NonTSPseudoClass -> element.matchNonTSPseudoClass(selector.pseudoClass)
-        is Component.FirstChild -> matchesFirstChild(element)
-        is Component.LastChild -> matchesLastChild(element)
-        is Component.OnlyChild -> matchesOnlyChild(element)
+        is Component.ExplicitUniversalType,
+        is Component.ExplicitAnyNamespace,
+        -> true
+
+        is Component.Part -> false
+        is Component.Slotted -> false
+
+        is Component.NonTSPseudoClass -> element.matchNonTSPseudoClass(component.pseudoClass)
+        is Component.NonTSFPseudoClass -> element.matchNonTSFPseudoClass(component.pseudoClass)
+        is Component.PseudoElement -> element.matchPseudoElement(component.pseudoElement)
+
         is Component.Root -> element.isRoot()
         is Component.Empty -> element.isEmpty()
-        is Component.Host,
-        is Component.Scope -> false
-        is Component.NthChild -> matchesGenericNthChild(element, selector.nth.a, selector.nth.b, ofType = false, fromEnd = false)
-        is Component.NthLastChild -> {
-            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, ofType = false, fromEnd = true)
-        }
-        is Component.NthOfType -> {
-            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, ofType = true, fromEnd = false)
-        }
-        is Component.NthLastOfType -> {
-            matchesGenericNthChild(element, selector.nth.a, selector.nth.b, ofType = true, fromEnd = true)
-        }
-        is Component.FirstOfType -> {
-            matchesGenericNthChild(element, 1, 0, ofType = true, fromEnd = false)
-        }
-        is Component.LastOfType -> {
-            matchesGenericNthChild(element, 1, 0, ofType = true, fromEnd = true)
-        }
-        is Component.OnlyOfType -> {
-            matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = false) &&
-                    matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = true)
-        }
-        is Component.Negation -> {
-            val iterator = selector.iterator()
-            while (iterator.hasNext()) {
-                val nextSelector = iterator.next()
+        is Component.Host -> false
 
-                if (matchesSimpleSelector(nextSelector, element, context)) return false
+        is Component.Nth -> {
+            if (component.selectors.isEmpty()) {
+                matchesGenericNthChild(element, context, component.data, component.selectors)
+            } else {
+                context.nest {
+                    matchesGenericNthChild(element, context, component.data, component.selectors)
+                }
             }
-            true
+        }
+
+        is Component.Is -> context.nest { matchesComplexSelectors(component.selectors, element, context) }
+        is Component.Where -> context.nest { matchesComplexSelectors(component.selectors, element, context) }
+
+        is Component.Negation -> context.nestForNegation { !matchesComplexSelectors(component.selectors, element, context) }
+
+        is Component.Has -> context.nestForRelativeSelector(element) { matchesRelativeSelectors(component.selectors, element, context) }
+
+        is Component.Scope -> element.isRoot()
+
+        is Component.AttributeOther,
+        is Component.AttributeInNoNamespaceExists,
+        is Component.AttributeInNoNamespace,
+        -> false
+
+        is Component.RelativeSelectorAnchor -> {
+            val anchor = context.relativeSelectorAnchor ?: error("relative selector outside of relative context")
+
+            element === anchor
+        }
+
+        is Component.Combinator -> error("combinator in simple selector")
+        is Component.ParentSelector -> error("not replaced & in selector")
+    }
+}
+
+private fun matchesLocalName(element: Element, localName: String, localNameLower: String): Boolean {
+    return element.localName == localNameLower
+}
+
+private fun matchesGenericNthChild(
+    element: Element,
+    context: MatchingContext,
+    nthData: NthData,
+    selectors: List<Selector>,
+): Boolean {
+    val (type, a, b) = nthData
+    val ofType = type.isOfType
+    if (type.isOnly) {
+        return matchesGenericNthChild(element, context, NthData.first(ofType), selectors)
+                && matchesGenericNthChild(element, context, NthData.last(ofType), selectors)
+    }
+
+    val fromEnd = type.isFromEnd
+
+    val edgeChildSelector = a == 0 && b == 0 && !ofType && selectors.isEmpty()
+
+    if (selectors.isNotEmpty() && matchesComplexSelectors(selectors, element, context)) {
+        return false
+    }
+
+    if (edgeChildSelector) {
+        val sibling = when {
+            fromEnd -> element.nextSibling
+            else -> element.previousSibling
+        }
+        return sibling == null
+    }
+
+    val index = nthChildIndex(element, context, selectors, ofType, fromEnd)
+
+    return when (val an = index.checkedSub(b)) {
+        null -> false
+        else -> when (val n = an.checkedDiv(a)) {
+            null -> an == 0
+            else -> n >= 0 && a * n == an
         }
     }
 }
 
-private fun matchesGenericNthChild(element: Element, a: Int, b: Int, ofType: Boolean, fromEnd: Boolean): Boolean {
-    val index = nthChildIndex(element, ofType, fromEnd)
-
-    val an = index - b
-
-    if (an < 0) {
-        return false
-    }
-
-    if (a == 0) {
-        return false
-    }
-
-    val n = an / a
-
-    return n >= 0 && n * a == an
-}
-
-private fun nthChildIndex(element: Element, ofType: Boolean, fromEnd: Boolean): Int {
+private fun nthChildIndex(
+    element: Element,
+    context: MatchingContext,
+    selectors: List<Selector>,
+    ofType: Boolean,
+    fromEnd: Boolean,
+): Int {
     fun next(element: Element): Element? {
-        return if (fromEnd) {
-            element.nextSibling
-        } else {
-            element.previousSibling
+        return when {
+            fromEnd -> element.nextSibling
+            else -> element.previousSibling
         }
     }
 
     var index = 1
     var current = element
 
-    loop@
     while (true) {
         current = next(current) ?: break
 
-        if (!ofType || isSameType(element, current)) {
-            index++
+        val matches = when {
+            ofType -> isSameType(element, current)
+            selectors.isNotEmpty() -> matchesComplexSelectors(selectors, current, context)
+            else -> true
         }
+
+        if (!matches) continue
+
+        index++
     }
 
     return index
@@ -266,16 +372,5 @@ private fun isSameType(element: Element, other: Element): Boolean {
     return element.localName == other.localName && element.namespace == other.namespace
 }
 
-private fun matchesFirstChild(element: Element): Boolean {
-    return element.previousSibling == null
-}
-
-private fun matchesLastChild(element: Element): Boolean {
-    return element.nextSibling == null
-}
-
-private fun matchesOnlyChild(element: Element): Boolean {
-    return element.previousSibling == null && element.nextSibling == null
-}
-
-private fun <E : Any> Iterator<E>.nextOrNull(): E? = if (hasNext()) next() else null
+@Suppress("NOTHING_TO_INLINE")
+private inline fun <E : Any> Iterator<E>.nextOrNull(): E? = if (hasNext()) next() else null

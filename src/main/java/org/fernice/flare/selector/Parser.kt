@@ -5,40 +5,30 @@
  */
 package org.fernice.flare.selector
 
-import org.fernice.std.Err
-import org.fernice.std.Ok
-import org.fernice.std.Result
-import org.fernice.flare.cssparser.Nth
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.ParseErrorKind
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.SourceLocation
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.cssparser.newError
-import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.cssparser.parseNth
-import org.fernice.flare.style.parser.QuirksMode
-import org.fernice.std.map
+import org.fernice.flare.cssparser.*
+import org.fernice.flare.style.QuirksMode
+import org.fernice.std.*
 
 /**
  * The selector specific error kinds
  */
 sealed class SelectorParseErrorKind : ParseErrorKind() {
 
-    object UnknownSelector : SelectorParseErrorKind()
-    object DanglingCombinator : SelectorParseErrorKind()
-    object PseudoElementExpectedColon : SelectorParseErrorKind()
-    object NoIdentifierForPseudo : SelectorParseErrorKind()
-    object ExpectedNamespace : SelectorParseErrorKind()
-    object ExpectedBarAttributeSelector : SelectorParseErrorKind()
-    object InvalidQualifiedNameInAttributeSelector : SelectorParseErrorKind()
-    object ExplicitNamespaceUnexpectedToken : SelectorParseErrorKind()
-    object ClassNeedsIdentifier : SelectorParseErrorKind()
-    object PseudoNeedsIdentifier : SelectorParseErrorKind()
-    object EmptyNegation : SelectorParseErrorKind()
-    object NonSimpleSelectorInNegation : SelectorParseErrorKind()
-    object NoQualifiedNameInAttributeSelector : SelectorParseErrorKind()
+    data object EmptySelector : SelectorParseErrorKind()
+    data object DanglingCombinator : SelectorParseErrorKind()
+    data object PseudoElementExpectedColon : SelectorParseErrorKind()
+    data object NoIdentifierForPseudo : SelectorParseErrorKind()
+    data object ExpectedNamespace : SelectorParseErrorKind()
+    data object ExpectedBarAttributeSelector : SelectorParseErrorKind()
+    data object InvalidQualifiedNameInAttributeSelector : SelectorParseErrorKind()
+    data object ExplicitNamespaceUnexpectedToken : SelectorParseErrorKind()
+    data object ClassNeedsIdentifier : SelectorParseErrorKind()
+    data object PseudoNeedsIdentifier : SelectorParseErrorKind()
+    data object EmptyNegation : SelectorParseErrorKind()
+    data object NonSimpleSelectorInNegation : SelectorParseErrorKind()
+    data object NoQualifiedNameInAttributeSelector : SelectorParseErrorKind()
     data class UnexpectedTokenInAttributeSelector(val token: Token) : SelectorParseErrorKind()
+    data object InvalidState : SelectorParseErrorKind()
 
     override fun toString(): String {
         return "SelectorParseErrorKind::${javaClass.simpleName}"
@@ -46,217 +36,240 @@ sealed class SelectorParseErrorKind : ParseErrorKind() {
 }
 
 interface SelectorParserContext {
-
-    fun pseudoElementAllowsSingleColon(name: String): Boolean
-
     fun defaultNamespace(): NamespaceUrl?
-
     fun namespacePrefix(prefix: String): NamespacePrefix
-
     fun namespaceForPrefix(prefix: NamespacePrefix): NamespaceUrl?
 }
 
-fun parseSelector(context: SelectorParserContext, input: Parser): Result<Selector, ParseError> {
+class SelectorParsingState(value: UByte) : U8Bitflags(value) {
+
+    override val all: UByte get() = ALL
+
+    operator fun plus(value: UByte): SelectorParsingState = of(this.value or value)
+    operator fun minus(value: UByte): SelectorParsingState = of(this.value and value.inv())
+
+    fun allowsPseudos(): Boolean = !intersects(AFTER_PSEUDO_ELEMENT or DISALLOW_PSEUDOS)
+    fun allowsSlotted(): Boolean = !intersects(AFTER_PSEUDO or DISALLOW_PSEUDOS)
+    fun allowsPart(): Boolean = !intersects(AFTER_PSEUDO or DISALLOW_PSEUDOS)
+    fun allowsCustomFunctionalPseudoClasses(): Boolean = !intersects(AFTER_PSEUDO)
+    fun allowsNonFunctionalPseudoClasses(): Boolean = !intersects(AFTER_SLOTTED or AFTER_NON_STATEFUL_PSEUDO_ELEMENT)
+    fun allowsTreeStructuralPseudoClasses(): Boolean = !intersects(AFTER_PSEUDO)
+    fun allowsCombinators(): Boolean = !intersects(DISALLOW_COMBINATORS)
+
+    companion object {
+        const val SKIP_DEFAULT_NAMESPACE: UByte = 0b0000_0001u
+        const val AFTER_SLOTTED: UByte = 0b0000_0010u
+        const val AFTER_PART: UByte = 0b0000_0100u
+        const val AFTER_PSEUDO_ELEMENT: UByte = 0b0000_1000u
+        const val AFTER_NON_STATEFUL_PSEUDO_ELEMENT: UByte = 0b0001_0000u
+        val AFTER_PSEUDO: UByte = AFTER_PART or AFTER_SLOTTED or AFTER_PSEUDO_ELEMENT
+
+        const val DISALLOW_COMBINATORS: UByte = 0b0010_0000u
+        const val DISALLOW_PSEUDOS: UByte = 0b0100_0000u
+        const val DISALLOW_RELATIVE_SELECTORS: UByte = 0b1000_0000u
+
+        private val ALL: UByte = SKIP_DEFAULT_NAMESPACE or AFTER_SLOTTED or AFTER_PART or AFTER_PSEUDO_ELEMENT or AFTER_NON_STATEFUL_PSEUDO_ELEMENT or
+                DISALLOW_COMBINATORS or DISALLOW_PSEUDOS or DISALLOW_RELATIVE_SELECTORS
+
+        fun empty(): SelectorParsingState = SelectorParsingState(0u)
+        fun all(): SelectorParsingState = SelectorParsingState(ALL)
+        fun of(value: UByte): SelectorParsingState = SelectorParsingState(value and ALL)
+    }
+}
+
+enum class ParseForgiving {
+    No,
+    Yes,
+}
+
+enum class ParseRelative {
+    No,
+    ForNesting,
+    ForHas,
+}
+
+private fun parseInnerCompoundSelector(
+    context: SelectorParserContext,
+    input: Parser,
+    state: SelectorParsingState,
+): Result<Selector, ParseError> {
+    return parseSelector(
+        context,
+        input,
+        state + SelectorParsingState.DISALLOW_PSEUDOS + SelectorParsingState.DISALLOW_COMBINATORS,
+        ParseRelative.No,
+    )
+}
+
+internal fun parseSelector(
+    context: SelectorParserContext,
+    input: Parser,
+    state: SelectorParsingState,
+    parseRelative: ParseRelative,
+): Result<Selector, ParseError> {
     val builder = SelectorBuilder()
 
-    var hasPseudoElement: Boolean
+    input.skipWhitespace()
 
-    outer@
+    if (parseRelative != ParseRelative.No) {
+        val combinator = tryParseCombinator(input)
+        when (parseRelative) {
+            ParseRelative.ForHas -> {
+                builder.pushSimpleSelector(Component.RelativeSelectorAnchor)
+                builder.pushCombinator(combinator.unwrapOr(Combinator.Descendant))
+            }
+
+            ParseRelative.ForNesting -> {
+                combinator.ifOk {
+                    builder.pushSimpleSelector(Component.ParentSelector)
+                    builder.pushCombinator(it)
+                }
+            }
+
+            else -> error("unreachable")
+        }
+    }
+
     while (true) {
-        val compound = when (val compoundResult = parseCompoundSelector(context, input, builder)) {
+        val empty = when (val compoundResult = parseCompoundSelector(context, input, builder, state)) {
             is Ok -> compoundResult.value
             is Err -> return compoundResult
         }
 
-        if (compound != null) {
-            hasPseudoElement = compound.hasPseudoElement
-        } else {
+        if (empty) {
             return if (builder.hasDanglingCombinator()) {
                 Err(input.newError(SelectorParseErrorKind.DanglingCombinator))
             } else {
-                Err(input.newError(SelectorParseErrorKind.UnknownSelector))
+                Err(input.newError(SelectorParseErrorKind.EmptySelector))
             }
         }
 
-        if (hasPseudoElement) {
+        if (state.intersects(SelectorParsingState.AFTER_PSEUDO)) {
             break
         }
 
-        val combinator: Combinator
-        var seenWhitespace = false
-
-        inner@
-        while (true) {
-            val state = input.state()
-
-            val token = when (val token = input.nextIncludingWhitespace()) {
-                is Ok -> token.value
-                is Err -> break@outer
-            }
-
-            when (token) {
-                is Token.Whitespace -> {
-                    seenWhitespace = true
-                }
-                is Token.Gt -> {
-                    combinator = Combinator.Child
-                    break@inner
-                }
-                is Token.Plus -> {
-                    combinator = Combinator.NextSibling
-                    break@inner
-                }
-                is Token.Tidle -> {
-                    combinator = Combinator.LaterSibling
-                    break@inner
-                }
-                else -> {
-                    input.reset(state)
-                    if (seenWhitespace) {
-                        combinator = Combinator.Descendant
-                        break@inner
-                    } else {
-                        break@outer
-                    }
-                }
-            }
+        val combinator = when (val result = tryParseCombinator(input)) {
+            is Ok -> result.value
+            is Err -> break
         }
+
+        if (!state.allowsCombinators()) {
+            return Err(input.newError(SelectorParseErrorKind.InvalidState))
+        }
+
         builder.pushCombinator(combinator)
     }
 
-    return Ok(builder.build(hasPseudoElement))
+    return Ok(builder.build())
 }
 
-private class ParseResult(val hasPseudoElement: Boolean)
+private fun tryParseCombinator(input: Parser): Result<Combinator, Unit> {
+    var seenWhitespace = false
+    while (true) {
+        val state = input.state()
+        val token = when (val token = input.nextIncludingWhitespace()) {
+            is Ok -> token.value
+            is Err -> return Err()
+        }
+
+        when (token) {
+            is Token.Whitespace -> {
+                seenWhitespace = true
+            }
+
+            is Token.Gt -> return Ok(Combinator.Child)
+            is Token.Plus -> return Ok(Combinator.NextSibling)
+            is Token.Tidle -> return Ok(Combinator.LaterSibling)
+            else -> {
+                input.reset(state)
+                if (seenWhitespace) return Ok(Combinator.Descendant)
+                return Err()
+            }
+        }
+    }
+}
 
 private fun parseCompoundSelector(
     context: SelectorParserContext,
     input: Parser,
     builder: SelectorBuilder,
-): Result<ParseResult?, ParseError> {
+    state: SelectorParsingState,
+): Result<Boolean, ParseError> {
     input.skipWhitespace()
 
     var empty = true
-    var pseudo = false
 
-    when (val typeSelectorResult = parseTypeSelector(context, input, builder::pushSimpleSelector)) {
-        is Ok -> {
-            if (!typeSelectorResult.value) {
-                context.defaultNamespace()?.let {
+    if (parseTypeSelector(context, input, builder::pushSimpleSelector).unwrap { return it }) {
+        empty = false
+    }
+
+    while (true) {
+        val result = parseOneSimpleSelector(context, input, state).unwrap { return it } ?: break
+
+        if (empty) {
+            context.defaultNamespace()?.let {
+                val ignoreDefaultNamespace = state.intersects(SelectorParsingState.SKIP_DEFAULT_NAMESPACE)
+                        || result is SimpleSelectorParseResult.SimpleSelector && result.component is Component.Host
+
+                if (!ignoreDefaultNamespace) {
                     builder.pushSimpleSelector(Component.DefaultNamespace(it))
                 }
-            } else {
-                empty = false
             }
         }
-        is Err -> {
-            return typeSelectorResult
-        }
-    }
 
-    loop@
-    while (true) {
-        val selector = when (val selector = parseOneSimpleSelector(context, input, false)) {
-            is Ok -> selector.value ?: break@loop
-            is Err -> return selector
-        }
+        empty = false
 
-        when (selector) {
+        when (result) {
             is SimpleSelectorParseResult.SimpleSelector -> {
-                builder.pushSimpleSelector(selector.component)
-
-                empty = false
+                builder.pushSimpleSelector(result.component)
             }
+
+            is SimpleSelectorParseResult.PartPseudo -> {
+                state.add(SelectorParsingState.AFTER_PART)
+                builder.pushCombinator(Combinator.Part)
+                builder.pushSimpleSelector(Component.Part(result.names))
+            }
+
+            is SimpleSelectorParseResult.SlottedPseudo -> {
+                state.add(SelectorParsingState.AFTER_SLOTTED)
+                builder.pushCombinator(Combinator.SlotAssignment)
+                builder.pushSimpleSelector(Component.Slotted(result.selector))
+            }
+
             is SimpleSelectorParseResult.PseudoElement -> {
-                val stateSelectors = mutableListOf<Component>()
-
-                inner@
-                while (true) {
-                    var location = input.sourceLocation()
-
-                    var token = when (val token = input.nextIncludingWhitespace()) {
-                        is Ok -> token.value
-                        is Err -> break@inner
-                    }
-
-                    when (token) {
-                        is Token.Whitespace -> break@inner
-                        is Token.Colon -> {
-                        }
-                        else -> {
-                            return Err(location.newError(SelectorParseErrorKind.PseudoElementExpectedColon))
-                        }
-                    }
-
-                    location = input.sourceLocation()
-
-                    token = when (val tokenResult = input.nextIncludingWhitespace()) {
-                        is Ok -> tokenResult.value
-                        is Err -> return tokenResult
-                    }
-
-                    when (token) {
-                        is Token.Identifier -> {
-                            when (val pseudoClassResult = parseNonTSPseudoClass(location, token.name)) {
-                                is Ok -> {
-                                    stateSelectors.add(Component.NonTSPseudoClass(pseudoClassResult.value))
-                                }
-                                is Err -> {
-                                    return pseudoClassResult
-                                }
-                            }
-                        }
-                        else -> {
-                            return Err(location.newError(SelectorParseErrorKind.NoIdentifierForPseudo))
-                        }
-                    }
+                state.add(SelectorParsingState.AFTER_PSEUDO_ELEMENT)
+                if (!result.pseudoElement.acceptsStatePseudoClasses()) {
+                    state.add(SelectorParsingState.AFTER_NON_STATEFUL_PSEUDO_ELEMENT)
                 }
-
-                if (!builder.isEmpty()) {
-                    builder.pushCombinator(Combinator.PseudoElement)
-                }
-
-                builder.pushSimpleSelector(Component.PseudoElement(selector.pseudoElement))
-
-                for (component in stateSelectors) {
-                    builder.pushSimpleSelector(component)
-                }
-
-                empty = false
-                pseudo = true
-
-                break@loop
+                builder.pushCombinator(Combinator.PseudoElement)
+                builder.pushSimpleSelector(Component.PseudoElement(result.pseudoElement))
             }
         }
     }
 
-    return if (empty) {
-        Ok(null)
-    } else {
-        Ok(ParseResult(pseudo))
-    }
+    return Ok(empty)
 }
 
 private sealed class QualifiedNamePrefix {
 
-    object ImplicitNoNamespace : QualifiedNamePrefix()
+    data object ImplicitNoNamespace : QualifiedNamePrefix()
 
-    object ImplicitAnyNamespace : QualifiedNamePrefix()
+    data object ImplicitAnyNamespace : QualifiedNamePrefix()
 
-    class ImplicitDefaultNamespace(val url: NamespaceUrl) : QualifiedNamePrefix()
+    data class ImplicitDefaultNamespace(val url: NamespaceUrl) : QualifiedNamePrefix()
 
-    object ExplicitNoNamespace : QualifiedNamePrefix()
+    data object ExplicitNoNamespace : QualifiedNamePrefix()
 
-    object ExplicitAnyNamespace : QualifiedNamePrefix()
+    data object ExplicitAnyNamespace : QualifiedNamePrefix()
 
-    class ExplicitNamespace(val prefix: NamespacePrefix, val url: NamespaceUrl) : QualifiedNamePrefix()
+    data class ExplicitNamespace(val prefix: NamespacePrefix, val url: NamespaceUrl) : QualifiedNamePrefix()
 }
 
 private sealed class QualifiedName {
 
-    object None : QualifiedName()
+    data object None : QualifiedName()
 
-    class Some(val prefix: QualifiedNamePrefix, val localName: String?) : QualifiedName()
+    data class Some(val prefix: QualifiedNamePrefix, val localName: String?) : QualifiedName()
 }
 
 private fun parseTypeSelector(
@@ -287,6 +300,7 @@ private fun parseTypeSelector(
                         else -> sink(Component.DefaultNamespace(defaultNamespace))
                     }
                 }
+
                 is QualifiedNamePrefix.ExplicitNamespace -> {
                     when (val defaultNamespace = context.defaultNamespace()) {
                         null -> sink(Component.DefaultNamespace(qualifiedName.prefix.url))
@@ -299,6 +313,7 @@ private fun parseTypeSelector(
                         }
                     }
                 }
+
                 else -> {}
             }
 
@@ -314,6 +329,7 @@ private fun parseTypeSelector(
 
             Ok(true)
         }
+
         is QualifiedName.None -> {
             Ok(false)
         }
@@ -360,11 +376,17 @@ private fun parseQualifiedName(
                         null -> {
                             Err(afterIdentState.location().newError(SelectorParseErrorKind.ExpectedNamespace))
                         }
+
                         else -> {
-                            explicitNamespace(input, QualifiedNamePrefix.ExplicitNamespace(prefix, namespace), attributeSelector)
+                            explicitNamespace(
+                                input,
+                                QualifiedNamePrefix.ExplicitNamespace(prefix, namespace),
+                                attributeSelector
+                            )
                         }
                     }
                 }
+
                 else -> {
                     input.reset(afterIdentState)
                     if (attributeSelector) {
@@ -375,6 +397,7 @@ private fun parseQualifiedName(
                 }
             }
         }
+
         is Token.Asterisk -> {
             val afterAsteriskState = input.state()
 
@@ -395,6 +418,7 @@ private fun parseQualifiedName(
                 is Token.Pipe -> {
                     explicitNamespace(input, QualifiedNamePrefix.ExplicitAnyNamespace, attributeSelector)
                 }
+
                 else -> {
                     input.reset(afterAsteriskState)
 
@@ -406,9 +430,11 @@ private fun parseQualifiedName(
                 }
             }
         }
+
         is Token.Pipe -> {
             explicitNamespace(input, QualifiedNamePrefix.ExplicitNoNamespace, attributeSelector)
         }
+
         else -> {
             input.reset(state)
             Ok(QualifiedName.None)
@@ -432,6 +458,7 @@ private fun explicitNamespace(
         is Token.Identifier -> {
             Ok(QualifiedName.Some(prefix, token.name))
         }
+
         is Token.Asterisk -> {
             if (!attributeSelector) {
                 Ok(QualifiedName.Some(prefix, null))
@@ -439,6 +466,7 @@ private fun explicitNamespace(
                 Err(location.newError(SelectorParseErrorKind.InvalidQualifiedNameInAttributeSelector))
             }
         }
+
         else -> {
             if (attributeSelector) {
                 Err(location.newError(SelectorParseErrorKind.InvalidQualifiedNameInAttributeSelector))
@@ -460,119 +488,158 @@ private fun defaultNamespace(context: SelectorParserContext, name: String?): Res
 
 private sealed class SimpleSelectorParseResult {
 
-    class SimpleSelector(val component: Component) : SimpleSelectorParseResult()
-
-    class PseudoElement(val pseudoElement: org.fernice.flare.selector.PseudoElement) : SimpleSelectorParseResult()
+    data class SimpleSelector(val component: Component) : SimpleSelectorParseResult()
+    data class PartPseudo(val names: List<String>) : SimpleSelectorParseResult()
+    data class SlottedPseudo(val selector: Selector) : SimpleSelectorParseResult()
+    data class PseudoElement(val pseudoElement: org.fernice.flare.selector.PseudoElement) : SimpleSelectorParseResult()
 }
 
 private fun parseOneSimpleSelector(
     context: SelectorParserContext,
     input: Parser,
-    negated: Boolean,
+    state: SelectorParsingState,
 ): Result<SimpleSelectorParseResult?, ParseError> {
-    val state = input.state()
-
+    val parseState = input.state()
     val token = when (val token = input.nextIncludingWhitespace()) {
         is Ok -> token.value
         is Err -> {
-            input.reset(state)
+            input.reset(parseState)
             return Ok(null)
         }
     }
 
     when (token) {
         is Token.IdHash -> {
+            if (state.intersects(SelectorParsingState.AFTER_PSEUDO)) {
+                return Err(input.newError(SelectorParseErrorKind.InvalidState))
+            }
+
             val component = Component.ID(token.value)
 
             return Ok(SimpleSelectorParseResult.SimpleSelector(component))
         }
-        is Token.Dot -> {
-            val location = input.sourceLocation()
 
-            val innerToken = when (val innerToken = input.nextIncludingWhitespace()) {
-                is Ok -> innerToken.value
-                is Err -> return innerToken
+        is Token.Ampersand -> {
+            if (state.intersects(SelectorParsingState.AFTER_PSEUDO)) {
+                return Err(input.newError(SelectorParseErrorKind.InvalidState))
             }
 
-            return when (innerToken) {
+            return Ok(SimpleSelectorParseResult.SimpleSelector(Component.ParentSelector))
+        }
+
+        is Token.Dot -> {
+            if (state.intersects(SelectorParsingState.AFTER_PSEUDO)) {
+                return Err(input.newError(SelectorParseErrorKind.InvalidState))
+            }
+
+            val location = input.sourceLocation()
+
+            return when (val nextToken = input.nextIncludingWhitespace().unwrap { return it }) {
                 is Token.Identifier -> {
-                    val component = Component.Class(innerToken.name)
+                    val component = Component.Class(nextToken.name)
 
                     Ok(SimpleSelectorParseResult.SimpleSelector(component))
                 }
+
                 else -> {
                     Err(location.newError(SelectorParseErrorKind.ClassNeedsIdentifier))
                 }
             }
         }
+
         is Token.LBracket -> {
-            return when (val attributeSelector = input.parseNestedBlock { parseAttributeSelector(context, it) }) {
-                is Ok -> Ok(SimpleSelectorParseResult.SimpleSelector(attributeSelector.value))
-                is Err -> attributeSelector
+            if (state.intersects(SelectorParsingState.AFTER_PSEUDO)) {
+                return Err(input.newError(SelectorParseErrorKind.InvalidState))
             }
+            val attributeSelector = input.parseNestedBlock { parseAttributeSelector(context, it) }.unwrap { return it }
+            return Ok(SimpleSelectorParseResult.SimpleSelector(attributeSelector))
         }
+
         is Token.Colon -> {
             val location = input.sourceLocation()
 
-            var innerToken = when (val innerToken = input.nextIncludingWhitespace()) {
-                is Ok -> innerToken.value
-                is Err -> return innerToken
+            val (doubleColon, nextToken) = when (val t = input.nextIncludingWhitespace().unwrap { return it }) {
+                is Token.Colon -> true to input.nextIncludingWhitespace().unwrap { return it }
+                else -> false to t
             }
 
-            val doubleColon = when (innerToken) {
-                is Token.Colon -> {
-                    innerToken = when (val innerTokenResult = input.nextIncludingWhitespace()) {
-                        is Ok -> innerTokenResult.value
-                        is Err -> return innerTokenResult
+            val (name, functional) = when (nextToken) {
+                is Token.Identifier -> nextToken.name to false
+                is Token.Function -> nextToken.name to true
+                else -> return Err(location.newError(SelectorParseErrorKind.PseudoNeedsIdentifier))
+            }
+
+            return if (doubleColon || isCSS2PseudoElement(name)) {
+                if (!state.allowsPseudos()) {
+                    return Err(location.newError(SelectorParseErrorKind.InvalidState))
+                }
+
+                val pseudoElement = if (functional) {
+                    if (name.equals("part", ignoreCase = true)) {
+                        if (!state.allowsPart()) {
+                            return Err(location.newError(SelectorParseErrorKind.InvalidState))
+                        }
+
+                        val names = input.parseNestedBlock { nestedInput ->
+                            val elements = mutableListOf<String>()
+                            elements.add(nestedInput.expectIdentifier().unwrap { return@parseNestedBlock it })
+                            while (!nestedInput.isExhausted()) {
+                                elements.add(nestedInput.expectIdentifier().unwrap { return@parseNestedBlock it })
+                            }
+                            Ok(elements.resized())
+                        }.unwrap { return it }
+
+                        return Ok(SimpleSelectorParseResult.PartPseudo(names))
+                    }
+                    if (name.equals("slotted", ignoreCase = true)) {
+                        if (!state.allowsSlotted()) {
+                            return Err(location.newError(SelectorParseErrorKind.InvalidState))
+                        }
+
+                        val selector = input.parseNestedBlock { nestedInput ->
+                            parseInnerCompoundSelector(context, nestedInput, state)
+                        }.unwrap { return it }
+
+                        return Ok(SimpleSelectorParseResult.SlottedPseudo(selector))
                     }
 
-                    true
-                }
-                else -> {
-                    false
-                }
-            }
-
-            val (name, functional) = when (innerToken) {
-                is Token.Identifier -> {
-                    Pair(innerToken.name, false)
-                }
-                is Token.Function -> {
-                    Pair(innerToken.name, true)
-                }
-                else -> {
-                    return Err(location.newError(SelectorParseErrorKind.PseudoNeedsIdentifier))
-                }
-            }
-
-            return if (doubleColon || context.pseudoElementAllowsSingleColon(name)) {
-                val pseudoElementResult = if (functional) {
-                    input.parseNestedBlock { parseFunctionalPseudoElement(it, location, name) }
+                    input.parseNestedBlock { parseFunctionalPseudoElement(it, location, name) }.unwrap { return it }
                 } else {
-                    parsePseudoElement(location, name)
+                    parsePseudoElement(location, name).unwrap { return it }
                 }
 
-                when (pseudoElementResult) {
-                    is Ok -> Ok(SimpleSelectorParseResult.PseudoElement(pseudoElementResult.value))
-                    is Err -> return pseudoElementResult
+                if (state.intersects(SelectorParsingState.AFTER_SLOTTED) && !pseudoElement.validAfterSlotted()) {
+                    return Err(location.newError(SelectorParseErrorKind.InvalidState))
                 }
+
+                Ok(SimpleSelectorParseResult.PseudoElement(pseudoElement))
             } else {
-                val pseudoClassResult = if (functional) {
-                    input.parseNestedBlock { parseFunctionalPseudoClass(context, it, location, name, negated) }
+                val pseudoClass = if (functional) {
+                    input.parseNestedBlock { parseFunctionalPseudoClass(context, it, location, name, state) }.unwrap { return it }
                 } else {
-                    parsePseudoClass(location, name)
+                    parsePseudoClass(location, name, state).unwrap { return it }
                 }
 
-                when (pseudoClassResult) {
-                    is Ok -> Ok(SimpleSelectorParseResult.SimpleSelector(pseudoClassResult.value))
-                    is Err -> return pseudoClassResult
-                }
+                Ok(SimpleSelectorParseResult.SimpleSelector(pseudoClass))
             }
         }
+
         else -> {
-            input.reset(state)
+            input.reset(parseState)
             return Ok(null)
         }
+    }
+}
+
+private fun isCSS2PseudoElement(name: String): Boolean {
+    return when (name) {
+        "before",
+        "after",
+        "first-letter",
+        "first-line",
+        -> true
+
+        else -> false
     }
 }
 
@@ -592,7 +659,7 @@ private fun parsePseudoElement(location: SourceLocation, name: String): Result<P
         "first-letter" -> Ok(PseudoElement.FirstLetter)
         "first-line" -> Ok(PseudoElement.FirstLine)
         "placeholder" -> Ok(PseudoElement.Placeholder)
-        "icon" -> Ok(PseudoElement.Icon)
+        "icon" -> Ok(PseudoElement.Flare_Icon)
         else -> Err(location.newUnexpectedTokenError(Token.Identifier(name)))
     }
 }
@@ -602,121 +669,204 @@ private fun parseFunctionalPseudoClass(
     input: Parser,
     location: SourceLocation,
     name: String,
-    negated: Boolean,
+    state: SelectorParsingState,
 ): Result<Component, ParseError> {
     return when (name.lowercase()) {
-        "nth-child" -> parseNthPseudoClass(input, Component::NthChild)
-        "nth-of-type" -> parseNthPseudoClass(input, Component::NthOfType)
-        "nth-last-child" -> parseNthPseudoClass(input, Component::NthLastChild)
-        "nth-last-of-type" -> parseNthPseudoClass(input, Component::NthLastOfType)
-        "not" -> {
-            return if (negated) {
-                Err(location.newUnexpectedTokenError(Token.Function(name)))
-            } else {
-                parseNegation(context, input)
+        "nth-child" -> parseNthPseudoClass(context, input, state, NthType.Child)
+        "nth-of-type" -> parseNthPseudoClass(context, input, state, NthType.OfType)
+        "nth-last-child" -> parseNthPseudoClass(context, input, state, NthType.LastChild)
+        "nth-last-of-type" -> parseNthPseudoClass(context, input, state, NthType.LastOfType)
+        "is" -> parseIsOrWhere(context, input, state, Component::Is)
+        "where" -> parseIsOrWhere(context, input, state, Component::Where)
+        "has" -> parseHas(context, input, state)
+        "host" -> {
+            if (!state.allowsTreeStructuralPseudoClasses()) {
+                return Err(input.newError(SelectorParseErrorKind.InvalidState))
             }
+
+            val selector = parseInnerCompoundSelector(context, input, state).unwrap { return it }
+            return Ok(Component.Host(selector))
         }
-        else -> parseNonTSFunctionalPseudoClass(input, location, name).map (Component::NonTSPseudoClass)
+
+        "not" -> parseNegation(context, input, state)
+
+        else -> {
+            if (!state.allowsCustomFunctionalPseudoClasses()) {
+                return Err(input.newError(SelectorParseErrorKind.InvalidState))
+            }
+
+            parseNonTSFunctionalPseudoClass(input, location, name).map(Component::NonTSFPseudoClass)
+        }
     }
 }
 
-private fun parseNthPseudoClass(input: Parser, wrapper: (Nth) -> Component): Result<Component, ParseError> {
-    return when (val nthResult = parseNth(input)) {
-        is Ok -> Ok(wrapper(nthResult.value))
-        is Err -> nthResult
+private fun parseNthPseudoClass(
+    context: SelectorParserContext,
+    input: Parser,
+    state: SelectorParsingState,
+    type: NthType,
+): Result<Component, ParseError> {
+    if (!state.allowsTreeStructuralPseudoClasses()) {
+        return Err(input.newError(SelectorParseErrorKind.InvalidState))
     }
+
+    val (a, b) = parseNth(input).unwrap { return it }
+    val nthData = NthData(type, a, b, isFunction = true)
+
+    if (type.isOfType) {
+        return Ok(Component.Nth(nthData))
+    }
+
+    if (input.tryParse { it.expectIdentifierMatching("of") }.isErr()) {
+        return Ok(Component.Nth(nthData))
+    }
+
+    val selectors = SelectorList.parseWithState(
+        context,
+        input,
+        state + SelectorParsingState.SKIP_DEFAULT_NAMESPACE + SelectorParsingState.DISALLOW_PSEUDOS,
+        ParseForgiving.No,
+        ParseRelative.No,
+    ).unwrap { return it }
+
+    return Ok(Component.Nth(nthData, selectors.selectors))
+}
+
+private fun parseIsOrWhere(
+    context: SelectorParserContext,
+    input: Parser,
+    state: SelectorParsingState,
+    wrapper: (List<Selector>) -> Component,
+): Result<Component, ParseError> {
+    val selectors = SelectorList.parseWithState(
+        context,
+        input,
+        state + SelectorParsingState.SKIP_DEFAULT_NAMESPACE + SelectorParsingState.DISALLOW_PSEUDOS,
+        ParseForgiving.Yes,
+        ParseRelative.No,
+    ).unwrap { return it }
+
+    return Ok(wrapper(selectors.selectors))
+}
+
+private fun parseHas(
+    context: SelectorParserContext,
+    input: Parser,
+    state: SelectorParsingState,
+): Result<Component, ParseError> {
+    if (state.intersects(SelectorParsingState.DISALLOW_RELATIVE_SELECTORS)) {
+        return Err(input.newError(SelectorParseErrorKind.InvalidState))
+    }
+
+    val selectors = SelectorList.parseWithState(
+        context,
+        input,
+        state + SelectorParsingState.SKIP_DEFAULT_NAMESPACE + SelectorParsingState.DISALLOW_PSEUDOS + SelectorParsingState.DISALLOW_RELATIVE_SELECTORS,
+        ParseForgiving.No,
+        ParseRelative.ForHas,
+    ).unwrap { return it }
+
+    return Ok(Component.Has(RelativeSelector.fromSelectorList(selectors)))
 }
 
 private fun parseNonTSFunctionalPseudoClass(
     input: Parser,
     location: SourceLocation,
     name: String,
-): Result<NonTSPseudoClass, ParseError> {
+): Result<NonTSFPseudoClass, ParseError> {
     return when (name.lowercase()) {
         "lang" -> {
             return when (val identifierResult = input.expectIdentifier()) {
-                is Ok -> Ok(NonTSPseudoClass.Lang(identifierResult.value))
+                is Ok -> Ok(NonTSFPseudoClass.Lang(identifierResult.value))
                 is Err -> identifierResult
             }
         }
+
         else -> Err(location.newUnexpectedTokenError(Token.Function(name)))
     }
 }
 
-private fun parsePseudoClass(location: SourceLocation, name: String): Result<Component, ParseError> {
-    return when (name.lowercase()) {
-        "first-child" -> Ok(Component.FirstChild)
-        "last-child" -> Ok(Component.LastChild)
-        "only-child" -> Ok(Component.OnlyChild)
-        "first-of-type" -> Ok(Component.FirstOfType)
-        "last-of-type" -> Ok(Component.LastOfType)
-        "only-of-type" -> Ok(Component.OnlyOfType)
-        "root" -> Ok(Component.Root)
-        "empty" -> Ok(Component.Empty)
-        "scope" -> Ok(Component.Scope)
-        "host" -> Ok(Component.Host)
-        else -> parseNonTSPseudoClass(location, name).map(Component::NonTSPseudoClass)
+private fun parsePseudoClass(
+    location: SourceLocation,
+    name: String,
+    state: SelectorParsingState,
+): Result<Component, ParseError> {
+    if (!state.allowsNonFunctionalPseudoClasses()) {
+        return Err(location.newError(SelectorParseErrorKind.InvalidState))
     }
+
+    if (state.allowsTreeStructuralPseudoClasses()) {
+        when (name.lowercase()) {
+            "first-child" -> return Ok(Component.Nth(NthData.first(ofType = false)))
+            "last-child" -> return Ok(Component.Nth(NthData.last(ofType = false)))
+            "only-child" -> return Ok(Component.Nth(NthData.only(ofType = false)))
+            "first-of-type" -> return Ok(Component.Nth(NthData.first(ofType = true)))
+            "last-of-type" -> return Ok(Component.Nth(NthData.last(ofType = true)))
+            "only-of-type" -> return Ok(Component.Nth(NthData.only(ofType = true)))
+            "root" -> return Ok(Component.Root)
+            "empty" -> return Ok(Component.Empty)
+            "scope" -> return Ok(Component.Scope)
+            "host" -> return Ok(Component.Host(selector = null))
+            else -> {}
+        }
+    }
+
+    val pseudoClass = parseNonTSPseudoClass(location, name).unwrap { return it }
+    if (state.intersects(SelectorParsingState.AFTER_PSEUDO_ELEMENT) && !pseudoClass.isUserActionState()) {
+        return Err(location.newError(SelectorParseErrorKind.InvalidState))
+    }
+    return Ok(Component.NonTSPseudoClass(pseudoClass))
 }
 
 private fun parseNonTSPseudoClass(location: SourceLocation, name: String): Result<NonTSPseudoClass, ParseError> {
     return when (name.lowercase()) {
         "active" -> Ok(NonTSPseudoClass.Active)
         "checked" -> Ok(NonTSPseudoClass.Checked)
+        "autofill" -> Ok(NonTSPseudoClass.Autofill)
         "disabled" -> Ok(NonTSPseudoClass.Disabled)
         "enabled" -> Ok(NonTSPseudoClass.Enabled)
+        "defined" -> Ok(NonTSPseudoClass.Defined)
         "focus" -> Ok(NonTSPseudoClass.Focus)
-        "fullscreen" -> Ok(NonTSPseudoClass.Fullscreen)
+        "focus-visible" -> Ok(NonTSPseudoClass.FocusVisible)
+        "focus-within" -> Ok(NonTSPseudoClass.FocusWithin)
         "hover" -> Ok(NonTSPseudoClass.Hover)
+        "target" -> Ok(NonTSPseudoClass.Target)
         "indeterminate" -> Ok(NonTSPseudoClass.Indeterminate)
-        "link" -> Ok(NonTSPseudoClass.Link)
-        "placeholder-shown" -> Ok(NonTSPseudoClass.PlaceholderShown)
+        "fullscreen" -> Ok(NonTSPseudoClass.Fullscreen)
+        "modal" -> Ok(NonTSPseudoClass.Modal)
+        "optional" -> Ok(NonTSPseudoClass.Optional)
+        "required" -> Ok(NonTSPseudoClass.Required)
+        "valid" -> Ok(NonTSPseudoClass.Valid)
+        "invalid" -> Ok(NonTSPseudoClass.Invalid)
+        "user-valid" -> Ok(NonTSPseudoClass.UserValid)
+        "user-invalid" -> Ok(NonTSPseudoClass.UserInvalid)
+        "in-range" -> Ok(NonTSPseudoClass.InRange)
+        "out-of-range" -> Ok(NonTSPseudoClass.OutOfRange)
         "read-write" -> Ok(NonTSPseudoClass.ReadWrite)
         "read-only" -> Ok(NonTSPseudoClass.ReadOnly)
-        "target" -> Ok(NonTSPseudoClass.Target)
+        "default" -> Ok(NonTSPseudoClass.Default)
+        "placeholder-shown" -> Ok(NonTSPseudoClass.PlaceholderShown)
+        "link" -> Ok(NonTSPseudoClass.Link)
+        "any-link" -> Ok(NonTSPseudoClass.AnyLink)
         "visited" -> Ok(NonTSPseudoClass.Visited)
         else -> Err(location.newUnexpectedTokenError(Token.Identifier(name)))
     }
 }
 
-private fun parseNegation(context: SelectorParserContext, input: Parser): Result<Component, ParseError> {
-    val simpleSelector = mutableListOf<Component>()
+private fun parseNegation(
+    context: SelectorParserContext,
+    input: Parser,
+    state: SelectorParsingState,
+): Result<Component, ParseError> {
+    val selectorList = SelectorList.parseWithState(
+        context,
+        input,
+        state + SelectorParsingState.SKIP_DEFAULT_NAMESPACE + SelectorParsingState.DISALLOW_PSEUDOS,
+        ParseForgiving.No,
+        ParseRelative.No,
+    ).unwrap { return it }
 
-    input.skipWhitespace()
-
-    val parsed = when (val typeSelectorResult = parseTypeSelector(context, input) { simpleSelector.add(it) }) {
-        is Err -> {
-            return if (typeSelectorResult.value.kind == ParseErrorKind.EndOfFile) {
-                Err(input.newError(SelectorParseErrorKind.EmptyNegation))
-            } else {
-                typeSelectorResult
-            }
-        }
-        is Ok -> typeSelectorResult.value
-    }
-
-    if (!parsed) {
-        val selector = when (val selector = parseOneSimpleSelector(context, input, true)) {
-            is Ok -> {
-                when (val option = selector.value) {
-                    null -> return Err(input.newError(SelectorParseErrorKind.EmptyNegation))
-                    else -> option
-                }
-            }
-            is Err -> return selector
-        }
-
-        when (selector) {
-            is SimpleSelectorParseResult.SimpleSelector -> {
-                simpleSelector.add(selector.component)
-            }
-            is SimpleSelectorParseResult.PseudoElement -> {
-                return Err(input.newError(SelectorParseErrorKind.NonSimpleSelectorInNegation))
-            }
-        }
-    }
-
-    return Ok(Component.Negation(simpleSelector))
+    return Ok(Component.Negation(selectorList.selectors))
 }
 
 
@@ -741,6 +891,7 @@ private fun parseAttributeSelector(context: SelectorParserContext, input: Parser
                 is QualifiedNamePrefix.ImplicitAnyNamespace, is QualifiedNamePrefix.ImplicitDefaultNamespace -> error("unreachable")
             }
         }
+
         is QualifiedName.None -> {
             return Err(input.newError(SelectorParseErrorKind.NoQualifiedNameInAttributeSelector))
         }
@@ -856,6 +1007,7 @@ private fun parseAttributeSelectorFlags(input: Parser): Result<Boolean, ParseErr
                 Err(location.newUnexpectedTokenError(token))
             }
         }
+
         else -> Err(location.newUnexpectedTokenError(token))
     }
 }
@@ -923,7 +1075,7 @@ class AncestorIterator private constructor(private val iterator: SelectorIterato
                 val combinator = iterator.nextSequence()
 
                 // stop if as soon as we reach an ancestor compound selector
-                if (combinator is Combinator.Child || combinator is Combinator.Descendant) break
+                if (combinator == Combinator.Child || combinator == Combinator.Descendant) break
             }
         }
     }
@@ -935,7 +1087,7 @@ class AncestorIterator private constructor(private val iterator: SelectorIterato
         // advance the sequence and skip all sibling compound selectors
         if (!iterator.hasNextSequence()) return false
         val combinator = iterator.nextSequence()
-        if (combinator !is Combinator.Child || combinator !is Combinator.Descendant) skipUntilAncestor(iterator)
+        if (combinator != Combinator.Child && combinator != Combinator.Descendant) skipUntilAncestor(iterator)
 
         // reevaluate if there are any remaining components in compound selector
         return iterator.hasNext()

@@ -6,12 +6,7 @@
 package org.fernice.flare.selector
 
 class SelectorParser : SelectorParserContext {
-
     override fun defaultNamespace(): NamespaceUrl? = null
-
     override fun namespacePrefix(prefix: String): NamespacePrefix = NamespacePrefix(prefix)
-
     override fun namespaceForPrefix(prefix: NamespacePrefix): NamespaceUrl = NamespaceUrl(prefix, "unknown")
-
-    override fun pseudoElementAllowsSingleColon(name: String): Boolean = false
 }

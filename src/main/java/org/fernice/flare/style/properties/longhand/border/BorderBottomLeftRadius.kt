@@ -7,7 +7,7 @@ package org.fernice.flare.style.properties.longhand.border
 
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.ParserContext
 import org.fernice.flare.style.properties.AbstractLonghandId
 import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.properties.PropertyDeclarationId

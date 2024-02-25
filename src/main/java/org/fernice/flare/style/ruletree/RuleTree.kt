@@ -5,14 +5,13 @@
  */
 package org.fernice.flare.style.ruletree
 
-import org.fernice.flare.debugAssert
-import org.fernice.flare.style.ApplicableDeclarationBlock
 import org.fernice.flare.style.Importance
 import org.fernice.flare.style.Origin
+import org.fernice.flare.style.StyleSourceAndCascadePriority
 import org.fernice.flare.style.source.StyleSource
+import org.fernice.flare.style.stylesheet.LayerOrder
 import org.fernice.std.Recycler
 import java.lang.ref.WeakReference
-import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -56,9 +55,23 @@ enum class CascadeLevel {
             }
         }
 
-    companion object {
-        val values: List<CascadeLevel> = Collections.unmodifiableList(arrayListOf(*CascadeLevel.values()))
+    fun unimportant(): CascadeLevel {
+        return when (this) {
+            UserAgentNormal, UserAgentImportant -> UserAgentNormal
+            UserNormal, UserImportant -> UserNormal
+            AuthorNormal, AuthorImportant -> AuthorNormal
+        }
+    }
 
+    fun important(): CascadeLevel {
+        return when (this) {
+            UserAgentNormal, UserAgentImportant -> UserAgentImportant
+            UserNormal, UserImportant -> UserImportant
+            AuthorNormal, AuthorImportant -> AuthorImportant
+        }
+    }
+
+    companion object {
         fun of(origin: Origin, importance: Importance): CascadeLevel {
             return when (origin) {
                 Origin.UserAgent -> if (importance == Importance.Important) UserAgentImportant else UserAgentNormal
@@ -69,10 +82,31 @@ enum class CascadeLevel {
     }
 }
 
+data class CascadePriority(
+    val level: CascadeLevel,
+    val layerOrder: LayerOrder,
+) : Comparable<CascadePriority> {
+
+    fun unimportant(): CascadePriority = CascadePriority(level.unimportant(), layerOrder)
+    fun important(): CascadePriority = CascadePriority(level.important(), layerOrder)
+
+    override fun compareTo(other: CascadePriority): Int {
+        val c = level.compareTo(other.level)
+        if (c != 0) return c
+        return layerOrder.compareTo(other.layerOrder)
+    }
+
+    companion object {
+        fun of(level: CascadeLevel, layerOrder: LayerOrder): CascadePriority {
+            return CascadePriority(level, layerOrder)
+        }
+    }
+}
+
 private class ImportantDeclarations {
-    val userAgent: MutableList<ApplicableDeclarationBlock> = arrayListOf()
-    val user: MutableList<ApplicableDeclarationBlock> = arrayListOf()
-    val author: MutableList<ApplicableDeclarationBlock> = arrayListOf()
+    val userAgent: MutableList<StyleSourceAndCascadePriority> = arrayListOf()
+    val user: MutableList<StyleSourceAndCascadePriority> = arrayListOf()
+    val author: MutableList<StyleSourceAndCascadePriority> = arrayListOf()
 }
 
 private val ImportantDeclarationsRecycler = Recycler(
@@ -89,47 +123,47 @@ private const val DORMANT_CYCLES = 1000
 class RuleTree {
     val root: RuleNode = RuleNode.root()
 
-    // TODO add gc mechanism to prevent build up of StyleSource that aren't StyleRules
-
-    fun computedRuleNode(sources: Iterator<StyleSource>): RuleNode {
+    fun computedRuleNode(iterator: Iterator<StyleSourceAndCascadePriority>): RuleNode {
         var current = root
-        var lastOrigin = current.level.origin
+        var lastPriority = current.priority
         var seenImportant = false
 
         val importantDeclarations = ImportantDeclarationsRecycler.acquire()
 
-        for (source in sources) {
-            debugAssert(source.origin >= lastOrigin, "illegal order: ${source.origin} < $lastOrigin")
+        for (element in iterator) {
+            val (source, priority) = element
+            assert(!priority.level.isImportant) { "important level are only allowed internally" }
+            assert(priority >= lastPriority) { "illegal order: $priority < $lastPriority" }
 
             val hasImportant = source.declarations.hasImportant()
             if (hasImportant) {
                 seenImportant = true
 
-                when (source.origin) {
-                    Origin.Author -> importantDeclarations.author.add(source.getApplicableDeclarations(Importance.Important))
-                    Origin.User -> importantDeclarations.user.add(source.getApplicableDeclarations(Importance.Important))
-                    Origin.UserAgent -> importantDeclarations.userAgent.add(source.getApplicableDeclarations(Importance.Important))
+                when (priority.level) {
+                    CascadeLevel.AuthorNormal -> importantDeclarations.author.add(element)
+                    CascadeLevel.UserNormal -> importantDeclarations.user.add(element)
+                    CascadeLevel.UserAgentNormal -> importantDeclarations.userAgent.add(element)
+                    else -> {}
                 }
             }
 
-            current = current.ensureChild(root, source.getApplicableDeclarations(Importance.Normal), CascadeLevel.of(source.origin, Importance.Normal))
-            lastOrigin = source.origin
+            current = current.ensureChild(root, source, priority)
+            lastPriority = priority
         }
 
         if (!seenImportant) {
+            ImportantDeclarationsRecycler.release(importantDeclarations)
             return current
         }
 
-        for (source in importantDeclarations.author) {
-            current = current.ensureChild(root, source, CascadeLevel.AuthorImportant)
+        for ((source, priority) in importantDeclarations.author) {
+            current = current.ensureChild(root, source, priority.important())
         }
-
-        for (source in importantDeclarations.user) {
-            current = current.ensureChild(root, source, CascadeLevel.UserImportant)
+        for ((source, priority) in importantDeclarations.user) {
+            current = current.ensureChild(root, source, priority.important())
         }
-
-        for (source in importantDeclarations.userAgent) {
-            current = current.ensureChild(root, source, CascadeLevel.UserAgentImportant)
+        for ((source, priority) in importantDeclarations.userAgent) {
+            current = current.ensureChild(root, source, priority.important())
         }
 
         ImportantDeclarationsRecycler.release(importantDeclarations)
@@ -160,8 +194,8 @@ private val RULE_NODE_NUMBER_RANGE = AtomicInteger()
 class RuleNode private constructor(
     val root: RuleNode?,
     val parent: RuleNode?,
-    val declarations: WeakReference<ApplicableDeclarationBlock>?,
-    val level: CascadeLevel,
+    val source: WeakReference<StyleSource>?,
+    val priority: CascadePriority,
 ) {
 
     private val firstChildReference = AtomicReference<RuleNode?>()
@@ -172,20 +206,20 @@ class RuleNode private constructor(
 
     fun ensureChild(
         root: RuleNode?,
-        declarations: ApplicableDeclarationBlock,
-        level: CascadeLevel,
+        source: StyleSource,
+        priority: CascadePriority,
     ): RuleNode {
         // Find the last child to append the new node after it
         var lastChild: RuleNode? = firstChildReference.get()
         while (lastChild != null) {
-            val declarationsReference = lastChild.declarations
-            if (declarationsReference != null && declarationsReference.get() == null) {
+            val sourceReference = lastChild.source
+            if (sourceReference != null && sourceReference.get() == null) {
                 gc()
             }
 
             // Check whether we've already inserted the rule to allow
             // for reusing of existing nodes and minimizing the tree
-            if (lastChild.level == level && declarationsReference?.get() == declarations) {
+            if (lastChild.priority == priority && sourceReference?.get() == source) {
                 return lastChild
             }
 
@@ -193,7 +227,7 @@ class RuleNode private constructor(
         }
 
         // We haven't found a preexisting node, create new one
-        val node = RuleNode(root, this, WeakReference(declarations), level)
+        val node = RuleNode(root, this, WeakReference(source), priority)
 
         while (true) {
             // Retrieve the references of the sibling or first child,
@@ -217,12 +251,12 @@ class RuleNode private constructor(
             val next = siblingReference.get()
 
             // Check the appended node on whether we can reuse it
-            if (next?.level == level && next.declarations?.get() == declarations) {
+            if (next?.priority == priority && next.source?.get() == source) {
                 return next
             }
 
             // try again with the new last child
-            lastChild = next
+            lastChild = next ?: lastChild
         }
     }
 
@@ -241,7 +275,7 @@ class RuleNode private constructor(
 
         while (child != null) {
             // contents of this node have unrecoverably vacated, remove the node
-            val declarationsReference = child.declarations
+            val declarationsReference = child.source
             if (declarationsReference != null && declarationsReference.get() == null) {
                 do {
                     // consistency is guarded by the forward reference, find who's referring
@@ -294,7 +328,7 @@ class RuleNode private constructor(
     }
 
     override fun toString(): String {
-        return "RuleNode[$number](source: ${declarations?.get()?.source} level: $level)"
+        return "RuleNode[$number](source: ${source?.get()} level: ${priority.level} layerOrder: ${priority.layerOrder})"
     }
 
     companion object {
@@ -302,8 +336,8 @@ class RuleNode private constructor(
             return RuleNode(
                 root = null,
                 parent = null,
-                declarations = null,
-                level = CascadeLevel.UserAgentNormal,
+                source = null,
+                priority = CascadePriority.of(CascadeLevel.UserAgentNormal, LayerOrder.Root),
             )
         }
     }

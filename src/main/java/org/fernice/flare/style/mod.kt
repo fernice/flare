@@ -5,29 +5,28 @@
  */
 package org.fernice.flare.style
 
-import org.fernice.flare.selector.PSEUDO_COUNT
 import org.fernice.flare.selector.PseudoElement
 
 class PerPseudoElementMap<E> {
 
-    private val entries: Array<Any?> = arrayOfNulls(PSEUDO_COUNT)
+    private val entries: Array<Any?> = arrayOfNulls(PseudoElement.entries.size)
 
     @Suppress("UNCHECKED_CAST")
     fun get(pseudoElement: PseudoElement): E? {
-        return entries[pseudoElement.ordinal()] as E?
+        return entries[pseudoElement.ordinal] as E?
     }
 
     fun set(pseudoElement: PseudoElement, value: E) {
-        entries[pseudoElement.ordinal()] = value
+        entries[pseudoElement.ordinal] = value
     }
 
     @Suppress("UNCHECKED_CAST")
     fun computeIfAbsent(pseudoElement: PseudoElement, insert: () -> E): E {
-        var entry = entries[pseudoElement.ordinal()]
+        var entry = entries[pseudoElement.ordinal]
 
         if (entry == null) {
             entry = insert()
-            entries[pseudoElement.ordinal()] = entry
+            entries[pseudoElement.ordinal] = entry
         }
 
         return entry as E

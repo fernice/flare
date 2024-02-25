@@ -8,9 +8,10 @@ package org.fernice.flare.style.value.specified
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ParserInput
-import org.fernice.flare.style.parser.ParseMode
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.style.Origin
+import org.fernice.flare.style.ParseMode
+import org.fernice.flare.style.ParserContext
+import org.fernice.flare.style.QuirksMode
 import org.fernice.flare.url.Url
 import org.fernice.std.Err
 import org.fernice.std.Ok
@@ -309,7 +310,7 @@ class LengthParseTest {
 
     private inline fun <T> withInput(text: String, parse: (ParserContext, Parser) -> Result<T, ParseError>): T {
         val input = Parser.from(ParserInput(text))
-        val context = ParserContext(ParseMode.Default, QuirksMode.NoQuirks, Url(""))
+        val context = ParserContext.from(Origin.Author, Url(""), ruleType = null, ParseMode.Default, QuirksMode.NoQuirks)
 
         val result = parse(context, input)
 

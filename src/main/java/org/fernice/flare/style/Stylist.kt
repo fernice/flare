@@ -8,35 +8,16 @@ package org.fernice.flare.style
 import org.fernice.flare.dom.Device
 import org.fernice.flare.dom.Element
 import org.fernice.flare.font.FontMetricsProvider
-import org.fernice.flare.selector.AncestorHashes
 import org.fernice.flare.selector.PseudoElement
-import org.fernice.flare.selector.Selector
-import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.flare.style.properties.cascade
 import org.fernice.flare.style.ruletree.RuleTree
-import org.fernice.flare.style.source.StyleRule
-import org.fernice.flare.style.source.StyleSource
-
-class Rule(
-    val selector: Selector,
-    val hashes: AncestorHashes,
-    val sourceOrder: Int,
-    val styleRule: StyleRule,
-) {
-
-    val specificity: Int
-        get() = selector.specificity()
-}
-
-interface StyleCollector {
-    fun collect(style: StyleSource)
-}
 
 class Stylist(
+    device: Device,
     quirksMode: QuirksMode,
 ) {
     val ruleTree = RuleTree()
-    val styleRoot = StyleRoot(quirksMode)
+    val styleRoot = StyleRoot(device, quirksMode)
 
     fun cascadeStyleAndVisited(
         device: Device,

@@ -261,3 +261,9 @@ data class State(
         }
     }
 }
+
+enum class SeenStatus {
+    Ignore,
+    Looking,
+    Seen,
+}

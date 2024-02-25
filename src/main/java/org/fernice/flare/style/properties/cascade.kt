@@ -33,11 +33,11 @@ fun cascade(
     fontMetricsProvider: FontMetricsProvider,
 ): ComputedValues {
     val declarations = ruleNode.selfAndAncestors().flatMap { node ->
-        val level = node.level
+        val level = node.priority.level
 
-        val sequence = when (val declarations = node.declarations?.get()) {
+        val sequence = when (val source = node.source?.get()) {
             null -> emptySequence()
-            else -> declarations.asSequence(reversed = true)
+            else -> source.declarations.asSequence(level.importance, reversed = true)
         }
 
         sequence.map { DeclarationAndCascadeLevel(it, level) }
@@ -168,7 +168,7 @@ class CustomPropertiesListBuilder(
             val (name, value) = declaration.declaration
 
             val origin = level.origin
-            if (reverted.find(origin)?.contains(name) == true) {
+            if (reverted.peek(origin)?.contains(name) == true) {
                 continue
             }
 
@@ -278,7 +278,7 @@ class PropertiesListBuilder(
     private val substitutionCache = SubstitutionCache()
 
     private val seen = LonghandIdSet()
-    private val reverted = PerOrigin<LonghandIdSet>()
+    private val reverted = PerOrigin { LonghandIdSet() }
 
     private val properties = mutableListOf<Pair<LonghandId, PropertyDeclaration>>()
 
@@ -297,7 +297,7 @@ class PropertiesListBuilder(
 
             val origin = level.origin
 
-            if (reverted.find(origin)?.contains(longhandId) == true) {
+            if (reverted.peek(origin)?.contains(longhandId) == true) {
                 continue
             }
 
