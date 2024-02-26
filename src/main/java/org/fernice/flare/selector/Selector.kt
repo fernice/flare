@@ -5,13 +5,7 @@
  */
 package org.fernice.flare.selector
 
-import org.fernice.flare.cssparser.Delimiters
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.ToCss
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.cssparser.toCssJoining
-import org.fernice.flare.cssparser.toCssString
+import org.fernice.flare.cssparser.*
 import org.fernice.flare.panic
 import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.std.*
@@ -593,7 +587,6 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         val selector = mutableListOf<Component>()
         val compoundSelector = mutableListOf<Component>()
 
-        outer@
         while (true) {
             while (iterator.hasNext()) {
                 val next = iterator.next()
@@ -610,10 +603,27 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         return selector.iterator()
     }
 
-    private fun <E> MutableCollection<E>.drain(): List<E> {
-        val list = toList()
-        clear()
-        return list
+    fun iteratorSkipRelativeSelectorAnchor(): SelectorIterator {
+        debug {
+            val iterator = rawIteratorParseOrder()
+            assert(iterator.next() is Component.RelativeSelectorAnchor)
+            assert(iterator.next() is Component.Combinator)
+        }
+        return SelectorIterator(
+            components.dropLast(2),
+        )
+    }
+
+    fun combinatorOfRelativeSelectorAnchor(): Combinator {
+        debug {
+            val iterator = rawIteratorParseOrder()
+            assert(iterator.next() is Component.RelativeSelectorAnchor)
+            assert(iterator.next() is Component.Combinator)
+        }
+        return when (val component = components[components.lastIndex - 1]) {
+            is Component.Combinator -> component.combinator
+            else -> error("not a relative selector")
+        }
     }
 
     override fun toCss(writer: Writer) {
@@ -666,6 +676,32 @@ class SelectorIterator(
     }
 }
 
+class CombinatorIterator private constructor(
+    private val iterator: SelectorIterator,
+) : Iterator<Combinator> {
+
+    override fun hasNext(): Boolean = iterator.hasNextSequence()
+    override fun next(): Combinator {
+        val combinator = iterator.nextSequence()
+        drainNonCombinators()
+        return combinator
+    }
+
+    private fun drainNonCombinators() {
+        while (iterator.hasNext()) {
+            iterator.next()
+        }
+    }
+
+    companion object {
+        fun from(iterator: SelectorIterator): CombinatorIterator {
+            val combinatorIterator = CombinatorIterator(iterator)
+            combinatorIterator.drainNonCombinators()
+            return combinatorIterator
+        }
+    }
+}
+
 enum class RelativeSelectorMatchHint {
     InChild,
     InSubtree,
@@ -675,6 +711,35 @@ enum class RelativeSelectorMatchHint {
     InNextSiblingSubtree,
 }
 
+private class CombinatorComposition(value: UByte) : U8Bitflags(value) {
+
+    override val all: UByte get() = ALL
+
+    companion object {
+        const val DESCENDANTS: UByte = 0b0000_0001u
+        const val SIBLINGS: UByte = 0b0000_0010u
+
+        private val ALL = DESCENDANTS and SIBLINGS
+
+        fun empty(): CombinatorComposition = CombinatorComposition(0u)
+        fun all(): CombinatorComposition = CombinatorComposition(ALL)
+        fun of(value: UByte): CombinatorComposition = CombinatorComposition(value and ALL)
+    }
+}
+
+private fun CombinatorComposition.Companion.forRelativeSelector(selector: Selector): CombinatorComposition {
+    val result = empty()
+    for (combinator in CombinatorIterator.from(selector.iteratorSkipRelativeSelectorAnchor())) {
+        when (combinator) {
+            Combinator.Child, Combinator.Descendant -> result.add(DESCENDANTS)
+            Combinator.NextSibling, Combinator.LaterSibling -> result.add(SIBLINGS)
+            Combinator.Part, Combinator.SlotAssignment, Combinator.PseudoElement -> continue
+        }
+        if (result.isAll()) break
+    }
+    return result
+}
+
 data class RelativeSelector(
     val selector: Selector,
     val matchHint: RelativeSelectorMatchHint,
@@ -682,11 +747,48 @@ data class RelativeSelector(
 
     companion object {
         fun fromSelectorList(selectorList: SelectorList): List<RelativeSelector> {
-            return selectorList.selectors
-                .map { selector ->
-                    // fixme hint
-                    RelativeSelector(selector, RelativeSelectorMatchHint.InChild)
+            return selectorList.selectors.map { selector ->
+                val matchHint = when (selector.combinatorOfRelativeSelectorAnchor()) {
+                    Combinator.Descendant -> RelativeSelectorMatchHint.InSubtree
+                    Combinator.Child -> {
+                        val composition = CombinatorComposition.forRelativeSelector(selector)
+                        if (composition.isEmpty() || composition.bits == CombinatorComposition.SIBLINGS) {
+                            RelativeSelectorMatchHint.InChild
+                        } else {
+                            RelativeSelectorMatchHint.InSubtree
+                        }
+                    }
+
+                    Combinator.NextSibling -> {
+                        val composition = CombinatorComposition.forRelativeSelector(selector)
+                        if (composition.isEmpty()) {
+                            RelativeSelectorMatchHint.InNextSibling
+                        } else if (composition.bits == CombinatorComposition.SIBLINGS) {
+                            RelativeSelectorMatchHint.InSibling
+                        } else if (composition.bits == CombinatorComposition.DESCENDANTS) {
+                            RelativeSelectorMatchHint.InNextSiblingSubtree
+                        } else {
+                            RelativeSelectorMatchHint.InSiblingSubtree
+                        }
+                    }
+
+                    Combinator.LaterSibling -> {
+                        val composition = CombinatorComposition.forRelativeSelector(selector)
+                        if (composition.isEmpty() || composition.bits == CombinatorComposition.SIBLINGS) {
+                            RelativeSelectorMatchHint.InSibling
+                        } else {
+                            RelativeSelectorMatchHint.InSiblingSubtree
+                        }
+                    }
+
+                    Combinator.Part, Combinator.SlotAssignment, Combinator.PseudoElement -> {
+                        assert(false) { "unexpected combinator in relative selector" }
+                        RelativeSelectorMatchHint.InSubtree
+                    }
                 }
+
+                RelativeSelector(selector, matchHint)
+            }
         }
     }
 }

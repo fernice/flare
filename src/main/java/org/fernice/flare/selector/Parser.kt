@@ -46,32 +46,17 @@ sealed class SelectorParseErrorKind : ParseErrorKind() {
 }
 
 interface SelectorParserContext {
-
-    fun pseudoElementAllowsSingleColon(name: String): Boolean
-
     fun defaultNamespace(): NamespaceUrl?
-
     fun namespacePrefix(prefix: String): NamespacePrefix
-
     fun namespaceForPrefix(prefix: NamespacePrefix): NamespaceUrl?
 }
 
-class SelectorParsingState(
-    private var value: Byte,
-) {
+class SelectorParsingState(value: UByte) : U8Bitflags(value) {
 
-    fun add(state: Int) {
-        value = value or state.toByte()
-    }
+    override val all: UByte get() = ALL
 
-    fun remove(state: Int) {
-        value = value and state.toByte().inv()
-    }
-
-    fun intersects(value: Int): Boolean = (this.value.toInt() and value) != 0
-
-    operator fun plus(value: Int): SelectorParsingState = SelectorParsingState(this.value or value.toByte())
-    operator fun minus(value: Int): SelectorParsingState = SelectorParsingState(this.value and value.toByte().inv())
+    operator fun plus(value: UByte): SelectorParsingState = of(this.value or value)
+    operator fun minus(value: UByte): SelectorParsingState = of(this.value and value.inv())
 
     fun allowsPseudos(): Boolean = !intersects(AFTER_PSEUDO_ELEMENT or DISALLOW_PSEUDOS)
     fun allowsSlotted(): Boolean = !intersects(AFTER_PSEUDO or DISALLOW_PSEUDOS)
@@ -82,17 +67,23 @@ class SelectorParsingState(
     fun allowsCombinators(): Boolean = !intersects(DISALLOW_COMBINATORS)
 
     companion object {
-        const val SKIP_DEFAULT_NAMESPACE = 1 shl 0
-        const val AFTER_SLOTTED = 1 shl 1
-        const val AFTER_PART = 1 shl 2
-        const val AFTER_PSEUDO_ELEMENT = 1 shl 3
-        const val AFTER_NON_STATEFUL_PSEUDO_ELEMENT = 1 shl 4
-        const val AFTER_PSEUDO = AFTER_PART or AFTER_SLOTTED or AFTER_PSEUDO_ELEMENT
-        const val DISALLOW_COMBINATORS = 1 shl 5
-        const val DISALLOW_PSEUDOS = 1 shl 6
-        const val DISALLOW_RELATIVE_SELECTORS = 1 shl 7
+        const val SKIP_DEFAULT_NAMESPACE: UByte = 0b0000_0001u
+        const val AFTER_SLOTTED: UByte = 0b0000_0010u
+        const val AFTER_PART: UByte = 0b0000_0100u
+        const val AFTER_PSEUDO_ELEMENT: UByte = 0b0000_1000u
+        const val AFTER_NON_STATEFUL_PSEUDO_ELEMENT: UByte = 0b0001_0000u
+        val AFTER_PSEUDO: UByte = AFTER_PART or AFTER_SLOTTED or AFTER_PSEUDO_ELEMENT
 
-        fun empty(): SelectorParsingState = SelectorParsingState(0)
+        const val DISALLOW_COMBINATORS: UByte = 0b0010_0000u
+        const val DISALLOW_PSEUDOS: UByte = 0b0100_0000u
+        const val DISALLOW_RELATIVE_SELECTORS: UByte = 0b1000_0000u
+
+        private val ALL: UByte = SKIP_DEFAULT_NAMESPACE or AFTER_SLOTTED or AFTER_PART or AFTER_PSEUDO_ELEMENT or AFTER_NON_STATEFUL_PSEUDO_ELEMENT or
+                DISALLOW_COMBINATORS or DISALLOW_PSEUDOS or DISALLOW_RELATIVE_SELECTORS
+
+        fun empty(): SelectorParsingState = SelectorParsingState(0u)
+        fun all(): SelectorParsingState = SelectorParsingState(ALL)
+        fun of(value: UByte): SelectorParsingState = SelectorParsingState(value and ALL)
     }
 }
 

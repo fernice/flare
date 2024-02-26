@@ -5,11 +5,8 @@
  */
 package org.fernice.flare.selector
 
-import org.fernice.flare.debugAssert
+import org.fernice.std.U8Bitflags
 import org.fernice.std.resized
-import kotlin.experimental.and
-import kotlin.experimental.inv
-import kotlin.experimental.or
 import kotlin.math.max
 
 class SelectorBuilder {
@@ -19,7 +16,7 @@ class SelectorBuilder {
     private var currentLength = 0
 
     fun pushSimpleSelector(component: Component) {
-        debugAssert(component !is Component.Combinator, "What is he doing here?")
+        assert(component !is Component.Combinator) { "What is he doing here?" }
 
         simpleSelectors.add(component)
         currentLength += 1
@@ -71,7 +68,7 @@ class SelectorBuilder {
 
 private const val MAX_10_BIT = (1 shl 10) - 1
 
-private class Specificity(
+class Specificity(
     var idSelectors: Int,
     var classLikeSelectors: Int,
     var elementSelectors: Int,
@@ -108,33 +105,51 @@ private class Specificity(
     }
 }
 
-class Flags(
-    private var value: Byte,
-) {
+//class Flags(
+//    private var value: Byte,
+//) {
+//
+//    fun add(flags: Byte) {
+//        value = value or flags
+//    }
+//
+//    fun remove(flags: Byte) {
+//        value = value and flags.inv()
+//    }
+//
+//    fun intersects(flags: Byte): Boolean {
+//        return (value and flags) != 0.toByte()
+//    }
+//
+//    fun toByte(): Byte = value
+//
+//    companion object {
+//        const val HAS_PSEUDO_ELEMENT = (1 shl 0).toByte()
+//        const val HAS_SLOTTED = (1 shl 1).toByte()
+//        const val HAS_PART = (1 shl 2).toByte()
+//        const val HAS_PARENT = (1 shl 3).toByte()
+//
+//        fun default(): Flags = Flags(0)
+//
+//        fun fromByte(value: Byte): Flags = Flags(value)
+//    }
+//}
 
-    fun add(flags: Byte) {
-        value = value or flags
-    }
+class Flags(value: UByte) : U8Bitflags(value) {
 
-    fun remove(flags: Byte) {
-        value = value and flags.inv()
-    }
-
-    fun intersects(flags: Byte): Boolean {
-        return (value and flags) != 0.toByte()
-    }
-
-    fun toByte(): Byte = value
+    override val all: UByte get() = ALL
 
     companion object {
-        const val HAS_PSEUDO_ELEMENT = (1 shl 0).toByte()
-        const val HAS_SLOTTED = (1 shl 1).toByte()
-        const val HAS_PART = (1 shl 2).toByte()
-        const val HAS_PARENT = (1 shl 3).toByte()
+        const val HAS_PSEUDO_ELEMENT: UByte = 0b0000_0001u
+        const val HAS_SLOTTED: UByte = 0b0000_0010u
+        const val HAS_PART: UByte = 0b0000_0100u
+        const val HAS_PARENT: UByte = 0b0000_1000u
 
-        fun default(): Flags = Flags(0)
+        private val ALL = HAS_PSEUDO_ELEMENT or HAS_SLOTTED or HAS_PART or HAS_PARENT
 
-        fun fromByte(value: Byte): Flags = Flags(value)
+        fun empty(): Flags = Flags(0u)
+        fun all(): Flags = Flags(ALL)
+        fun of(value: UByte): Flags = Flags(value and ALL)
     }
 }
 
@@ -144,14 +159,14 @@ private fun specificityAndFlags(iterable: Iterable<Component>): SpecificityAndFl
 
 private fun selectorListSpecificityAndFlags(iterable: Iterable<Selector>): SpecificityAndFlags {
     var specificity = 0
-    val flags = Flags.default()
+    val flags = Flags.empty()
     for (selector in iterable) {
         specificity = max(selector.specificity, specificity)
         if (selector.hasParent) {
             flags.add(Flags.HAS_PARENT)
         }
     }
-    return SpecificityAndFlags(specificity, flags.toByte())
+    return SpecificityAndFlags(specificity, flags.bits)
 }
 
 private fun relativeSelectorListSpecificityAndFlags(iterable: Iterable<RelativeSelector>): SpecificityAndFlags {
@@ -256,20 +271,20 @@ private fun complexSelectorSpecificityAndFlags(iterable: Iterable<Component>): S
     }
 
     val specificity = Specificity.default()
-    val flags = Flags.default()
+    val flags = Flags.empty()
     for (simpleSelector in iterable) {
         simpleSelectorSpecificity(simpleSelector, specificity, flags)
     }
-    return SpecificityAndFlags(specificity.toInt(), flags.toByte())
+    return SpecificityAndFlags(specificity.toInt(), flags.bits)
 }
 
 class SpecificityAndFlags(
     val specificity: Int,
-    val flags: Byte,
+    val flags: UByte,
 ) {
 
-    private fun hasFlags(value: Byte): Boolean {
-        return (flags and value) != 0.toByte()
+    private fun hasFlags(value: UByte): Boolean {
+        return (flags and value) != 0u.toUByte()
     }
 
     val hasPseudoElement: Boolean

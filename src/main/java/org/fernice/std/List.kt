@@ -28,3 +28,9 @@ private class ReversedListSequence<T>(
 fun <E> List<E>.resized(): List<E> {
     return ArrayList(this)
 }
+
+fun <E> MutableCollection<E>.drain(): List<E> {
+    val list = toList()
+    clear()
+    return list
+}

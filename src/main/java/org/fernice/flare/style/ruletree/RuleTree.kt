@@ -5,7 +5,6 @@
  */
 package org.fernice.flare.style.ruletree
 
-import org.fernice.flare.debugAssert
 import org.fernice.flare.style.ApplicableDeclarationBlock
 import org.fernice.flare.style.Importance
 import org.fernice.flare.style.Origin
@@ -99,7 +98,7 @@ class RuleTree {
         val importantDeclarations = ImportantDeclarationsRecycler.acquire()
 
         for (source in sources) {
-            debugAssert(source.origin >= lastOrigin, "illegal order: ${source.origin} < $lastOrigin")
+            assert(source.origin >= lastOrigin) { "illegal order: ${source.origin} < $lastOrigin" }
 
             val hasImportant = source.declarations.hasImportant()
             if (hasImportant) {
