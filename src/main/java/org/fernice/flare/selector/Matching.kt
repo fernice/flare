@@ -6,7 +6,8 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.dom.Element
-import kotlin.math.cos
+import org.fernice.std.checkedDiv
+import org.fernice.std.checkedSub
 
 /**
  * Checks if the [selector] matches the [element]. Performs a fast reject if both the [AncestorHashes]
@@ -32,10 +33,10 @@ internal fun matchesSelector(
 }
 
 /**
- * Performs a fast reject if the any of the [AncestorHashes] is not contained in the bloom filter. This work on
+ * Performs a fast reject if any of the [AncestorHashes] is not contained in the bloom filter. This work on
  * the premise that the AncestorHashes are an excerpt of all relevant components in a selector that match a parent
  * and are hashable. In combination with a [BloomFilter], filled with all corresponding hashes of all parents,
- * a selector can be fast rejected if a ancestor hash is not contained the BloomFilter as that would be the
+ * a selector can be fast rejected if an ancestor hash is not contained the BloomFilter as that would be the
  * requirement for them to match. This optimization does only work for selector that do have a parental combinator.
  */
 private fun mayMatch(hashes: AncestorHashes, bloomFilter: BloomFilter): Boolean {
@@ -255,29 +256,12 @@ private fun matchesSimpleSelector(component: Component, element: Element, contex
         is Component.Host -> false
 
         is Component.Nth -> {
-            val data = component.data
-            if (!data.isFunction) {
-                when (data.type) {
-                    NthType.Forward -> matchesFirstChild(element)
-                    NthType.Backward -> matchesLastChild(element)
-                    NthType.Only -> matchesOnlyChild(element)
-                }
+            if (component.selectors.isEmpty()) {
+                matchesGenericNthChild(element, context, component.data, component.selectors)
             } else {
-                matchesGenericNthChild(element, data.a, data.b, ofType = false, fromEnd = data.type == NthType.Backward)
-            }
-        }
-
-        is Component.NthOfType -> {
-            val data = component.data
-            if (!data.isFunction) {
-                when (data.type) {
-                    NthType.Forward -> matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = false)
-                    NthType.Backward -> matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = true)
-                    NthType.Only -> matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = false) &&
-                            matchesGenericNthChild(element, 0, 1, ofType = true, fromEnd = true)
+                context.nest {
+                    matchesGenericNthChild(element, context, component.data, component.selectors)
                 }
-            } else {
-                matchesGenericNthChild(element, data.a, data.b, ofType = true, fromEnd = data.type == NthType.Backward)
             }
         }
 
@@ -307,46 +291,78 @@ private fun matchesSimpleSelector(component: Component, element: Element, contex
 }
 
 private fun matchesLocalName(element: Element, localName: String, localNameLower: String): Boolean {
-    return element.localName == localName
+    return element.localName == localNameLower
 }
 
-private fun matchesGenericNthChild(element: Element, a: Int, b: Int, ofType: Boolean, fromEnd: Boolean): Boolean {
-    val index = nthChildIndex(element, ofType, fromEnd)
+private fun matchesGenericNthChild(
+    element: Element,
+    context: MatchingContext,
+    nthData: NthData,
+    selectors: List<Selector>,
+): Boolean {
+    val (type, a, b) = nthData
+    val ofType = type.isOfType
+    if (type.isOnly) {
+        return matchesGenericNthChild(element, context, NthData.first(ofType), selectors)
+                && matchesGenericNthChild(element, context, NthData.last(ofType), selectors)
+    }
 
-    val an = index - b
+    val fromEnd = type.isFromEnd
 
-    if (an < 0) {
+    val edgeChildSelector = a == 0 && b == 0 && !ofType && selectors.isEmpty()
+
+    if (selectors.isNotEmpty() && matchesComplexSelectors(selectors, element, context)) {
         return false
     }
 
-    if (a == 0) {
-        return false
+    if (edgeChildSelector) {
+        val sibling = when {
+            fromEnd -> element.nextSibling
+            else -> element.previousSibling
+        }
+        return sibling == null
     }
 
-    val n = an / a
+    val index = nthChildIndex(element, context, selectors, ofType, fromEnd)
 
-    return n >= 0 && n * a == an
+    return when (val an = index.checkedSub(b)) {
+        null -> false
+        else -> when (val n = an.checkedDiv(a)) {
+            null -> an == 0
+            else -> n >= 0 && a * n == an
+        }
+    }
 }
 
-private fun nthChildIndex(element: Element, ofType: Boolean, fromEnd: Boolean): Int {
+private fun nthChildIndex(
+    element: Element,
+    context: MatchingContext,
+    selectors: List<Selector>,
+    ofType: Boolean,
+    fromEnd: Boolean,
+): Int {
     fun next(element: Element): Element? {
-        return if (fromEnd) {
-            element.nextSibling
-        } else {
-            element.previousSibling
+        return when {
+            fromEnd -> element.nextSibling
+            else -> element.previousSibling
         }
     }
 
     var index = 1
     var current = element
 
-    loop@
     while (true) {
         current = next(current) ?: break
 
-        if (!ofType || isSameType(element, current)) {
-            index++
+        val matches = when {
+            ofType -> isSameType(element, current)
+            selectors.isNotEmpty() -> matchesComplexSelectors(selectors, current, context)
+            else -> true
         }
+
+        if (!matches) continue
+
+        index++
     }
 
     return index
@@ -356,16 +372,5 @@ private fun isSameType(element: Element, other: Element): Boolean {
     return element.localName == other.localName && element.namespace == other.namespace
 }
 
-private fun matchesFirstChild(element: Element): Boolean {
-    return element.previousSibling == null
-}
-
-private fun matchesLastChild(element: Element): Boolean {
-    return element.nextSibling == null
-}
-
-private fun matchesOnlyChild(element: Element): Boolean {
-    return element.previousSibling == null && element.nextSibling == null
-}
-
-private fun <E : Any> Iterator<E>.nextOrNull(): E? = if (hasNext()) next() else null
+@Suppress("NOTHING_TO_INLINE")
+private inline fun <E : Any> Iterator<E>.nextOrNull(): E? = if (hasNext()) next() else null

@@ -135,9 +135,12 @@ class Specificity(
 //    }
 //}
 
-class Flags(value: UByte) : U8Bitflags(value) {
+class SelectorFlags(value: UByte) : U8Bitflags(value) {
 
     override val all: UByte get() = ALL
+
+    operator fun plus(value: UByte): SelectorFlags = SelectorFlags.of(this.value or value)
+    operator fun minus(value: UByte): SelectorFlags = SelectorFlags.of(this.value and value.inv())
 
     companion object {
         const val HAS_PSEUDO_ELEMENT: UByte = 0b0000_0001u
@@ -147,55 +150,55 @@ class Flags(value: UByte) : U8Bitflags(value) {
 
         private val ALL = HAS_PSEUDO_ELEMENT or HAS_SLOTTED or HAS_PART or HAS_PARENT
 
-        fun empty(): Flags = Flags(0u)
-        fun all(): Flags = Flags(ALL)
-        fun of(value: UByte): Flags = Flags(value and ALL)
+        fun empty(): SelectorFlags = SelectorFlags(0u)
+        fun all(): SelectorFlags = SelectorFlags(ALL)
+        fun of(value: UByte): SelectorFlags = SelectorFlags(value and ALL)
     }
+}
+
+internal fun selectorListSpecificityAndFlags(iterable: Iterable<Selector>): SpecificityAndFlags {
+    var specificity = 0
+    val flags = SelectorFlags.empty()
+    for (selector in iterable) {
+        specificity = max(selector.specificity, specificity)
+        if (selector.hasParent) {
+            flags.add(SelectorFlags.HAS_PARENT)
+        }
+    }
+    return SpecificityAndFlags(specificity, flags.bits)
+}
+
+internal fun relativeSelectorListSpecificityAndFlags(iterable: Iterable<RelativeSelector>): SpecificityAndFlags {
+    return selectorListSpecificityAndFlags(iterable.map { it.selector })
 }
 
 private fun specificityAndFlags(iterable: Iterable<Component>): SpecificityAndFlags {
     return complexSelectorSpecificityAndFlags(iterable)
 }
 
-private fun selectorListSpecificityAndFlags(iterable: Iterable<Selector>): SpecificityAndFlags {
-    var specificity = 0
-    val flags = Flags.empty()
-    for (selector in iterable) {
-        specificity = max(selector.specificity, specificity)
-        if (selector.hasParent) {
-            flags.add(Flags.HAS_PARENT)
-        }
-    }
-    return SpecificityAndFlags(specificity, flags.bits)
-}
-
-private fun relativeSelectorListSpecificityAndFlags(iterable: Iterable<RelativeSelector>): SpecificityAndFlags {
-    return selectorListSpecificityAndFlags(iterable.map { it.selector })
-}
-
 private fun complexSelectorSpecificityAndFlags(iterable: Iterable<Component>): SpecificityAndFlags {
-    fun simpleSelectorSpecificity(simpleSelector: Component, specificity: Specificity, flags: Flags) {
+    fun simpleSelectorSpecificity(simpleSelector: Component, specificity: Specificity, flags: SelectorFlags) {
         when (simpleSelector) {
             is Component.Combinator -> error("unreachable")
-            is Component.ParentSelector -> flags.add(Flags.HAS_PARENT)
+            is Component.ParentSelector -> flags.add(SelectorFlags.HAS_PARENT)
             is Component.Part -> {
-                flags.add(Flags.HAS_PART)
+                flags.add(SelectorFlags.HAS_PART)
                 specificity.elementSelectors += 1
             }
 
             is Component.PseudoElement -> {
-                flags.add(Flags.HAS_PSEUDO_ELEMENT)
+                flags.add(SelectorFlags.HAS_PSEUDO_ELEMENT)
                 specificity.elementSelectors += 1
             }
 
             is Component.LocalName -> specificity.elementSelectors += 1
             is Component.Slotted -> {
-                flags.add(Flags.HAS_SLOTTED)
+                flags.add(SelectorFlags.HAS_SLOTTED)
                 specificity.elementSelectors += 1
 
                 specificity += Specificity.fromInt(simpleSelector.selector.specificity)
                 if (simpleSelector.selector.hasParent) {
-                    flags.add(Flags.HAS_PARENT)
+                    flags.add(SelectorFlags.HAS_PARENT)
                 }
             }
 
@@ -205,7 +208,7 @@ private fun complexSelectorSpecificityAndFlags(iterable: Iterable<Component>): S
                 if (simpleSelector.selector != null) {
                     specificity += Specificity.fromInt(simpleSelector.selector.specificity)
                     if (simpleSelector.selector.hasParent) {
-                        flags.add(Flags.HAS_PARENT)
+                        flags.add(SelectorFlags.HAS_PARENT)
                     }
                 }
             }
@@ -219,19 +222,20 @@ private fun complexSelectorSpecificityAndFlags(iterable: Iterable<Component>): S
             is Component.Root,
             is Component.Empty,
             is Component.Scope,
-            is Component.Nth,
             is Component.NonTSPseudoClass,
             is Component.NonTSFPseudoClass,
             -> {
                 specificity.classLikeSelectors += 1
             }
 
-            is Component.NthOfType -> {
+            is Component.Nth -> {
                 specificity.classLikeSelectors += 1
 
-                val specificityAndFlags = selectorListSpecificityAndFlags(simpleSelector.selectors)
-                specificity += Specificity.fromInt(specificity.toInt())
-                flags.add(specificityAndFlags.flags)
+                if (simpleSelector.selectors.isNotEmpty()) {
+                    val specificityAndFlags = selectorListSpecificityAndFlags(simpleSelector.selectors)
+                    specificity += Specificity.fromInt(specificity.toInt())
+                    flags.add(specificityAndFlags.flags)
+                }
             }
 
             is Component.Is -> {
@@ -271,7 +275,7 @@ private fun complexSelectorSpecificityAndFlags(iterable: Iterable<Component>): S
     }
 
     val specificity = Specificity.default()
-    val flags = Flags.empty()
+    val flags = SelectorFlags.empty()
     for (simpleSelector in iterable) {
         simpleSelectorSpecificity(simpleSelector, specificity, flags)
     }
@@ -288,14 +292,14 @@ class SpecificityAndFlags(
     }
 
     val hasPseudoElement: Boolean
-        get() = hasFlags(Flags.HAS_PSEUDO_ELEMENT)
+        get() = hasFlags(SelectorFlags.HAS_PSEUDO_ELEMENT)
 
     val hasSlotted: Boolean
-        get() = hasFlags(Flags.HAS_SLOTTED)
+        get() = hasFlags(SelectorFlags.HAS_SLOTTED)
 
     val hasPart: Boolean
-        get() = hasFlags(Flags.HAS_PART)
+        get() = hasFlags(SelectorFlags.HAS_PART)
 
     val hasParent: Boolean
-        get() = hasFlags(Flags.HAS_PARENT)
+        get() = hasFlags(SelectorFlags.HAS_PARENT)
 }

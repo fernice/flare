@@ -61,8 +61,7 @@ sealed class Component : ToCss {
     data object Empty : Component()
     data object Scope : Component()
 
-    data class Nth(val data: NthData) : Component()
-    data class NthOfType(val data: NthData, val selectors: List<Selector> = emptyList()) : Component()
+    data class Nth(val data: NthData, val selectors: List<Selector> = emptyList()) : Component()
 
     data class NonTSPseudoClass(val pseudoClass: org.fernice.flare.selector.NonTSPseudoClass) : Component()
     data class NonTSFPseudoClass(val pseudoClass: org.fernice.flare.selector.NonTSFPseudoClass) : Component()
@@ -180,34 +179,21 @@ sealed class Component : ToCss {
             is Nth -> {
                 if (!data.isFunction) {
                     when (data.type) {
-                        NthType.Forward -> writer.append(":first-child")
-                        NthType.Backward -> writer.append(":last-child")
-                        NthType.Only -> writer.append(":only-child")
+                        NthType.Child -> writer.append(":first-child")
+                        NthType.LastChild -> writer.append(":last-child")
+                        NthType.OnlyChild -> writer.append(":only-child")
+                        NthType.OfType -> writer.append(":first-of-type")
+                        NthType.LastOfType -> writer.append(":last-of-type")
+                        NthType.OnlyOfType -> writer.append(":only-of-type")
                     }
                 } else {
                     when (data.type) {
-                        NthType.Forward -> writer.append(":nth-child")
-                        NthType.Backward -> writer.append(":nth-last-child")
-                        NthType.Only -> error("invalid case")
-                    }
-                    writer.append("(")
-                    writer.appendNth(data.a, data.b)
-                    writer.append(")")
-                }
-            }
-
-            is NthOfType -> {
-                if (!data.isFunction) {
-                    when (data.type) {
-                        NthType.Forward -> writer.append(":first-of-type")
-                        NthType.Backward -> writer.append(":last-of-type")
-                        NthType.Only -> writer.append(":only-of-type")
-                    }
-                } else {
-                    when (data.type) {
-                        NthType.Forward -> writer.append(":nth-of-type")
-                        NthType.Backward -> writer.append(":nth-last-of-type")
-                        NthType.Only -> error("invalid case")
+                        NthType.Child -> writer.append(":nth-child")
+                        NthType.LastChild -> writer.append(":nth-last-child")
+                        NthType.OnlyChild -> error("invalid case")
+                        NthType.OfType -> writer.append(":nth-of-type")
+                        NthType.LastOfType -> writer.append(":nth-last-of-type")
+                        NthType.OnlyOfType -> error("invalid case")
                     }
                     writer.append("(")
                     writer.appendNth(data.a, data.b)
@@ -313,9 +299,30 @@ enum class Combinator : ToCss {
 }
 
 enum class NthType {
-    Forward,
-    Backward,
-    Only,
+    Child,
+    LastChild,
+    OnlyChild,
+    OfType,
+    LastOfType,
+    OnlyOfType;
+
+    val isOfType: Boolean
+        get() = when (this) {
+            OfType, LastOfType, OnlyOfType -> true
+            Child, LastChild, OnlyChild -> false
+        }
+
+    val isOnly: Boolean
+        get() = when (this) {
+            OnlyChild, OnlyOfType -> true
+            Child, LastChild, OfType, LastOfType -> false
+        }
+
+    val isFromEnd: Boolean
+        get() = when (this) {
+            LastChild, LastOfType -> true
+            Child, OnlyChild, OnlyOfType, OfType -> false
+        }
 }
 
 data class NthData(
@@ -326,9 +333,29 @@ data class NthData(
 ) {
 
     companion object {
-        val First = NthData(NthType.Forward, 0, 1, isFunction = false)
-        val Last = NthData(NthType.Backward, 0, 1, isFunction = false)
-        val Only = NthData(NthType.Only, 0, 0, isFunction = false)
+        fun first(ofType: Boolean): NthData {
+            val type = when {
+                ofType -> NthType.OfType
+                else -> NthType.Child
+            }
+            return NthData(type, a = 0, b = 1, isFunction = false)
+        }
+
+        fun last(ofType: Boolean): NthData {
+            val type = when {
+                ofType -> NthType.LastOfType
+                else -> NthType.LastChild
+            }
+            return NthData(type, a = 0, b = 1, isFunction = false)
+        }
+
+        fun only(ofType: Boolean): NthData {
+            val type = when {
+                ofType -> NthType.OnlyOfType
+                else -> NthType.OnlyChild
+            }
+            return NthData(type, a = 0, b = 1, isFunction = false)
+        }
     }
 }
 
@@ -548,6 +575,10 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
         return SelectorIterator(components)
     }
 
+    fun rawIteratorMatchOrder(): Iterator<Component> {
+        return components.iterator()
+    }
+
     /**
      * Returns a raw [Iterator] in parse order. The Iter is not in true parse order meaning the compound selectors are reversed.
      * The sequence of the compound selectors in relation to the combinators are in parse order.
@@ -624,6 +655,153 @@ class Selector(private val header: SpecificityAndFlags, private val components: 
             is Component.Combinator -> component.combinator
             else -> error("not a relative selector")
         }
+    }
+
+    fun replaceParent(parent: List<Selector>): Selector {
+        val flags = SelectorFlags.of(header.flags) - SelectorFlags.HAS_PARENT
+        val specificity = Specificity.fromInt(header.specificity)
+
+        val parentSpecificity = Specificity.fromInt(selectorListSpecificityAndFlags(parent).specificity)
+
+        fun replaceParentOnSelectorList(
+            selectors: List<Selector>,
+            parent: List<Selector>,
+            specificity: Specificity,
+            withSpecificity: Boolean,
+        ): List<Selector> {
+            var any = false
+
+            val result = selectors.map { selector ->
+                if (!selector.hasParent) return@map selector
+
+                any = true
+                selector.replaceParent(parent)
+            }
+
+            if (any && withSpecificity) {
+                specificity += Specificity.fromInt(
+                    selectorListSpecificityAndFlags(result).specificity -
+                            selectorListSpecificityAndFlags(selectors).specificity
+                )
+            }
+
+            return result
+        }
+
+        fun replaceParentOnRelativeSelectorList(
+            relativeSelectors: List<RelativeSelector>,
+            parent: List<Selector>,
+            specificity: Specificity,
+        ): List<RelativeSelector> {
+            var any = false
+
+            val result = relativeSelectors.map { relativeSelector ->
+                if (!relativeSelector.selector.hasParent) return@map relativeSelector
+
+                any = true
+                RelativeSelector(
+                    relativeSelector.selector.replaceParent(parent),
+                    relativeSelector.matchHint,
+                )
+            }
+
+            if (any) {
+                specificity += Specificity.fromInt(
+                    relativeSelectorListSpecificityAndFlags(result).specificity -
+                            relativeSelectorListSpecificityAndFlags(relativeSelectors).specificity
+                )
+            }
+
+            return result
+        }
+
+        fun replaceParentOnSelector(
+            selector: Selector,
+            parent: List<Selector>,
+            specificity: Specificity,
+        ): Selector {
+            if (!selector.hasParent) return selector
+
+            val result = selector.replaceParent(parent)
+            specificity += Specificity.fromInt(result.specificity - selector.specificity)
+            return result
+        }
+
+        val components = if (!hasParent) {
+            specificity += parentSpecificity
+
+            components + listOf(Component.Combinator(Combinator.Descendant), Component.Is(parent))
+        } else {
+            components.map { component ->
+                when (component) {
+                    is Component.LocalName,
+                    is Component.ID,
+                    is Component.Class,
+                    is Component.AttributeInNoNamespace,
+                    is Component.AttributeInNoNamespaceExists,
+                    is Component.AttributeOther,
+                    is Component.ExplicitAnyNamespace,
+                    is Component.ExplicitNoNamespace,
+                    is Component.ExplicitUniversalType,
+                    is Component.DefaultNamespace,
+                    is Component.Namespace,
+                    is Component.Root,
+                    is Component.Empty,
+                    is Component.Scope,
+                    is Component.NonTSFPseudoClass,
+                    is Component.NonTSPseudoClass,
+                    is Component.PseudoElement,
+                    is Component.Combinator,
+                    is Component.Part,
+                    is Component.RelativeSelectorAnchor,
+                    -> component
+
+                    Component.ParentSelector -> {
+                        specificity += parentSpecificity
+                        Component.Is(parent)
+                    }
+
+                    is Component.Negation -> Component.Negation(
+                        replaceParentOnSelectorList(component.selectors, parent, specificity, withSpecificity = true)
+                    )
+
+                    is Component.Is -> Component.Is(
+                        replaceParentOnSelectorList(component.selectors, parent, specificity, withSpecificity = true)
+                    )
+
+                    is Component.Where -> Component.Is(
+                        replaceParentOnSelectorList(component.selectors, parent, specificity, withSpecificity = false)
+                    )
+
+                    is Component.Has -> Component.Has(
+                        replaceParentOnRelativeSelectorList(component.selectors, parent, specificity)
+                    )
+
+                    is Component.Host -> when {
+                        component.selector != null -> Component.Host(
+                            replaceParentOnSelector(component.selector, parent, specificity)
+                        )
+
+                        else -> component
+                    }
+
+                    is Component.Nth -> when {
+                        component.selectors.isNotEmpty() -> Component.Nth(
+                            component.data,
+                            replaceParentOnSelectorList(component.selectors, parent, specificity, withSpecificity = true),
+                        )
+
+                        else -> component
+                    }
+
+                    is Component.Slotted -> Component.Slotted(
+                        replaceParentOnSelector(component.selector, parent, specificity)
+                    )
+                }
+            }
+        }
+
+        return Selector(SpecificityAndFlags(specificity.toInt(), flags.bits), components)
     }
 
     override fun toCss(writer: Writer) {

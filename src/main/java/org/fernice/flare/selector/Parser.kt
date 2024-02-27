@@ -5,19 +5,9 @@
  */
 package org.fernice.flare.selector
 
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.ParseErrorKind
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.SourceLocation
-import org.fernice.flare.cssparser.Token
-import org.fernice.flare.cssparser.newError
-import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.cssparser.parseNth
+import org.fernice.flare.cssparser.*
 import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.std.*
-import kotlin.experimental.and
-import kotlin.experimental.inv
-import kotlin.experimental.or
 
 /**
  * The selector specific error kinds
@@ -110,7 +100,7 @@ private fun parseInnerCompoundSelector(
     )
 }
 
-fun parseSelector(
+internal fun parseSelector(
     context: SelectorParserContext,
     input: Parser,
     state: SelectorParsingState,
@@ -664,10 +654,10 @@ private fun parseFunctionalPseudoClass(
     state: SelectorParsingState,
 ): Result<Component, ParseError> {
     return when (name.lowercase()) {
-        "nth-child" -> parseNthPseudoClass(input, state, NthType.Forward) { Component.Nth(it) }
-        "nth-of-type" -> parseNthPseudoClass(input, state, NthType.Forward) { Component.NthOfType(it) }
-        "nth-last-child" -> parseNthPseudoClass(input, state, NthType.Backward) { Component.Nth(it) }
-        "nth-last-of-type" -> parseNthPseudoClass(input, state, NthType.Backward) { Component.NthOfType(it) }
+        "nth-child" -> parseNthPseudoClass(context, input, state, NthType.Child)
+        "nth-of-type" -> parseNthPseudoClass(context, input, state, NthType.OfType)
+        "nth-last-child" -> parseNthPseudoClass(context, input, state, NthType.LastChild)
+        "nth-last-of-type" -> parseNthPseudoClass(context, input, state, NthType.LastOfType)
         "is" -> parseIsOrWhere(context, input, state, Component::Is)
         "where" -> parseIsOrWhere(context, input, state, Component::Where)
         "has" -> parseHas(context, input, state)
@@ -693,21 +683,35 @@ private fun parseFunctionalPseudoClass(
 }
 
 private fun parseNthPseudoClass(
+    context: SelectorParserContext,
     input: Parser,
     state: SelectorParsingState,
     type: NthType,
-    wrapper: (NthData) -> Component,
 ): Result<Component, ParseError> {
     if (!state.allowsTreeStructuralPseudoClasses()) {
         return Err(input.newError(SelectorParseErrorKind.InvalidState))
     }
 
-    val nth = parseNth(input).unwrap { return it }
-    val nthData = NthData(type, nth.a, nth.b, isFunction = true)
+    val (a, b) = parseNth(input).unwrap { return it }
+    val nthData = NthData(type, a, b, isFunction = true)
 
-    // fixme nth-of <selector>
+    if (type.isOfType) {
+        return Ok(Component.Nth(nthData))
+    }
 
-    return Ok(wrapper(nthData))
+    if (input.tryParse { it.expectIdentifierMatching("of") }.isErr()) {
+        return Ok(Component.Nth(nthData))
+    }
+
+    val selectors = SelectorList.parseWithState(
+        context,
+        input,
+        state + SelectorParsingState.SKIP_DEFAULT_NAMESPACE + SelectorParsingState.DISALLOW_PSEUDOS,
+        ParseForgiving.No,
+        ParseRelative.No,
+    ).unwrap { return it }
+
+    return Ok(Component.Nth(nthData, selectors.selectors))
 }
 
 private fun parseIsOrWhere(
@@ -775,12 +779,12 @@ private fun parsePseudoClass(
 
     if (state.allowsTreeStructuralPseudoClasses()) {
         when (name.lowercase()) {
-            "first-child" -> Ok(Component.Nth(NthData.First))
-            "last-child" -> Ok(Component.Nth(NthData.Last))
-            "only-child" -> Ok(Component.Nth(NthData.Only))
-            "first-of-type" -> Ok(Component.NthOfType(NthData.First))
-            "last-of-type" -> Ok(Component.NthOfType(NthData.Last))
-            "only-of-type" -> Ok(Component.NthOfType(NthData.Only))
+            "first-child" -> Ok(Component.Nth(NthData.first(ofType = false)))
+            "last-child" -> Ok(Component.Nth(NthData.last(ofType = false)))
+            "only-child" -> Ok(Component.Nth(NthData.only(ofType = false)))
+            "first-of-type" -> Ok(Component.Nth(NthData.first(ofType = true)))
+            "last-of-type" -> Ok(Component.Nth(NthData.last(ofType = true)))
+            "only-of-type" -> Ok(Component.Nth(NthData.only(ofType = true)))
             "root" -> Ok(Component.Root)
             "empty" -> Ok(Component.Empty)
             "scope" -> Ok(Component.Scope)
