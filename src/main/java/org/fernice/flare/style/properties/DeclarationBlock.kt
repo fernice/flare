@@ -5,28 +5,18 @@
  */
 package org.fernice.flare.style.properties
 
-import org.fernice.std.Err
-import org.fernice.std.Ok
-import org.fernice.std.Result
-import org.fernice.flare.cssparser.AtRuleParser
-import org.fernice.flare.cssparser.DeclarationListParser
-import org.fernice.flare.cssparser.DeclarationParser
-import org.fernice.flare.cssparser.Delimiters
-import org.fernice.flare.cssparser.ParseError
-import org.fernice.flare.cssparser.ParseErrorKind
-import org.fernice.flare.cssparser.Parser
-import org.fernice.flare.cssparser.parseImportant
+import org.fernice.flare.cssparser.*
+import org.fernice.flare.selector.SelectorList
 import org.fernice.flare.style.Importance
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.stylesheet.AtRulePrelude
+import org.fernice.flare.style.ParserContext
 import org.fernice.logging.FLogging
-import org.fernice.std.asReversedSequence
+import org.fernice.std.*
 import java.util.BitSet
 
-data class PropertyDeclarationBlock(
-    private val declarations: MutableList<PropertyDeclaration> = mutableListOf(),
-    private val importances: BitSet = BitSet(),
-) {
+class PropertyDeclarationBlock {
+
+    private val declarations: MutableList<PropertyDeclaration> = mutableListOf()
+    private val importances: BitSet = BitSet()
 
     fun expand(declarations: List<PropertyDeclaration>, importance: Importance) {
         val index = this.declarations.size
@@ -60,31 +50,31 @@ data class PropertyDeclarationBlock(
         }
     }
 
-    val count: Int get() = declarations.size
+    val size: Int get() = declarations.size
+
+    override fun toString(): String = "PropertyDeclarationBlock[${declarations.size} declarations]"
 
     companion object {
 
-        fun parse(context: ParserContext, input: Parser): PropertyDeclarationBlock {
-            val declarations = mutableListOf<PropertyDeclaration>()
+        fun parsePropertyDeclarationList(
+            context: ParserContext,
+            input: Parser,
+            selectors: List<SelectorList>,
+        ): PropertyDeclarationBlock {
+            val state = DeclarationParserState()
 
-            val parser = PropertyDeclarationParser(context, declarations)
-            val iter = DeclarationListParser(input, parser)
+            val parser = PropertyDeclarationParser(context, state)
+            val iter = RuleBodyParser(input, parser)
 
-            val block = PropertyDeclarationBlock()
-
-            loop@
             while (true) {
-                val result = iter.next() ?: break@loop
-
-                when (result) {
-                    is Ok -> block.expand(declarations, result.value)
-                    is Err -> LOG.warn("declaration parse error: ${result.value.error} '${result.value.slice}'")
+                when (val result = iter.next() ?: break) {
+                    is Ok -> {}
+                    is Err -> state.didError(context, result.value.error, result.value.slice)
                 }
-
-                declarations.clear()
             }
+            state.flushErrors(context, selectors)
 
-            return block
+            return state.takeDeclarations()
         }
     }
 }
@@ -96,35 +86,70 @@ sealed class PropertyParseErrorKind : ParseErrorKind() {
     object UnknownProperty : PropertyParseErrorKind()
 }
 
-class PropertyDeclarationParser(private val context: ParserContext, private val declarations: MutableList<PropertyDeclaration>) :
-    AtRuleParser<AtRulePrelude, Importance>, DeclarationParser<Importance> {
+class PropertyDeclarationParser(
+    private val context: ParserContext,
+    private val state: DeclarationParserState,
+) : RuleBodyItemParser<Unit, Unit, Unit> {
 
-    override fun parseValue(input: Parser, name: String): Result<Importance, ParseError> {
+    override fun parseValue(name: String, input: Parser): Result<Unit, ParseError> {
+        return state.parseValue(context, name, input)
+    }
+
+    override fun shouldParseDeclarations(): Boolean = true
+    override fun shouldParseQualifiedRule(): Boolean = false
+}
+
+class DeclarationParserState {
+    private var declarationBlock = PropertyDeclarationBlock()
+    private val declarations = mutableListOf<PropertyDeclaration>()
+    private var lastParsedPropertyId: PropertyId? = null
+
+    fun parseValue(
+        context: ParserContext,
+        name: String,
+        input: Parser,
+    ): Result<Unit, ParseError> {
         val id = when (val id = PropertyId.parse(name)) {
             is Ok -> id.value
             is Err -> return Err(input.newError(PropertyParseErrorKind.UnknownProperty))
         }
 
-        val parseResult = input.parseUntilBefore(Delimiters.Bang) { parser ->
-            PropertyDeclaration.parseInto(declarations, id, context, parser)
-        }
+        lastParsedPropertyId = id
 
-        if (parseResult is Err) {
-            return parseResult
-        }
+        input.parseUntilBefore(Delimiters.Bang) { nestedInput ->
+            PropertyDeclaration.parseInto(declarations, id, context, nestedInput)
+        }.propagate { return it }
 
         val importance = when (input.tryParse(::parseImportant)) {
             is Ok -> Importance.Important
             is Err -> Importance.Normal
         }
 
-        val exhausted = input.expectExhausted()
+        input.expectExhausted().propagate { return it }
 
-        if (exhausted is Err) {
-            return exhausted
-        }
+        declarationBlock.expand(declarations.drain(), importance)
 
-        return Ok(importance)
+        lastParsedPropertyId = null
+
+        return Ok()
+    }
+
+    fun didError(context: ParserContext, error: ParseError, slice: String) {
+        // TODO
+    }
+
+    fun flushErrors(context: ParserContext, selectors: List<SelectorList>) {
+        // TODO
+    }
+
+    fun hasDeclarations(): Boolean {
+        return declarationBlock.size > 0
+    }
+
+    fun takeDeclarations(): PropertyDeclarationBlock {
+        val declarations = declarationBlock
+        declarationBlock = PropertyDeclarationBlock()
+        return declarations
     }
 }
 

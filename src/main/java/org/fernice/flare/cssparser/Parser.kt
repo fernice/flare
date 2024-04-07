@@ -419,6 +419,24 @@ class Parser private constructor(
     }
 
     /**
+     * Expects the next token to be [Token.LBrace]. Returns [Ok] if the token matches, otherwise returns [Err] of type
+     * [ParseErrorKind.UnexpectedToken].
+     */
+    fun expectBraceBlock(): Result<Unit, ParseError> {
+        val location = sourceLocation()
+
+        val token = when (val token = next()) {
+            is Ok -> token.value
+            is Err -> return token
+        }
+
+        return when (token) {
+            is Token.LBrace -> Ok()
+            else -> Err(location.newUnexpectedTokenError(token))
+        }
+    }
+
+    /**
      * Creates a [ParseError] for the current [SourceLocation] with the specified [kind].
      */
     fun newError(kind: ParseErrorKind): ParseError {
@@ -472,7 +490,7 @@ class Parser private constructor(
         val values = mutableListOf<T>()
 
         while (true) {
-            when (val value = parseUntilBefore(Delimiters.Comma, parse)) {
+            when (val value = parseUntilBefore(Delimiters.Comma, parse = parse)) {
                 is Ok -> values.add(value.value)
                 is Err -> return value
             }
@@ -489,18 +507,25 @@ class Parser private constructor(
      * function is expected to be exhaustive. The nested Parser is delimited by both the specified delimiters and the [Delimiters]
      * imposed on this Parser.
      */
-    fun <T> parseUntilBefore(delimiters: Delimiters, parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
-        val delimitedDelimiters = this.delimiters or delimiters.bits
+    fun <T> parseUntilBefore(
+        delimiters: Delimiters,
+        errorBehavior: ParseUntilErrorBehavior = ParseUntilErrorBehavior.Consume,
+        parse: (Parser) -> Result<T, ParseError>,
+    ): Result<T, ParseError> {
+        val effectiveDelimiters = this.delimiters or delimiters.bits
 
-        val delimitedParser = Parser(tokenizer.clone(), takeBlockType(), delimitedDelimiters)
+        val delimitedParser = Parser(tokenizer.clone(), takeBlockType(), effectiveDelimiters)
 
         val result = delimitedParser.parseEntirely(parse)
+        if (errorBehavior == ParseUntilErrorBehavior.Stop && result.isErr()) {
+            return result
+        }
 
         delimitedParser.blockType?.let { blockType ->
             delimitedParser.tokenizer.consumeUntilEndOfBlock(blockType)
         }
 
-        tokenizer.consumeUntilBefore(delimitedDelimiters)
+        tokenizer.consumeUntilBefore(effectiveDelimiters)
 
         return result
     }
@@ -510,8 +535,15 @@ class Parser private constructor(
      * function is expected to be exhaustive. The nested Parser is delimited by both the specified delimiters and the [Delimiters]
      * imposed on this Parser.
      */
-    fun <T> parseUntilAfter(delimiters: Delimiters, parse: (Parser) -> Result<T, ParseError>): Result<T, ParseError> {
-        val result = parseUntilBefore(delimiters, parse)
+    fun <T> parseUntilAfter(
+        delimiters: Delimiters,
+        errorBehavior: ParseUntilErrorBehavior = ParseUntilErrorBehavior.Consume,
+        parse: (Parser) -> Result<T, ParseError>,
+    ): Result<T, ParseError> {
+        val result = parseUntilBefore(delimiters, errorBehavior, parse)
+        if (errorBehavior == ParseUntilErrorBehavior.Stop && result.isErr()) {
+            return result
+        }
 
         val token = tokenizer.peekToken(1)
 
@@ -556,7 +588,7 @@ class Parser private constructor(
     }
 
     /**
-     * "Atomically" takes the current [BlockType], if present, and replaces it with [None].
+     * "Atomically" takes the current [BlockType], if present, and replaces it with `null`.
      */
     private fun takeBlockType(): BlockType? {
         val blockType = this.blockType
@@ -615,12 +647,6 @@ data class ParserState(internal val state: State, internal val blockType: BlockT
     }
 }
 
-enum class SeenStatus {
-    Ignore,
-    Looking,
-    Seen,
-}
-
 /**
  * Represents an error that occurred during parsing. The error is specified by a [ParseErrorKind] and a [SourceLocation]
  * at which the error occurred.
@@ -652,4 +678,9 @@ abstract class ParseErrorKind {
     object Unknown : ParseErrorKind()
 
     object Unspecified : ParseErrorKind()
+}
+
+enum class ParseUntilErrorBehavior {
+    Consume,
+    Stop,
 }

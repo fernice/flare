@@ -48,7 +48,7 @@ class StyleRootStack(styleRoot: StyleRoot) : Iterable<StyleRoot> {
     private fun push(element: Element) {
         val styleRoot = element.styleRoot
 
-        layers.push(Layer(element, styleRoot))
+        layers.push(Layer(element, styleRoot != null))
         if (styleRoot != null) {
             styleRoots.push(styleRoot)
         }
@@ -56,7 +56,7 @@ class StyleRootStack(styleRoot: StyleRoot) : Iterable<StyleRoot> {
 
     private fun pop() {
         val layer = layers.pop()
-        if (layer.styleRoot != null) {
+        if (layer.hasStyleRoot) {
             styleRoots.pop()
         }
     }
@@ -75,9 +75,7 @@ class StyleRootStack(styleRoot: StyleRoot) : Iterable<StyleRoot> {
         }
     }
 
-    override fun iterator(): Iterator<StyleRoot> {
-        return styleRoots.iterator()
-    }
+    override fun iterator(): Iterator<StyleRoot> = styleRoots.iterator()
 
     fun reversedIterator(): Iterator<StyleRoot> {
         return object : Iterator<StyleRoot> {
@@ -87,6 +85,9 @@ class StyleRootStack(styleRoot: StyleRoot) : Iterable<StyleRoot> {
         }
     }
 
-    private class Layer(val element: Element, val styleRoot: StyleRoot?)
+    fun asSequence(): Sequence<StyleRoot> = styleRoots.asSequence()
+    fun asReversedSequence(): Sequence<StyleRoot> = Sequence { reversedIterator() }
+
+    private class Layer(val element: Element, val hasStyleRoot: Boolean)
 }
 

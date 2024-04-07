@@ -7,7 +7,7 @@ package org.fernice.flare.selector
 
 import org.fernice.flare.cssparser.*
 import org.fernice.flare.panic
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.style.QuirksMode
 import org.fernice.std.*
 import java.io.Writer
 
@@ -985,13 +985,17 @@ class SelectorList(val selectors: List<Selector>) : Iterable<Selector>, ToCss {
 
     companion object {
 
-        fun parse(context: SelectorParserContext, input: Parser): Result<SelectorList, ParseError> {
+        fun parse(
+            context: SelectorParserContext,
+            input: Parser,
+            parseRelative: ParseRelative,
+        ): Result<SelectorList, ParseError> {
             return parseWithState(
                 context,
                 input,
                 SelectorParsingState.empty(),
                 ParseForgiving.No,
-                ParseRelative.No,
+                parseRelative,
             )
         }
 
@@ -1000,13 +1004,13 @@ class SelectorList(val selectors: List<Selector>) : Iterable<Selector>, ToCss {
             input: Parser,
             state: SelectorParsingState,
             recovery: ParseForgiving,
-            mode: ParseRelative,
+            parseRelative: ParseRelative,
         ): Result<SelectorList, ParseError> {
             val selectors = mutableListOf<Selector>()
 
             val forgiving = recovery == ParseForgiving.Yes
             while (true) {
-                when (val selector = input.parseUntilBefore(Delimiters.Comma) { i -> parseSelector(context, i, state, mode) }) {
+                when (val selector = input.parseUntilBefore(Delimiters.Comma) { i -> parseSelector(context, i, state, parseRelative) }) {
                     is Ok -> selectors.add(selector.value)
                     is Err -> if (!forgiving) return selector
                 }

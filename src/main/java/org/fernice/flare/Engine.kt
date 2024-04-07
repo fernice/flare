@@ -12,7 +12,7 @@ import org.fernice.flare.style.ElementStyleResolver
 import org.fernice.flare.style.MatchingResult
 import org.fernice.flare.style.Stylist
 import org.fernice.flare.style.context.StyleContext
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.style.QuirksMode
 
 class Engine(
     val device: Device,

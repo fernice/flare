@@ -13,8 +13,7 @@ import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
 import org.fernice.std.Second
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.properties.LonghandId
+import org.fernice.flare.style.ParserContext
 import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.properties.ShorthandId
 import org.fernice.flare.style.properties.longhand.background.Attachment

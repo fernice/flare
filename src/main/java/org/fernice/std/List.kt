@@ -34,3 +34,9 @@ fun <E> MutableCollection<E>.drain(): List<E> {
     clear()
     return list
 }
+
+fun <E> MutableList<E>.truncate(size: Int) {
+    if (this.size > size){
+        subList(size, this.size)
+    }
+}

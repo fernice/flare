@@ -6,7 +6,7 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.cssparser.*
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.style.QuirksMode
 import org.fernice.std.*
 
 /**
@@ -84,7 +84,8 @@ enum class ParseForgiving {
 
 enum class ParseRelative {
     No,
-    Yes,
+    ForNesting,
+    ForHas,
 }
 
 private fun parseInnerCompoundSelector(
@@ -108,9 +109,25 @@ internal fun parseSelector(
 ): Result<Selector, ParseError> {
     val builder = SelectorBuilder()
 
-    if (parseRelative == ParseRelative.Yes) {
-        builder.pushSimpleSelector(Component.RelativeSelectorAnchor)
-        builder.pushCombinator(parseCombinator(input).unwrapOr(Combinator.Descendant))
+    input.skipWhitespace()
+
+    if (parseRelative != ParseRelative.No) {
+        val combinator = tryParseCombinator(input)
+        when (parseRelative) {
+            ParseRelative.ForHas -> {
+                builder.pushSimpleSelector(Component.RelativeSelectorAnchor)
+                builder.pushCombinator(combinator.unwrapOr(Combinator.Descendant))
+            }
+
+            ParseRelative.ForNesting -> {
+                combinator.ifOk {
+                    builder.pushSimpleSelector(Component.ParentSelector)
+                    builder.pushCombinator(it)
+                }
+            }
+
+            else -> error("unreachable")
+        }
     }
 
     while (true) {
@@ -131,10 +148,11 @@ internal fun parseSelector(
             break
         }
 
-        val combinator = when (val result = parseCombinator(input)) {
+        val combinator = when (val result = tryParseCombinator(input)) {
             is Ok -> result.value
             is Err -> break
         }
+
         if (!state.allowsCombinators()) {
             return Err(input.newError(SelectorParseErrorKind.InvalidState))
         }
@@ -145,7 +163,7 @@ internal fun parseSelector(
     return Ok(builder.build())
 }
 
-private fun parseCombinator(input: Parser): Result<Combinator, Unit> {
+private fun tryParseCombinator(input: Parser): Result<Combinator, Unit> {
     var seenWhitespace = false
     while (true) {
         val state = input.state()
@@ -745,7 +763,7 @@ private fun parseHas(
         input,
         state + SelectorParsingState.SKIP_DEFAULT_NAMESPACE + SelectorParsingState.DISALLOW_PSEUDOS + SelectorParsingState.DISALLOW_RELATIVE_SELECTORS,
         ParseForgiving.No,
-        ParseRelative.Yes,
+        ParseRelative.ForHas,
     ).unwrap { return it }
 
     return Ok(Component.Has(RelativeSelector.fromSelectorList(selectors)))

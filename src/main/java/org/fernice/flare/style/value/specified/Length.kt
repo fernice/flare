@@ -17,9 +17,9 @@ import org.fernice.flare.cssparser.newError
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.font.FontMetricsQueryResult
 import org.fernice.std.trunc
-import org.fernice.flare.style.parser.AllowQuirks
-import org.fernice.flare.style.parser.ClampingMode
-import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.AllowQuirks
+import org.fernice.flare.style.ClampingMode
+import org.fernice.flare.style.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.FontBaseSize
 import org.fernice.flare.style.value.SpecifiedValue

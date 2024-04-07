@@ -82,3 +82,9 @@ inline fun <E : Enum<E>> EnumSet<E>.set(enum: E, set: Boolean): Boolean {
         remove(enum)
     }
 }
+
+fun <E : Enum<E>> EnumSet<E>.with(enum: E): EnumSet<E> {
+    val result = EnumSet.copyOf(this)
+    result.add(enum)
+    return result
+}

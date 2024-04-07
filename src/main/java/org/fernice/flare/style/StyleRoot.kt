@@ -6,14 +6,15 @@
 
 package org.fernice.flare.style
 
+import org.fernice.flare.dom.Device
 import org.fernice.flare.dom.Element
-import org.fernice.flare.selector.AncestorHashes
-import org.fernice.flare.selector.MatchingContext
-import org.fernice.flare.selector.PseudoElement
-import org.fernice.flare.selector.SelectorMap
-import org.fernice.flare.style.parser.QuirksMode
-import org.fernice.flare.style.stylesheet.CssRule
-import org.fernice.flare.style.stylesheet.Stylesheet
+import org.fernice.flare.selector.*
+import org.fernice.flare.style.ruletree.CascadeLevel
+import org.fernice.flare.style.source.StyleRule
+import org.fernice.flare.style.stylesheet.*
+import org.fernice.std.debug
+import org.fernice.std.truncate
+import org.fernice.std.unused
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.withLock
 
@@ -59,32 +60,77 @@ class StyleRoot(val quirksMode: QuirksMode) {
         }
     }
 
-    fun contributeMatchingStyles(
-        origin: Origin,
-        element: Element,
-        pseudoElement: PseudoElement?,
-        context: MatchingContext,
-        collector: StyleCollector,
-    ) {
-        lock.readLock().withLock {
-            cascadeData.get(origin).rules(pseudoElement)?.getAllMatchingRules(
-                element,
-                context,
-                collector,
-            )
+    fun <R> readCascadeData(origin: Origin, block: (CascadeData) -> R): R {
+        return lock.readLock().withLock {
+            block(cascadeData.get(origin))
         }
+    }
+}
+
+class LayerId(val value: Int) {
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is LayerOrder) return false
+
+        if (value != other.value) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return value
+    }
+
+    override fun toString(): String = "LayerId[$value]"
+
+    companion object {
+        val Root = LayerId(0)
+    }
+}
+
+class ContainerConditionId(val value: Int) {
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is LayerOrder) return false
+
+        if (value != other.value) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return value
+    }
+
+    override fun toString(): String = "ContainerConditionId[$value]"
+
+    companion object {
+        val None = ContainerConditionId(0)
     }
 }
 
 class CascadeData {
 
-    private val rules = ElementAndPseudoRules()
+    private val normalRules = ElementAndPseudoRules()
     private var rulesSourceOrder = 0
 
-    fun rebuild(stylesheets: List<Stylesheet>, quirksMode: QuirksMode) {
+    private var numberOfDeclarations = 0
+    private var numberOfSelectors = 0
+
+    fun rebuild(
+        stylesheets: List<Stylesheet>,
+        device: Device,
+        quirksMode: QuirksMode,
+    ) {
         clear()
         for (stylesheet in stylesheets) {
-            insertStylesheet(stylesheet, quirksMode)
+            addStylesheet(
+                stylesheet,
+                device,
+                quirksMode
+            )
         }
     }
 
@@ -101,29 +147,225 @@ class CascadeData {
                             selector,
                             AncestorHashes.fromSelector(selector, quirksMode),
                             rulesSourceOrder,
+                            LayerId.Root,
+                            ContainerConditionId.None,
                             styleRule,
                         )
 
-                        rules.insert(rule, pseudoElement, quirksMode)
+                        normalRules.insert(rule, pseudoElement, quirksMode)
                     }
                     rulesSourceOrder++
                 }
 
-                else -> {
-                }
+                else -> {}
             }
         }
     }
 
-    fun clear() {
-        rules.clear()
-        rulesSourceOrder = 0
+    fun layerOrderFor(layerId: LayerId): LayerOrder {
+        unused(layerId)
+        return LayerOrder.Root
     }
 
-    fun rules(pseudoElement: PseudoElement?): SelectorMap? {
-        return rules.rules(pseudoElement)
+    fun containerConditionMatches(
+        containerConditionId: ContainerConditionId,
+        device: Device,
+        element: Element,
+    ): Boolean {
+        return false
+    }
+
+    fun normalRules(pseudoElement: PseudoElement?): SelectorMap? {
+        return normalRules.rules(pseudoElement)
+    }
+
+    fun addStylesheet(
+        stylesheet: Stylesheet,
+        device: Device,
+        quirksMode: QuirksMode,
+    ) {
+        val containingRuleState = ContainingRuleState.initial()
+        addRuleList(
+            stylesheet.rules.iterator(),
+            device,
+            quirksMode,
+            stylesheet,
+            containingRuleState
+        )
+    }
+
+    private fun addRuleList(
+        rules: Iterator<CssRule>,
+        device: Device,
+        quirksMode: QuirksMode,
+        stylesheet: Stylesheet,
+        containingRuleState: ContainingRuleState,
+    ) {
+        for (rule in rules) {
+            var handled = true
+
+            var selectorsForNestedRules: MutableList<Selector>? = null
+
+            when (rule) {
+                is CssRule.Style -> {
+                    val styleRule = rule.styleRule
+
+                    numberOfDeclarations += styleRule.declarations.size
+
+                    val ancestorSelectors = containingRuleState.ancestorSelectorLists.lastOrNull()
+                    val hasNestedRules = styleRule.rules != null
+                    if (hasNestedRules) {
+                        selectorsForNestedRules = mutableListOf()
+                    }
+
+                    for (selector in styleRule.selectors) {
+                        numberOfSelectors += 1
+
+                        val pseudoElement = selector.pseudoElement
+
+                        val selector = when {
+                            ancestorSelectors != null -> selector.replaceParent(ancestorSelectors.selectors)
+                            else -> selector
+                        }
+
+                        selectorsForNestedRules?.add(selector)
+
+                        val ancestorHashes = AncestorHashes.fromSelector(selector, quirksMode)
+
+                        val rule = Rule(
+                            selector,
+                            ancestorHashes,
+                            rulesSourceOrder,
+                            LayerId.Root,
+                            ContainerConditionId.None,
+                            styleRule,
+                        )
+
+                        normalRules.insert(rule, pseudoElement, quirksMode)
+                    }
+
+                    rulesSourceOrder++
+                    handled = !hasNestedRules
+                }
+                // is CssRule.KeyFrames -> {}
+                // is CssRule.Property -> {}
+                // is CssRule.FontFace -> {}
+                // is CssRule.FontFeatureValues -> {}
+                // is CssRule.FontPaletteValues -> {}
+                // is CssRule.CounterStyle -> {}
+                // is CssRule.Page -> {}
+
+                else -> handled = false
+            }
+
+            if (handled) {
+                debug {
+                    val (children, effective) = RulesIterator.children(
+                        rule,
+                        device,
+                        quirksMode,
+                        EffectiveRules
+                    )
+                    assert(children == null)
+                    assert(effective)
+                }
+                continue
+            }
+
+            val (children, effective) = RulesIterator.children(
+                rule,
+                device,
+                quirksMode,
+                EffectiveRules
+            )
+
+            if (!effective) continue
+
+            val savedContainingRuleState = containingRuleState.save()
+
+            when (rule) {
+                // is CssRule.Import -> {}
+                // is CssRule.Media -> {}
+                // is CssRule.LayerBlock -> {}
+                // is CssRule.LayerStatement -> {}
+                is CssRule.Style -> {
+                    if (selectorsForNestedRules != null) {
+                        containingRuleState.ancestorSelectorLists.add(SelectorList(selectorsForNestedRules))
+                    }
+                }
+                // is CssRule.Container -> {}
+
+                else -> {
+                    // others rules are not inserted
+                }
+            }
+
+            if (children != null) {
+                addRuleList(
+                    children,
+                    device,
+                    quirksMode,
+                    stylesheet,
+                    containingRuleState
+                )
+            }
+
+            containingRuleState.restore(savedContainingRuleState)
+        }
+    }
+
+
+    fun clear() {
+        normalRules.clear()
+        rulesSourceOrder = 0
+        numberOfDeclarations = 0
+        numberOfSelectors = 0
     }
 }
+
+private class ContainingRuleState(
+    var layerName: MutableList<String>,
+    var layerId: LayerId,
+    var containerConditionId: ContainerConditionId,
+    val ancestorSelectorLists: MutableList<SelectorList>,
+) {
+
+    fun save(): SavedContainingRuleState {
+        return SavedContainingRuleState(
+            layerName.size,
+            layerId,
+            containerConditionId,
+            ancestorSelectorLists.size
+        )
+    }
+
+    fun restore(saved: SavedContainingRuleState) {
+        assert(layerName.size >= saved.layerNameSize)
+        assert(ancestorSelectorLists.size >= saved.ancestorSelectorListsSize)
+        layerName.truncate(saved.layerNameSize)
+        layerId = saved.layerId
+        containerConditionId = saved.containerConditionId
+        ancestorSelectorLists.truncate(saved.ancestorSelectorListsSize)
+    }
+
+    companion object {
+        fun initial(): ContainingRuleState {
+            return ContainingRuleState(
+                layerName = mutableListOf(),
+                layerId = LayerId.Root,
+                containerConditionId = ContainerConditionId.None,
+                ancestorSelectorLists = mutableListOf(),
+            )
+        }
+    }
+}
+
+private class SavedContainingRuleState(
+    val layerNameSize: Int,
+    val layerId: LayerId,
+    val containerConditionId: ContainerConditionId,
+    val ancestorSelectorListsSize: Int,
+)
 
 class ElementAndPseudoRules {
 
@@ -155,3 +397,30 @@ class ElementAndPseudoRules {
         }
     }
 }
+
+class Rule(
+    val selector: Selector,
+    val hashes: AncestorHashes,
+    val sourceOrder: Int,
+    val layerId: LayerId,
+    val containerConditionId: ContainerConditionId,
+    val styleRule: StyleRule,
+) {
+
+    val specificity: Int
+        get() = selector.specificity
+
+    fun toApplicableDeclarationBlock(
+        level: CascadeLevel,
+        cascadeData: CascadeData,
+    ): ApplicableDeclarationBlock {
+        return ApplicableDeclarationBlock.from(
+            styleRule,
+            sourceOrder,
+            specificity,
+            level,
+            cascadeData.layerOrderFor(layerId),
+        )
+    }
+}
+

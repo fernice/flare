@@ -5,8 +5,9 @@
  */
 package org.fernice.flare.selector
 
+import org.fernice.flare.dom.Device
 import org.fernice.flare.dom.Element
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.style.QuirksMode
 
 enum class VisitedHandlingMode {
     AllLinksUnvisited,
@@ -14,6 +15,7 @@ enum class VisitedHandlingMode {
 }
 
 class MatchingContext(
+    val device: Device,
     val bloomFilter: BloomFilter?,
     val quirksMode: QuirksMode,
     var visitedHandling: VisitedHandlingMode,

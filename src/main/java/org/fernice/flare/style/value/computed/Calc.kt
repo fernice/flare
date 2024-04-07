@@ -5,7 +5,7 @@
  */
 package org.fernice.flare.style.value.computed
 
-import org.fernice.flare.style.parser.ClampingMode
+import org.fernice.flare.style.ClampingMode
 import org.fernice.flare.style.value.ComputedValue
 
 data class CalcLengthOrPercentage(
