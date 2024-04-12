@@ -6,14 +6,7 @@
 
 package org.fernice.flare.style.stylesheet
 
-import java.util.EnumSet
-
-enum class CssRuleType {
-    Style,
-    Media,
-}
-
-typealias CssRuleTypes = EnumSet<CssRuleType>
-
-fun CssRuleTypes(): CssRuleTypes = EnumSet.noneOf(CssRuleType::class.java)
-
+class MediaRule(
+    val condition: EffectiveCondition,
+    val rules: List<CssRule>,
+)

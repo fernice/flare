@@ -7,7 +7,6 @@ package org.fernice.flare.selector
 
 import org.fernice.flare.dom.Element
 import org.fernice.flare.style.*
-import org.fernice.flare.style.QuirksMode
 import org.fernice.flare.style.ruletree.CascadeLevel
 
 /**
@@ -90,6 +89,10 @@ class SelectorMap {
         matchingRules: ApplicableDeclarationList,
     ) {
         for (rule in rules) {
+            if (rule.condition != null && !rule.condition.matches(context.device, context.quirksMode, context.ruleConditionCache).toBoolean(unknown = false)) {
+                continue
+            }
+
             if (!matchesSelector(rule.selector, rule.hashes, element, context)) {
                 continue
             }

@@ -18,7 +18,7 @@ import org.fernice.std.unused
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.withLock
 
-class StyleRoot(val quirksMode: QuirksMode) {
+class StyleRoot(val device: Device, val quirksMode: QuirksMode) {
 
     private val lock = ReentrantReadWriteLock()
 
@@ -29,7 +29,7 @@ class StyleRoot(val quirksMode: QuirksMode) {
         lock.writeLock().withLock {
             stylesheets.get(stylesheet.origin).add(stylesheet)
 
-            cascadeData.get(stylesheet.origin).insertStylesheet(stylesheet, quirksMode)
+            cascadeData.get(stylesheet.origin).addStylesheet(stylesheet, device, quirksMode)
         }
     }
 
@@ -46,7 +46,7 @@ class StyleRoot(val quirksMode: QuirksMode) {
             // operation down to the origin modified
             val collection = stylesheets.get(stylesheet.origin)
 
-            cascadeData.get(stylesheet.origin).rebuild(collection, quirksMode)
+            cascadeData.get(stylesheet.origin).rebuild(collection, device, quirksMode)
         }
     }
 
@@ -55,7 +55,7 @@ class StyleRoot(val quirksMode: QuirksMode) {
             for (origin in Origin.entries) {
                 val collection = stylesheets.get(origin)
 
-                cascadeData.get(origin).rebuild(collection, quirksMode)
+                cascadeData.get(origin).rebuild(collection, device, quirksMode)
             }
         }
     }
@@ -134,34 +134,6 @@ class CascadeData {
         }
     }
 
-    fun insertStylesheet(stylesheet: Stylesheet, quirksMode: QuirksMode) {
-        for (stylesheetRule in stylesheet.rules) {
-            when (stylesheetRule) {
-                is CssRule.Style -> {
-                    val styleRule = stylesheetRule.styleRule
-
-                    for (selector in styleRule.selectors) {
-                        val pseudoElement = selector.pseudoElement
-
-                        val rule = Rule(
-                            selector,
-                            AncestorHashes.fromSelector(selector, quirksMode),
-                            rulesSourceOrder,
-                            LayerId.Root,
-                            ContainerConditionId.None,
-                            styleRule,
-                        )
-
-                        normalRules.insert(rule, pseudoElement, quirksMode)
-                    }
-                    rulesSourceOrder++
-                }
-
-                else -> {}
-            }
-        }
-    }
-
     fun layerOrderFor(layerId: LayerId): LayerOrder {
         unused(layerId)
         return LayerOrder.Root
@@ -172,6 +144,9 @@ class CascadeData {
         device: Device,
         element: Element,
     ): Boolean {
+        unused(containerConditionId)
+        unused(device)
+        unused(element)
         return false
     }
 
@@ -187,6 +162,7 @@ class CascadeData {
         val containingRuleState = ContainingRuleState.initial()
         addRuleList(
             stylesheet.rules.iterator(),
+            parentCondition = null,
             device,
             quirksMode,
             stylesheet,
@@ -196,6 +172,7 @@ class CascadeData {
 
     private fun addRuleList(
         rules: Iterator<CssRule>,
+        parentCondition: RuleCondition?,
         device: Device,
         quirksMode: QuirksMode,
         stylesheet: Stylesheet,
@@ -233,6 +210,7 @@ class CascadeData {
                         val ancestorHashes = AncestorHashes.fromSelector(selector, quirksMode)
 
                         val rule = Rule(
+                            parentCondition,
                             selector,
                             ancestorHashes,
                             rulesSourceOrder,
@@ -264,10 +242,10 @@ class CascadeData {
                         rule,
                         device,
                         quirksMode,
-                        EffectiveRules
+                        PotentiallyEffectiveRules
                     )
                     assert(children == null)
-                    assert(effective)
+                    assert(effective == Effective.True)
                 }
                 continue
             }
@@ -276,16 +254,17 @@ class CascadeData {
                 rule,
                 device,
                 quirksMode,
-                EffectiveRules
+                PotentiallyEffectiveRules,
             )
 
-            if (!effective) continue
+            if (effective == Effective.False) continue
 
             val savedContainingRuleState = containingRuleState.save()
-
             when (rule) {
                 // is CssRule.Import -> {}
-                // is CssRule.Media -> {}
+                is CssRule.Media -> {
+
+                }
                 // is CssRule.LayerBlock -> {}
                 // is CssRule.LayerStatement -> {}
                 is CssRule.Style -> {
@@ -301,8 +280,18 @@ class CascadeData {
             }
 
             if (children != null) {
+                val condition = when (effective) {
+                    is Effective.Indeterminable -> when {
+                        parentCondition != null -> parentCondition.derive(effective.condition)
+                        else -> RuleCondition(effective.condition)
+                    }
+
+                    else -> parentCondition
+                }
+
                 addRuleList(
                     children,
+                    condition,
                     device,
                     quirksMode,
                     stylesheet,
@@ -313,7 +302,6 @@ class CascadeData {
             containingRuleState.restore(savedContainingRuleState)
         }
     }
-
 
     fun clear() {
         normalRules.clear()
@@ -399,6 +387,7 @@ class ElementAndPseudoRules {
 }
 
 class Rule(
+    val condition: RuleCondition?,
     val selector: Selector,
     val hashes: AncestorHashes,
     val sourceOrder: Int,

@@ -31,10 +31,12 @@ sealed class AtRulePrelude {
 sealed class CssRule {
 
     data class Style(val styleRule: StyleRule) : CssRule()
+    data class Media(val mediaRule: MediaRule) : CssRule()
 
     override fun toString(): String {
         return when (this) {
             is Style -> "CssRule::Style($styleRule)"
+            is Media -> "CssRule::Media($mediaRule)"
         }
     }
 }

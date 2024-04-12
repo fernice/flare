@@ -8,6 +8,10 @@ package org.fernice.flare.selector
 import org.fernice.flare.dom.Device
 import org.fernice.flare.dom.Element
 import org.fernice.flare.style.QuirksMode
+import org.fernice.flare.style.stylesheet.RuleCondition
+import org.fernice.flare.style.stylesheet.RuleConditionCache
+import org.fernice.std.Kleenean
+import java.util.IdentityHashMap
 
 enum class VisitedHandlingMode {
     AllLinksUnvisited,
@@ -19,6 +23,7 @@ class MatchingContext(
     val bloomFilter: BloomFilter?,
     val quirksMode: QuirksMode,
     var visitedHandling: VisitedHandlingMode,
+    val ruleConditionCache: RuleConditionCache?,
 ) {
     var nestingLevel: Int = 0
     var inNegation: Boolean = false

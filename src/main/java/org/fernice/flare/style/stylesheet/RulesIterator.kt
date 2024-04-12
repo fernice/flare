@@ -8,6 +8,7 @@ package org.fernice.flare.style.stylesheet
 
 import org.fernice.flare.dom.Device
 import org.fernice.flare.style.QuirksMode
+import org.fernice.std.Kleenean
 import java.util.*
 
 class RulesIterator<C : NestedRuleIterationCondition>(
@@ -31,7 +32,7 @@ class RulesIterator<C : NestedRuleIterationCondition>(
             val rule = iterator.next()
 
             val (children, effective) = children(rule, device, quirksMode, condition)
-            if (!effective) continue
+            if (effective != Effective.True) continue
 
             if (children != null) {
                 stack.push(children)
@@ -69,16 +70,74 @@ class RulesIterator<C : NestedRuleIterationCondition>(
             device: Device,
             quirksMode: QuirksMode,
             condition: NestedRuleIterationCondition,
-        ): Pair<Iterator<CssRule>?, Boolean> {
+        ): Pair<Iterator<CssRule>?, Effective> {
             return when (rule) {
                 is CssRule.Style -> {
-                    rule.styleRule.rules?.iterator() to true
+                    rule.styleRule.rules?.iterator() to Effective.True
+                }
+
+                is CssRule.Media -> {
+                    val effective = condition.isMediaEffective(rule.mediaRule, device, quirksMode)
+                    if (effective == Effective.False) {
+                        return null to Effective.False
+                    }
+                    rule.mediaRule.rules.iterator() to effective
                 }
             }
         }
     }
 }
 
-interface NestedRuleIterationCondition
+interface NestedRuleIterationCondition {
+    fun isMediaEffective(
+        rule: MediaRule,
+        device: Device,
+        quirksMode: QuirksMode,
+    ): Effective
+}
 
-object EffectiveRules : NestedRuleIterationCondition
+object EffectiveRules : NestedRuleIterationCondition {
+    override fun isMediaEffective(
+        rule: MediaRule,
+        device: Device,
+        quirksMode: QuirksMode,
+    ): Effective {
+        return when (rule.condition.matches(device, quirksMode)) {
+            Kleenean.True -> Effective.True
+            else -> Effective.False
+        }
+    }
+}
+
+object PotentiallyEffectiveRules : NestedRuleIterationCondition {
+    override fun isMediaEffective(
+        rule: MediaRule,
+        device: Device,
+        quirksMode: QuirksMode,
+    ): Effective {
+        return when (rule.condition.matches(device, quirksMode)) {
+            Kleenean.True -> Effective.True
+            Kleenean.False -> Effective.False
+            Kleenean.Unknown -> Effective.Indeterminable(rule.condition)
+        }
+    }
+}
+
+
+sealed class Effective {
+    data object True : Effective()
+    data object False : Effective()
+    data class Indeterminable(val condition: EffectiveCondition) : Effective()
+}
+
+interface EffectiveCondition {
+
+    /**
+     * Returns whether the condition is effective. [Kleenean.Unknown] is returned, if the
+     * condition is indeterminable for the given parameters.
+     */
+    fun matches(
+        device: Device,
+        quirksMode: QuirksMode,
+    ): Kleenean
+}
