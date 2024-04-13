@@ -5,10 +5,10 @@
  */
 package org.fernice.flare.style
 
-import org.fernice.flare.style.properties.PropertyDeclaration
 import org.fernice.flare.style.ruletree.CascadeLevel
 import org.fernice.flare.style.ruletree.CascadePriority
 import org.fernice.flare.style.source.StyleSource
+import org.fernice.flare.style.stylesheet.LayerOrder
 
 typealias ApplicableDeclarationList = MutableList<ApplicableDeclarationBlock>
 

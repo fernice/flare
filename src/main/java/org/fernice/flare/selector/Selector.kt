@@ -819,21 +819,19 @@ class SelectorIterator(
     private var combinator: Combinator? = null,
 ) : Iterator<Component> {
 
-    override fun hasNext(): Boolean = combinator == null && index < components.size
-
-    override fun next(): Component {
-        if (combinator != null) throw NoSuchElementException("end of sequence")
-
-        val next = components[index++]
-
+    override fun hasNext(): Boolean {
         if (index < components.size) {
             val component = components[index]
             if (component is Component.Combinator) {
                 combinator = component.combinator
             }
         }
+        return combinator == null && index < components.size
+    }
 
-        return next
+    override fun next(): Component {
+        if (!hasNext()) throw NoSuchElementException("end of sequence")
+        return components[index++]
     }
 
     fun hasNextSequence(): Boolean = combinator != null || hasNext()

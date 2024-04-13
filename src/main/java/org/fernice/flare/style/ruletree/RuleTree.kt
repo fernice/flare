@@ -5,8 +5,11 @@
  */
 package org.fernice.flare.style.ruletree
 
-import org.fernice.flare.style.*
+import org.fernice.flare.style.Importance
+import org.fernice.flare.style.Origin
+import org.fernice.flare.style.StyleSourceAndCascadePriority
 import org.fernice.flare.style.source.StyleSource
+import org.fernice.flare.style.stylesheet.LayerOrder
 import org.fernice.std.Recycler
 import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicBoolean

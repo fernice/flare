@@ -127,15 +127,15 @@ class LonghandIdSet : AbstractMutableSet<LonghandId>() {
     private val storage = LongArray((allocation + 63) ushr 6)
 
     private fun get(ordinal: Int): Boolean {
-        val bin = ordinal % 64
-        val bit = ordinal / 64
+        val bin = ordinal / 64
+        val bit = ordinal % 64
         val bits = storage[bin]
         return (bits and (1L shl bit)) != 0L
     }
 
     private fun set(ordinal: Int): Boolean {
-        val bin = ordinal % 64
-        val bit = ordinal / 64
+        val bin = ordinal / 64
+        val bit = ordinal % 64
         val bits = storage[bin]
         if ((bits and (1L shl bit)) == 0L) {
             storage[bin] = bits or (1L shl bit)
@@ -145,8 +145,8 @@ class LonghandIdSet : AbstractMutableSet<LonghandId>() {
     }
 
     private fun clear(ordinal: Int): Boolean {
-        val bin = ordinal % 64
-        val bit = ordinal / 64
+        val bin = ordinal / 64
+        val bit = ordinal % 64
         val bits = storage[bin]
         if ((bits and (1L shl bit)) != 0L) {
             storage[bin] = bits and (1L shl bit).inv()

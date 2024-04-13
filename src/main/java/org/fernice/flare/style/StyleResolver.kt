@@ -9,7 +9,6 @@ import org.fernice.flare.dom.Element
 import org.fernice.flare.dom.ElementStyles
 import org.fernice.flare.selector.MatchingContext
 import org.fernice.flare.selector.PseudoElement
-import org.fernice.flare.selector.SimpleRuleConditionCache
 import org.fernice.flare.selector.VisitedHandlingMode
 import org.fernice.flare.style.context.StyleContext
 import org.fernice.flare.style.ruletree.RuleNode

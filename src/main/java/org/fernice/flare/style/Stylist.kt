@@ -13,10 +13,11 @@ import org.fernice.flare.style.properties.cascade
 import org.fernice.flare.style.ruletree.RuleTree
 
 class Stylist(
+    device: Device,
     quirksMode: QuirksMode,
 ) {
     val ruleTree = RuleTree()
-    val styleRoot = StyleRoot(quirksMode)
+    val styleRoot = StyleRoot(device, quirksMode)
 
     fun cascadeStyleAndVisited(
         device: Device,

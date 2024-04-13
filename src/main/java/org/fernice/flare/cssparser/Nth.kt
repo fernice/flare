@@ -32,22 +32,22 @@ internal fun parseNth(input: Parser): Result<Nth, ParseError> {
         is Token.Number -> {
             Ok(Nth(0, token.number.int()))
         }
+
         is Token.Dimension -> {
             when (val unit = token.unit.lowercase()) {
                 "n" -> parseB(input, token.number.int())
                 "n-" -> parseSignlessB(input, token.number.int(), -1)
                 else -> {
-                    val digitsResult = parseDashDigits(unit)
-
-                    when (digitsResult) {
+                    when (val digitsResult = parseDashDigits(unit)) {
                         is Ok -> Ok(Nth(token.number.int(), digitsResult.value))
                         is Err -> Err(location.newUnexpectedTokenError(token))
                     }
                 }
             }
         }
+
         is Token.Identifier -> {
-            when (val text = token.name.toLowerCase()) {
+            when (val text = token.name.lowercase()) {
                 "even" -> Ok(Nth(2, 0))
                 "odd" -> Ok(Nth(2, 1))
                 "n" -> parseB(input, 1)
@@ -68,6 +68,7 @@ internal fun parseNth(input: Parser): Result<Nth, ParseError> {
                 }
             }
         }
+
         is Token.Plus -> {
             val afterPlusLocation = input.sourceLocation()
 
@@ -78,24 +79,24 @@ internal fun parseNth(input: Parser): Result<Nth, ParseError> {
 
             when (innerToken) {
                 is Token.Identifier -> {
-                    when (val text = innerToken.name.toLowerCase()) {
+                    when (val text = innerToken.name.lowercase()) {
                         "n" -> parseB(input, 1)
                         "n-" -> parseSignlessB(input, 1, -1)
                         else -> {
-                            val digitsResult = parseDashDigits(text)
-
-                            when (digitsResult) {
+                            when (val digitsResult = parseDashDigits(text)) {
                                 is Ok -> Ok(Nth(1, digitsResult.value))
                                 is Err -> Err(afterPlusLocation.newUnexpectedTokenError(innerToken))
                             }
                         }
                     }
                 }
+
                 else -> {
                     Err(afterPlusLocation.newUnexpectedTokenError(innerToken))
                 }
             }
         }
+
         else -> {
             Err(location.newUnexpectedTokenError(token))
         }
@@ -103,14 +104,17 @@ internal fun parseNth(input: Parser): Result<Nth, ParseError> {
 }
 
 /**
- * Parses the B part of the the An+B notation optionally leading signs.
+ * Parses the B part of the An+B notation optionally leading signs.
  */
 private fun parseB(input: Parser, a: Int): Result<Nth, ParseError> {
     val state = input.state()
 
     val token = when (val token = input.next()) {
         is Ok -> token.value
-        is Err -> return token
+        is Err -> {
+            input.reset(state)
+            return Ok(Nth(a, 0))
+        }
     }
 
     return when (token) {
@@ -124,6 +128,7 @@ private fun parseB(input: Parser, a: Int): Result<Nth, ParseError> {
                 Ok(Nth(a, 0))
             }
         }
+
         else -> {
             input.reset(state)
             Ok(Nth(a, 0))
@@ -150,6 +155,7 @@ private fun parseSignlessB(input: Parser, a: Int, sign: Int): Result<Nth, ParseE
                 Err(location.newUnexpectedTokenError(token))
             }
         }
+
         else -> {
             Err(location.newUnexpectedTokenError(token))
         }

@@ -797,16 +797,16 @@ private fun parsePseudoClass(
 
     if (state.allowsTreeStructuralPseudoClasses()) {
         when (name.lowercase()) {
-            "first-child" -> Ok(Component.Nth(NthData.first(ofType = false)))
-            "last-child" -> Ok(Component.Nth(NthData.last(ofType = false)))
-            "only-child" -> Ok(Component.Nth(NthData.only(ofType = false)))
-            "first-of-type" -> Ok(Component.Nth(NthData.first(ofType = true)))
-            "last-of-type" -> Ok(Component.Nth(NthData.last(ofType = true)))
-            "only-of-type" -> Ok(Component.Nth(NthData.only(ofType = true)))
-            "root" -> Ok(Component.Root)
-            "empty" -> Ok(Component.Empty)
-            "scope" -> Ok(Component.Scope)
-            "host" -> Ok(Component.Host(selector = null))
+            "first-child" -> return Ok(Component.Nth(NthData.first(ofType = false)))
+            "last-child" -> return Ok(Component.Nth(NthData.last(ofType = false)))
+            "only-child" -> return Ok(Component.Nth(NthData.only(ofType = false)))
+            "first-of-type" -> return Ok(Component.Nth(NthData.first(ofType = true)))
+            "last-of-type" -> return Ok(Component.Nth(NthData.last(ofType = true)))
+            "only-of-type" -> return Ok(Component.Nth(NthData.only(ofType = true)))
+            "root" -> return Ok(Component.Root)
+            "empty" -> return Ok(Component.Empty)
+            "scope" -> return Ok(Component.Scope)
+            "host" -> return Ok(Component.Host(selector = null))
             else -> {}
         }
     }
