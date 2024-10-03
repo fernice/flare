@@ -6,15 +6,8 @@
 package org.fernice.flare.selector
 
 import org.fernice.flare.dom.Element
-import org.fernice.flare.style.Rule
-import org.fernice.flare.style.StyleCollector
-import org.fernice.flare.style.parser.QuirksMode
-import org.fernice.std.Recycler
-
-private val MatchingRulesRecycler = Recycler<MutableList<Rule>>(
-    factory = { arrayListOf() },
-    reset = { it.clear() }
-)
+import org.fernice.flare.style.*
+import org.fernice.flare.style.ruletree.CascadeLevel
 
 /**
  * An optimized implementation of a Map that tries to accelerate the lookup of [Rule] for an [Element]
@@ -32,13 +25,13 @@ class SelectorMap {
     fun getAllMatchingRules(
         element: Element,
         context: MatchingContext,
-        collector: StyleCollector,
+        cascadeLevel: CascadeLevel,
+        cascadeData: CascadeData,
+        matchingRules: ApplicableDeclarationList,
     ) {
         if (isEmpty()) return
 
-        val matchingRules = MatchingRulesRecycler.acquire()
-
-        val quirksMode = context.quirksMode()
+        val quirksMode = context.quirksMode
 
         element.id?.let { id ->
             idHash.get(id, quirksMode)?.let { rules ->
@@ -46,6 +39,8 @@ class SelectorMap {
                     element,
                     rules,
                     context,
+                    cascadeLevel,
+                    cascadeData,
                     matchingRules,
                 )
             }
@@ -57,6 +52,8 @@ class SelectorMap {
                     element,
                     rules,
                     context,
+                    cascadeLevel,
+                    cascadeData,
                     matchingRules,
                 )
             }
@@ -67,6 +64,8 @@ class SelectorMap {
                 element,
                 rules,
                 context,
+                cascadeLevel,
+                cascadeData,
                 matchingRules,
             )
         }
@@ -75,26 +74,36 @@ class SelectorMap {
             element,
             other,
             context,
+            cascadeLevel,
+            cascadeData,
             matchingRules,
         )
-
-        matchingRules.sortWith(RuleComparator)
-
-        matchingRules.forEach { collector.collect(it.styleRule) }
-
-        MatchingRulesRecycler.release(matchingRules)
     }
 
     private fun getMatchingRules(
         element: Element,
         rules: List<Rule>,
         context: MatchingContext,
-        matchingRules: MutableList<Rule>,
+        cascadeLevel: CascadeLevel,
+        cascadeData: CascadeData,
+        matchingRules: ApplicableDeclarationList,
     ) {
         for (rule in rules) {
-            if (matchesSelector(rule.selector, rule.hashes, element, context)) {
-                matchingRules.add(rule)
+            if (rule.condition != null && !rule.condition.matches(context.device, context.quirksMode, context.ruleConditionCache).toBoolean(unknown = false)) {
+                continue
             }
+
+            if (!matchesSelector(rule.selector, rule.hashes, element, context)) {
+                continue
+            }
+
+            if (rule.containerConditionId != ContainerConditionId.None) {
+                if (!cascadeData.containerConditionMatches(rule.containerConditionId, context.device, element)) {
+                    continue
+                }
+            }
+
+            matchingRules.add(rule.toApplicableDeclarationBlock(cascadeLevel, cascadeData))
         }
     }
 
@@ -126,15 +135,31 @@ class SelectorMap {
                     is Component.ID -> return component
                     is Component.Class -> if (bucket == null || bucket !is Component.Class) bucket = component
                     is Component.LocalName -> if (bucket == null) bucket = component
-                    is Component.Negation -> if (bucket == null) bucket = findBucket(component.iterator())
-                    else -> {
+                    is Component.Is -> {
+                        for (selector in component.selectors) {
+                            if (bucket == null) bucket = findBucket(selector.iterator())
+                        }
                     }
+
+                    is Component.Where -> {
+                        for (selector in component.selectors) {
+                            if (bucket == null) bucket = findBucket(selector.iterator())
+                        }
+                    }
+
+                    is Component.Negation -> {
+                        for (selector in component.selectors) {
+                            if (bucket == null) bucket = findBucket(selector.iterator())
+                        }
+                    }
+
+                    else -> {}
                 }
             }
 
             if (!iterator.hasNextSequence()) break
             val combinator = iterator.nextSequence()
-            if (combinator !is Combinator.PseudoElement) break
+            if (combinator != Combinator.PseudoElement) break
         }
         return bucket
     }
@@ -153,19 +178,6 @@ class SelectorMap {
 
     fun size(): Int {
         return count
-    }
-}
-
-private object RuleComparator : Comparator<Rule> {
-
-    override fun compare(o1: Rule, o2: Rule): Int {
-        val c = o1.specificity.compareTo(o2.specificity)
-
-        if (c != 0) {
-            return c
-        }
-
-        return o1.sourceOrder.compareTo(o2.sourceOrder)
     }
 }
 

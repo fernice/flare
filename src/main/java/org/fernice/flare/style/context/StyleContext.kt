@@ -9,8 +9,9 @@ import org.fernice.flare.dom.Device
 import org.fernice.flare.dom.Element
 import org.fernice.flare.font.FontMetricsProvider
 import org.fernice.flare.style.StyleBloom
-import org.fernice.flare.style.StyleRoot
 import org.fernice.flare.style.Stylist
+import org.fernice.flare.style.stylesheet.RuleConditionCache
+import org.fernice.flare.style.stylesheet.SimpleRuleConditionCache
 
 class StyleContext(
     val device: Device,
@@ -25,4 +26,6 @@ class StyleContext(
         styleRoots.insert(element)
         bloomFilter.insertParent(element)
     }
+
+    val ruleConditionCache: RuleConditionCache = SimpleRuleConditionCache()
 }

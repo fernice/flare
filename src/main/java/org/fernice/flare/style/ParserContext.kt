@@ -3,20 +3,64 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package org.fernice.flare.style.parser
+
+package org.fernice.flare.style
 
 import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
+import org.fernice.flare.cssparser.SourceLocation
+import org.fernice.flare.style.stylesheet.CssRuleType
+import org.fernice.flare.style.stylesheet.CssRuleTypes
 import org.fernice.flare.url.Url
+import org.fernice.logging.FLogging
 import org.fernice.std.Result
-import java.net.URI
+import org.fernice.std.with
 
 class ParserContext(
+    val origin: Origin,
+    val urlData: Url,
+    var ruleTypes: CssRuleTypes,
     val parseMode: ParseMode,
     val quirksMode: QuirksMode,
-    val baseUrl: Url,
-    val source: URI? = null
-)
+) {
+
+    fun <R> nestForRule(ruleType: CssRuleType, block: (ParserContext) -> R): R {
+        val previousRuleTypes = ruleTypes
+        ruleTypes = ruleTypes.with(ruleType)
+        val result = block(this)
+        ruleTypes = previousRuleTypes
+        return result
+    }
+
+    fun isErrorReportingEnabled(): Boolean = LOG.isDebugEnabled
+
+    fun reportError(location: SourceLocation, error: ContextualError) {
+        if (!isErrorReportingEnabled()) return
+
+        LOG.warn("declaration parse error at $location: $error")
+    }
+
+    companion object {
+
+        fun from(
+            origin: Origin,
+            urlData: Url,
+            ruleType: CssRuleType?,
+            parseMode: ParseMode,
+            quirksMode: QuirksMode,
+        ): ParserContext {
+            return ParserContext(
+                origin = origin,
+                urlData = urlData,
+                ruleTypes = ruleType?.let { CssRuleTypes.of(it) } ?: CssRuleTypes(),
+                parseMode = parseMode,
+                quirksMode = quirksMode,
+            )
+        }
+
+        private val LOG = FLogging.logger { }
+    }
+}
 
 interface Parse<T> {
 

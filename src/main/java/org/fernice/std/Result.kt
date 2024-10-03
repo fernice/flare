@@ -107,6 +107,11 @@ data class Err<out E>(val value: E) : Result<Nothing, E>() {
     }
 }
 
+inline fun <T, E> Result<T, E>.propagate(block: (Err<E>) -> Nothing): T = when (this) {
+    is Ok -> value
+    is Err -> block(this)
+}
+
 /**
  * Maps the value of this Result using the specified [mapper] function and returns a Result
  * containing it. If the Result is [Err], the result of this function will also be [Err].
@@ -198,3 +203,16 @@ inline fun <T, E, F> Result<T, E>.orElse(block: (E) -> Result<T, F>): Result<T, 
     return this as Ok
 }
 
+inline fun <T, E> Result<T, E>.ifOk(closure: (T) -> Unit) {
+    when (this) {
+        is Ok -> closure(this.value)
+        is Err -> {}
+    }
+}
+
+inline fun <T, E> Result<T, E>.ifErr(closure: (E) -> Unit) {
+    when (this) {
+        is Ok -> {}
+        is Err -> closure(this.value)
+    }
+}

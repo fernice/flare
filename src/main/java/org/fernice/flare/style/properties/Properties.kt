@@ -10,7 +10,7 @@ import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
-import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.ParserContext
 import org.fernice.flare.style.properties.custom.Name
 import org.fernice.flare.style.properties.custom.SubstitutionCache
 import org.fernice.flare.style.properties.custom.UnparsedValue
@@ -124,18 +124,18 @@ abstract class AbstractLonghandId<T : PropertyDeclaration>(
 
 class LonghandIdSet : AbstractMutableSet<LonghandId>() {
     private val allocation = Properties.longhandIds.size
-    private val storage = LongArray(allocation % 64)
+    private val storage = LongArray((allocation + 63) ushr 6)
 
     private fun get(ordinal: Int): Boolean {
-        val bin = ordinal % 64
-        val bit = ordinal / 64
+        val bin = ordinal / 64
+        val bit = ordinal % 64
         val bits = storage[bin]
         return (bits and (1L shl bit)) != 0L
     }
 
     private fun set(ordinal: Int): Boolean {
-        val bin = ordinal % 64
-        val bit = ordinal / 64
+        val bin = ordinal / 64
+        val bit = ordinal % 64
         val bits = storage[bin]
         if ((bits and (1L shl bit)) == 0L) {
             storage[bin] = bits or (1L shl bit)
@@ -145,8 +145,8 @@ class LonghandIdSet : AbstractMutableSet<LonghandId>() {
     }
 
     private fun clear(ordinal: Int): Boolean {
-        val bin = ordinal % 64
-        val bit = ordinal / 64
+        val bin = ordinal / 64
+        val bit = ordinal % 64
         val bits = storage[bin]
         if ((bits and (1L shl bit)) != 0L) {
             storage[bin] = bits and (1L shl bit).inv()
@@ -396,7 +396,7 @@ abstract class PropertyDeclaration(
                     input.reset(state)
 
                     TemplateValue.parse(input)
-                        .map { UnparsedValue(it, context.baseUrl, fromShorthand = null) }
+                        .map { UnparsedValue(it, context.urlData, fromShorthand = null) }
                         .map { VariablesDeclaration(id.id, it) }
                         .map { declarations.add(PropertyDeclaration.WithVariables(it)) }
                         .unwrap { return it }
@@ -426,7 +426,7 @@ abstract class PropertyDeclaration(
                     input.reset(state)
 
                     TemplateValue.parse(input)
-                        .map { UnparsedValue(it, context.baseUrl, fromShorthand = id.id) }
+                        .map { UnparsedValue(it, context.urlData, fromShorthand = id.id) }
                         .map { value -> id.id.longhands.map { longhand -> VariablesDeclaration(longhand, value) } }
                         .map { values -> values.forEach { declarations.add(PropertyDeclaration.WithVariables(it)) } }
                         .unwrap { return it }

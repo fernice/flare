@@ -41,67 +41,69 @@ sealed class Token {
 
     // Matches
 
-    object SuffixMatch : Token()
+    data object SuffixMatch : Token()
 
-    object SubstringMatch : Token()
+    data object SubstringMatch : Token()
 
-    object PrefixMatch : Token()
+    data object PrefixMatch : Token()
 
-    object DashMatch : Token()
+    data object DashMatch : Token()
 
-    object IncludeMatch : Token()
+    data object IncludeMatch : Token()
 
     // Delimiters
 
     data class Delimiter(val char: Char) : Token()
 
-    object Whitespace : Token()
+    data object Whitespace : Token()
 
-    object Asterisk : Token()
+    data object Asterisk : Token()
 
-    object Minus : Token()
+    data object Minus : Token()
 
-    object Plus : Token()
+    data object Plus : Token()
 
-    object Dot : Token()
+    data object Dot : Token()
 
-    object Colon : Token()
+    data object Colon : Token()
 
-    object SemiColon : Token()
+    data object SemiColon : Token()
 
-    object Solidus : Token()
+    data object Solidus : Token()
 
-    object Pipe : Token()
+    data object Pipe : Token()
 
-    object Tidle : Token()
+    data object Tidle : Token()
 
-    object Comma : Token()
+    data object Comma : Token()
 
-    object Gt : Token()
+    data object Gt : Token()
 
-    object Lt : Token()
+    data object Lt : Token()
 
-    object Equal : Token()
+    data object Equal : Token()
 
-    object Bang : Token()
+    data object Bang : Token()
 
-    object LParen : Token()
+    data object Ampersand : Token()
 
-    object RParen : Token()
+    data object LParen : Token()
 
-    object LBrace : Token()
+    data object RParen : Token()
 
-    object RBrace : Token()
+    data object LBrace : Token()
 
-    object LBracket : Token()
+    data object RBrace : Token()
 
-    object RBracket : Token()
+    data object LBracket : Token()
 
-    object CDC : Token()
+    data object RBracket : Token()
 
-    object CDO : Token()
+    data object CDC : Token()
 
-    object Column : Token()
+    data object CDO : Token()
+
+    data object Column : Token()
 
     final override fun toString(): kotlin.String {
         return when (this) {
@@ -150,17 +152,17 @@ sealed class BlockType {
     /**
      * Block consisting out of opening ('(') and a closing parenthesis (')')
      */
-    object Parenthesis : BlockType()
+    data object Parenthesis : BlockType()
 
     /**
      * Block consisting out of opening ('[') and a closing bracket (']')
      */
-    object Bracket : BlockType()
+    data object Bracket : BlockType()
 
     /**
      * Block consisting out of opening ('{') and a closing brace ('}')
      */
-    object Brace : BlockType()
+    data object Brace : BlockType()
 
     val opening: String
         get() = when (this) {

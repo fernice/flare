@@ -13,9 +13,10 @@ import org.fernice.flare.cssparser.ParseErrorKind
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.ParserInput
 import org.fernice.flare.cssparser.Token
-import org.fernice.flare.style.parser.ParseMode
-import org.fernice.flare.style.parser.ParserContext
-import org.fernice.flare.style.parser.QuirksMode
+import org.fernice.flare.style.Origin
+import org.fernice.flare.style.ParseMode
+import org.fernice.flare.style.ParserContext
+import org.fernice.flare.style.QuirksMode
 import org.fernice.flare.style.properties.CssWideKeyword
 import org.fernice.flare.style.properties.CssWideKeywordDeclaration
 import org.fernice.flare.style.properties.CustomPropertiesList
@@ -67,10 +68,12 @@ class UnparsedValue(
 
         val css = performSubstitution(customProperties) ?: return invalidAtComputedValueTime()
 
-        val context = ParserContext(
+        val context = ParserContext.from(
+            origin = Origin.Author, // technically not correct
+            urlData = url,
+            ruleType = null, // technically not correct
             parseMode = ParseMode.Default, // technically not correct
             quirksMode = QuirksMode.NoQuirks, // technically not correct
-            baseUrl = url,
         )
 
         val input = Parser.from(ParserInput(css))

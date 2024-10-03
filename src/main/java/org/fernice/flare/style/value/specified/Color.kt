@@ -12,7 +12,7 @@ import org.fernice.flare.cssparser.ParseError
 import org.fernice.flare.cssparser.Parser
 import org.fernice.flare.cssparser.RGBA
 import org.fernice.flare.cssparser.ToCss
-import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.std.map

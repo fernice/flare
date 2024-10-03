@@ -13,7 +13,7 @@ import org.fernice.flare.cssparser.ToCss
 import org.fernice.flare.cssparser.Token
 import org.fernice.flare.cssparser.newUnexpectedTokenError
 import org.fernice.flare.panic
-import org.fernice.flare.style.parser.ParserContext
+import org.fernice.flare.style.ParserContext
 import org.fernice.flare.style.value.Context
 import org.fernice.flare.style.value.SpecifiedValue
 import org.fernice.flare.style.value.toComputedValue

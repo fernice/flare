@@ -5,16 +5,8 @@
  */
 package org.fernice.flare.style.source
 
-import org.fernice.flare.style.ApplicableDeclarationBlock
-import org.fernice.flare.style.Importance
-import org.fernice.flare.style.Origin
 import org.fernice.flare.style.properties.PropertyDeclarationBlock
 
 sealed interface StyleSource {
-
-    val origin: Origin
-
     val declarations: PropertyDeclarationBlock
-
-    fun getApplicableDeclarations(importance: Importance): ApplicableDeclarationBlock
 }

@@ -9,11 +9,10 @@ import org.fernice.flare.dom.Element
 import org.fernice.flare.dom.ElementStyles
 import org.fernice.flare.selector.MatchingContext
 import org.fernice.flare.selector.PseudoElement
+import org.fernice.flare.selector.VisitedHandlingMode
 import org.fernice.flare.style.context.StyleContext
-import org.fernice.flare.style.parser.QuirksMode
 import org.fernice.flare.style.ruletree.RuleNode
 import org.fernice.flare.style.source.StyleAttribute
-import org.fernice.flare.style.source.StyleSource
 import org.fernice.std.Recycler
 
 class MatchingResult(val ruleNode: RuleNode)
@@ -41,7 +40,7 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
 
         val pseudoElements = PerPseudoElementMap<ComputedValues>()
 
-        PseudoElement.forEachEagerCascadedPseudoElement { pseudoElement ->
+        for (pseudoElement in PseudoElement.entries) {
             // prevent computation for a pseudo-element that doesn't even match
             if (element.hasPseudoElement(pseudoElement)) {
                 val previousStyle = element.styles?.pseudos?.get(pseudoElement)
@@ -105,34 +104,30 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
     private fun matchStyle(element: Element, pseudoElement: PseudoElement?, styleAttribute: StyleAttribute?): MatchingResult {
         val bloomFilter = context.bloomFilter.filter()
         val matchingContext = MatchingContext(
+            context.device,
             bloomFilter,
-            QuirksMode.NoQuirks
+            QuirksMode.NoQuirks,
+            VisitedHandlingMode.AllLinksVisitedAndUnvisited,
+            context.ruleConditionCache,
         )
 
-        val styleContainer = StyleContainerRecycler.acquire()
+        val rules = ApplicableDeclarationListRecycler.acquire()
 
-        for (origin in Origin.values) {
-            for (styleRoot in context.styleRoots.reversedIterator()) {
-                styleRoot.contributeMatchingStyles(
-                    origin,
-                    element,
-                    pseudoElement,
-                    matchingContext,
-                    styleContainer,
-                )
-            }
-
-            if (origin == Origin.Author && styleAttribute != null) {
-                styleContainer.collect(styleAttribute)
-            }
-        }
+        RuleCollector(
+            context.styleRoots.asReversedSequence(),
+            element,
+            pseudoElement,
+            styleAttribute,
+            matchingContext,
+            rules
+        ).collectAll()
 
         val stylist = context.stylist
-        val ruleNode = stylist.ruleTree.computedRuleNode(styleContainer.iterator())
+        val ruleNode = stylist.ruleTree.computedRuleNode(rules.asSequence().map { it.forRuleTree() }.iterator())
 
         stylist.ruleTree.gc()
 
-        StyleContainerRecycler.release(styleContainer)
+        ApplicableDeclarationListRecycler.release(rules)
 
         return MatchingResult(ruleNode)
     }
@@ -156,23 +151,8 @@ class ElementStyleResolver(val element: Element, val context: StyleContext) {
     }
 }
 
-private class StyleContainer : StyleCollector, Iterable<StyleSource> {
-    private val styles: MutableList<StyleSource> = arrayListOf()
-
-    override fun collect(style: StyleSource) {
-        styles.add(style)
-    }
-
-    fun isEmpty(): Boolean = styles.isEmpty()
-
-    override fun iterator(): Iterator<StyleSource> = styles.iterator()
-
-    fun clear() {
-        styles.clear()
-    }
-}
-
-private val StyleContainerRecycler = Recycler(
-    factory = { StyleContainer() },
+private val ApplicableDeclarationListRecycler = Recycler(
+    factory = { ArrayList<ApplicableDeclarationBlock>() },
     reset = { it.clear() },
 )
+
