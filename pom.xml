@@ -5,10 +5,10 @@
     <parent>
         <groupId>org.fernice</groupId>
         <artifactId>fernice-maven</artifactId>
-        <version>1.3.0</version>
+        <version>1.3.1</version>
     </parent>
     <artifactId>fernice-flare</artifactId>
-    <version>1.3.0</version>
+    <version>1.3.1</version>
 
     <name>fernice-flare</name>
     <description>CSS 3 engine written in Kotlin</description>
@@ -22,8 +22,8 @@
     </scm>
 
     <properties>
-        <jansi.version>2.4.0</jansi.version>
-        <log4j.version>2.17.1</log4j.version>
+        <jansi.version>2.4.1</jansi.version>
+        <log4j.version>2.24.1</log4j.version>
     </properties>
 
     <dependencyManagement>
