@@ -185,9 +185,11 @@ class SelectorMap {
     }
 
     fun clear() {
+        root.clear()
         idHash.clear()
         classHash.clear()
         localNameHash.clear()
+        namespaceHash.clear()
         other.clear()
         count = 0
     }
