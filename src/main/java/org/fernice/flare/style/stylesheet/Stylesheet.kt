@@ -22,6 +22,8 @@ class Stylesheet(
 
     override fun iterator(): Iterator<CssRule> = rules.iterator()
 
+    override fun toString(): String = "Stylesheet($origin '$source', rules=${rules.size})"
+
     companion object {
 
         fun from(

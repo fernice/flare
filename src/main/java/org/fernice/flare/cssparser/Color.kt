@@ -327,7 +327,7 @@ private fun fromHex(c: Char): Int {
  * Parses a color keyword into a [Color].
  */
 private fun parseColorKeyword(keyword: String): Result<Color, Unit> {
-    val color = when (keyword.toLowerCase()) {
+    val color = when (keyword.lowercase()) {
         "black" -> rgb(0, 0, 0)
         "silver" -> rgb(192, 192, 192)
         "gray" -> rgb(128, 128, 128)
