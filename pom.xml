@@ -23,7 +23,7 @@
 
     <properties>
         <jansi.version>2.4.1</jansi.version>
-        <log4j.version>2.24.1</log4j.version>
+        <log4j.version>2.25.3</log4j.version>
     </properties>
 
     <dependencyManagement>
